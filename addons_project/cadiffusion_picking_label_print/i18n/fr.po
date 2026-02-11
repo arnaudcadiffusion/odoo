@@ -1,0 +1,163 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* cadiffusion_picking_label_print
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0+e\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-10-15 14:14+0000\n"
+"PO-Revision-Date: 2025-10-15 14:14+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: cadiffusion_picking_label_print
+#: model_terms:ir.ui.view,arch_db:cadiffusion_picking_label_print.wizard_label_print_message_form
+msgid "Close"
+msgstr "Fermer"
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model,name:cadiffusion_picking_label_print.model_res_config_settings
+msgid "Config Settings"
+msgstr "Paramètres de config"
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: code:addons/cadiffusion_picking_label_print/models/stock_picking.py:0
+#, python-format
+msgid "Error while printing the label: "
+msgstr "Erreur lors de l'impression de l'étiquette :"
+
+#. module: cadiffusion_picking_label_print
+#: code:addons/cadiffusion_picking_label_print/models/stock_picking.py:0
+#, python-format
+msgid "Error while transport: "
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message__id
+msgid "ID"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_stock_picking__label_printed
+msgid "Label Printed"
+msgstr "Etiquette imprimée"
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message____last_update
+msgid "Last Modified on"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.actions.act_window,name:cadiffusion_picking_label_print.wizard_label_print_message_action
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_wizard_label_print_message__message
+msgid "Message"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_stock_picking__order_ref
+msgid "N# Commande"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model_terms:ir.ui.view,arch_db:cadiffusion_picking_label_print.res_config_settings_view_form
+msgid "Picking Label Print"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_res_config_settings__picking_label_print_server_url
+msgid "Picking Label Print Server Url"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model.fields,field_description:cadiffusion_picking_label_print.field_res_config_settings__picking_transpot_server_url
+msgid "Picking Transpot Server Url"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model_terms:ir.ui.view,arch_db:cadiffusion_picking_label_print.res_config_settings_view_form
+msgid "Picking transport"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: code:addons/cadiffusion_picking_label_print/models/stock_picking.py:0
+#, python-format
+msgid "Please configure webhook URL in the settings for printing your label."
+msgstr ""
+"Veuillez configurer l'URL du webhook dans les paramètres pour imprimer votre"
+" étiquette."
+
+#. module: cadiffusion_picking_label_print
+#: code:addons/cadiffusion_picking_label_print/models/stock_picking.py:0
+#, python-format
+msgid ""
+"Please configure webhook URL in the settings for transporting your picking."
+msgstr "Veuillez configurer l'URL du webhook dans les paramètres pour le transport de vos pickings"
+
+#. module: cadiffusion_picking_label_print
+#: model_terms:ir.ui.view,arch_db:cadiffusion_picking_label_print.view_picking_form
+msgid "Print Labels"
+msgstr "Imprimer étiquette"
+
+#. module: cadiffusion_picking_label_print
+#: code:addons/cadiffusion_picking_label_print/models/stock_picking.py:0
+#, python-format
+msgid ""
+"The label has already been printed,\n"
+" you may check off the \"Label Printed\" to re-print!"
+msgstr ""
+"L'étiquette a déjà été imprimée.\n"
+"Si vous avez besoin de la ré-imprimer :\n"
+"- Allez dans la section « Info complémentaire » \n"
+"- Décochez la case « Etiquette imprimée »\n"
+"Vous pouvez désormais ré-imprimer l’étiquette !"
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model,name:cadiffusion_picking_label_print.model_stock_picking
+msgid "Transfer"
+msgstr "Transfert"
+
+#. module: cadiffusion_picking_label_print
+#: model_terms:ir.ui.view,arch_db:cadiffusion_picking_label_print.view_picking_form
+msgid "Transport"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: model:ir.model,name:cadiffusion_picking_label_print.model_wizard_label_print_message
+msgid "wizard.label.print.message"
+msgstr ""
+
+#. module: cadiffusion_picking_label_print
+#: code:addons/cadiffusion_picking_label_print/models/stock_picking.py:0
+#, python-format
+msgid "✅ Searching for the best carrier…"
+msgstr "✅ Recherche du meilleur transporteur en cours…"

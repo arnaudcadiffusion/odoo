@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <data>
+        <record id="view_res_partner_form" model="ir.ui.view">
+            <field name="name">res.partner.form</field>
+            <field name="model">res.partner</field>
+            <field name="inherit_id" ref="account.view_partner_property_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//page[@name='accounting']" position="inside">
+                    <group name="customer_credit" string="Customer Credit">
+                        <field name="is_credit_limit"/>
+                        <field name="credit_limit" invisible="not is_credit_limit" force_save="1"/>
+                        <field name="Blocking_limit" invisible="not is_credit_limit"/>
+                        <field name="credit_on_hold" force_save="1"/>
+                    </group>
+
+                </xpath>
+                <xpath expr="//notebook/page[3]" position="after">
+                    <page string="Accounting Information">
+                        <separator string="Account Statements"/>
+                        <group></group>
+                        <field name="balance_invoice_ids">
+                            <list editable="bottom" create="0" delete="0">
+                                <field name="name"/>
+                                <field name="invoice_partner_display_name" string="Partner name"/>
+                                <field name="invoice_date"/>
+                                <field name="invoice_date_due"/>
+                                <field name="activity_ids" invisible="1"/>
+                                <field name="amount_untaxed_signed"/>
+                                <field name="amount_total_signed"/>
+                                <field name="payment_state"/>
+                                <field name="state"/>
+                            </list>
+                        </field>
+                        <group></group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="view_sale_order_form" model="ir.ui.view">
+            <field name="name">sale.order.form</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <field name="payment_term_id" position="after">
+                    <field name="credit_limit_id"/>
+                </field>
+                <field name="credit_limit_id" position="after">
+                    <field name="total_receivable"/>
+                    <field name="is_confirm" invisible='1'/>
+                    <field name="is_warning" invisible='1'/>
+                </field>
+                <xpath expr="//header" position="after">
+                    <div groups="account.group_account_invoice" class="alert alert-info" role="alert"
+                         style="margin-bottom: 10px;font-weight: bold;color: black;" invisible="not partner_id">
+                        The Customer's Due Amount is
+                        <bold>
+                            <field name="customer_due_amt"/>
+                        </bold>
+                    </div>
+                </xpath>
+
+                <xpath expr="//sheet/div[@name='button_box']" position="after">
+                    <div groups="account.group_account_invoice" class="oe_title alert alert-danger" role="alert"
+                         style="margin-bottom: 10px;font-weight: bold;text-align: center;color: black;"
+                         invisible="not partner_id or not is_warning">
+                        The Customer's Credit Limit has been crossed
+                    </div>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

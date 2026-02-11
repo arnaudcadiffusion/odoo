@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data>
+
+		<record model="ir.ui.view" id="bi_margin_sale_order">
+			<field name="name">bi.order.margin.view.form</field>
+			<field name="model">sale.order</field>
+			<field name="inherit_id" ref="sale.view_order_form" />
+			<field name="arch" type="xml">
+				<xpath expr="//group[@name='sale_total']" position="after">
+					<group>
+						<field name="margin_calc" widget='monetary'
+							options="{'currency_field': 'currency_id'}" />
+						<field name="margin_cust" widget='monetary'
+							options="{'currency_field': 'currency_id'}" />
+
+					</group>
+				</xpath>
+
+				<xpath
+					expr="//field[@name='order_line']/list/field[@name='product_uom_qty']"
+					position="after">
+					<field name="line_margin" />
+				</xpath>
+			</field>
+		</record>
+
+		<record model="ir.ui.view" id="bi_sale_margin_sale_order">
+			<field name="name">bi.sale.margin.view.form</field>
+			<field name="model">sale.order</field>
+			<field name="inherit_id" ref="sale_margin.sale_margin_sale_order" />
+			<field name="arch" type="xml">
+				<xpath expr="//field[@name='margin']" position="replace">
+					<field name="margin" class="oe_inline"/>
+				</xpath>
+			</field>
+		</record>
+
+
+		<record model="ir.ui.view" id="margin_view_pivot_sale">
+			<field name="name">margin.pivot.inherit.sale</field>
+			<field name="model">sale.report</field>
+			<field name="inherit_id" ref="sale.view_order_product_pivot"/>
+			<field name="arch" type="xml">
+				<xpath expr="//field[@name='product_uom_qty']" position="after">
+					<field name="margin_subtotal_signed" type="measure"/>
+				</xpath>
+			</field>
+	</record>
+
+
+	</data>
+</odoo>
