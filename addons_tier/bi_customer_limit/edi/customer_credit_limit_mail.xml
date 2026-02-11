@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <data>
+        <record id="email_template_edi_credit_limit" model="mail.template">
+            <field name="name">Need Attention</field>
+            <field name="model_id" ref="bi_customer_limit.model_sale_order"/>
+            <field name="subject">Credit limit exceeded of in sale order</field>
+            <field name="auto_delete" eval="True"/>
+            <field name="body_html" type="html">
+                <div style="font-family:Quicksand; font-size: 20px; color: rgb(34, 34, 34); background-color: #FFF;">
+                    <p>Dear Administrator,</p>
+                    <p>In Sale Order <t t-out="object.name"></t>, User <t t-out="object.partner_id.name"></t> has
+                        exceeded its credit limit by <t t-out="object.exceeded_amount"></t>. Sale order has still been
+                        placed. You can put hold on that particular customer.
+                    </p>
+                    <p>You can review particular order from
+                        <u>
+                            <a t-att-href="'%s' % object.sale_url">this link</a>
+                        </u>
+                    </p>
+                </div>
+            </field>
+        </record>
+    </data>
+</odoo>

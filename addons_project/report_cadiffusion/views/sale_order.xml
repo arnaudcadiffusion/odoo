@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<odoo>
+        <record id="view_form_sale_order_line_add_article_cmd" model="ir.ui.view">
+            <field name="name">sale.order form add article cmdé</field>
+            <field name="priority">200</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="model">sale.order</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+			    <!--so.line list 视图中添加pack信息-->
+                <xpath expr="//header/button[@name='payment_action_capture']" position="after">
+                    <button name="print_invoice" type="object" string="Print Invoice"
+                        invisible="invoice_count==0" groups='sales_team.group_sale_manager'/>
+                </xpath>
+                <xpath expr="//field[@name='order_line']/list/field[@name='currency_id']" position="after">
+                    <field name="article_cmd"/>
+			    </xpath>
+            </field>
+        </record>
+</odoo>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+        <record id="report_external_layout_boxed" model="ir.ui.view">
+            <field name="name">Cadiffusion external layout boxed</field>
+            <field name="inherit_id" ref="web.external_layout_boxed"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@class='pt-5']" position="attributes">
+                    <attribute name="style">style="font-size: small;"</attribute>
+                </xpath>
+            </field>
+        </record>
+    </odoo>
