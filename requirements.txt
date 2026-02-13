@@ -1,4 +1,6 @@
 # requirements.txt
 # You can add here the various libraries that are useful in your project. 
-# factur-x is used for Account Invoice Factur-X module.
 factur-x
+requests_oauthlib
+astor
+python-stdnum>=1.18
