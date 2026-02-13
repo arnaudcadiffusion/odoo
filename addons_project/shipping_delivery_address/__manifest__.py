@@ -11,7 +11,7 @@
     "author": "Shine IT",
     "website": "https://www.openerp.cn/",
     "depends": [
-        "sale_managment",
+        "sale_management",
     ],
     "data": [],
     "installable": True,
