@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <record id="view_product_template_add_buying_price" model="ir.ui.view">
     <field name="name">product.template.form.add.buying.price</field>
