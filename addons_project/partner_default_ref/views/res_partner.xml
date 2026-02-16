@@ -2,7 +2,8 @@
 <odoo>
 	<!--add the search bar for city-->
 	<record id="view_partner_search_add_city_search" model="ir.ui.view">
-		<field name="name">res.partner.view.search.inherit.city</field>
+		<field name="name">search city in contacts</field>
+		<field name="name">res.partner.view.search.inherit</field>
         <field name="model">res.partner</field>
 		<field name="inherit_id" ref="contacts.view_res_partner_filter"/>
         <field name="arch" type="xml">
