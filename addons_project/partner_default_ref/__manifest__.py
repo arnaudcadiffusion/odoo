@@ -15,7 +15,7 @@
         "base",
         "sale",
         "account",
-        "l10n_fr_chorus_account",
+        # "l10n_fr_chorus_account",
     ],
     "data": [
         "views/res_partner.xml",
