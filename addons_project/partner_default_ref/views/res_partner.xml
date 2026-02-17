@@ -4,6 +4,7 @@
 	<record id="view_partner_search_add_city_search" model="ir.ui.view">
 		<field name="name">res.partner.inherit.city.search</field>
         <field name="model">res.partner</field>
+		<field name="type">search</field>
 		<field name="priority">16</field>
 		<field name="inherit_id" ref="base.view_res_partner_filter"/>
         <field name="arch" type="xml">
