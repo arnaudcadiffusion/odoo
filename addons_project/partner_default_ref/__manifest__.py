@@ -12,10 +12,10 @@
     "author": "Shine IT",
     "website": "https://www.openerp.cn/",
     "depends": [
-        "contacts",
+        "base",
         "sale",
         "account",
-        # "l10n_fr_chorus_account",
+        "l10n_fr_chorus_account",
     ],
     "data": [
         "views/res_partner.xml",
