@@ -64,7 +64,6 @@ class Tender(models.Model):
     _sql_constraints = [('name_uniq', 'unique(name)', "Name Must Be Unique")]
 
 
-    @api.returns('self', lambda value: value.id)
     def copy(self, default=None):
         # TDE FIXME: should probably be copy_data
         self.ensure_one()
