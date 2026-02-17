@@ -1,6 +1,4 @@
-from odoo import api, fields, models, tools, _
-from odoo.addons import decimal_precision as dp
-import datetime
+from odoo import api, fields, models, _
 
 
 class Tender(models.Model):
@@ -266,10 +264,8 @@ class TenderPriceLine(models.Model):
         ondelete='cascade',
         string='Tender Order', required=True)
     revision_price = fields.Float(
-        'Unit Price',
-        required=True,
-        digits=dp.get_precision('Product Price'),
-        default=0.0)
+        "Unit Price", required=True, digits="Product Price", default=0.0
+    )
     start_date = fields.Date('Start Date', related='tender_id.start_date')
     state = fields.Selection(
         [

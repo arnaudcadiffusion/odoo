@@ -2,12 +2,12 @@
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 
 from odoo import api, fields, models
-from odoo.addons import decimal_precision as dp
 
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
     article_cmd = fields.Char('Article cmdé', related='sale_line_ids.article_cmd',related_sudo=True)
-    price_unit_reduced = fields.Float(string='Reduce Price',compute="_compute_reduced_price",digits=dp.get_precision('Product Price'))
+    price_unit_reduced = fields.Float(string='Reduce Price',compute="_compute_reduced_price",digits="Product Price"
+)
 
     @api.depends('price_unit', 'discount')
     def _compute_reduced_price(self):
