@@ -2,14 +2,14 @@
 <odoo>
 	<!--add the search bar for city-->
 	<record id="view_partner_search_add_city_search" model="ir.ui.view">
-		<field name="name">res.partner.view.search.inherit</field>
+		<field name="name">res.partner.inherit.city.search</field>
         <field name="model">res.partner</field>
-		<field name="mode">primary</field>
+		<field name="priority">300</field>
 		<field name="inherit_id" ref="base.view_res_partner_filter"/>
         <field name="arch" type="xml">
-		    <field name='category_id' position="before">
+		    <xpath expr="//search/field[@name='category_id']" position="before">
 			    <field name="city" filter_domain="[('city','ilike',self)]"/>
-			</field>
+			</xpath>
         </field>
 	</record>
 </odoo>
