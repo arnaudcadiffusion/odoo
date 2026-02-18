@@ -3,7 +3,7 @@
 	<record id="view_form_pricelist_add_handler" model="ir.ui.view">
 	    <field name="name">pricelist item handle</field>
 	    <field name="priority">100</field>
-	    <field name="inherit_id" ref="product.product_pricelist_view_inherit"/>
+	    <field name="inherit_id" ref="product.product_pricelist_view"/>
 	    <field name="model">product.pricelist</field>
 	    <field name="type">form</field>
 	    <field name="arch" type="xml">
