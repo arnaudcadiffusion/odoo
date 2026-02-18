@@ -39,19 +39,19 @@ class PurchaseOrderLine(models.Model):
             self.product_packaging_qty = 1
             self._onchange_product_packaging_qty()
 
-    @api.onchange('product_uom', 'product_qty')
+    @api.onchange('product_uom_id', 'product_qty')
     def _onchange_update_product_packaging_qty(self):
         if not self.product_packaging_id:
             self.product_packaging_qty = 0
         else:
             packaging_uom = self.product_packaging_id.product_uom_id
-            packaging_uom_qty = self.product_uom._compute_quantity(self.product_qty, packaging_uom)
+            packaging_uom_qty = self.product_uom_id._compute_quantity(self.product_qty, packaging_uom)
             self.product_packaging_qty = float_round(packaging_uom_qty / self.product_packaging_id.qty, precision_rounding=packaging_uom.rounding)
 
     def _compute_packaging_amount(self):
         default_uom = self.product_id.uom_id
         pack = self.product_packaging_id
-        q = default_uom._compute_quantity(pack.qty, self.product_uom)
+        q = default_uom._compute_quantity(pack.qty, self.product_uom_id)
         return q
 
     @api.onchange('product_qty')
