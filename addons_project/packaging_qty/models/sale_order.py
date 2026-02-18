@@ -10,7 +10,7 @@ class SaleOrderLine(models.Model):
     def _compute_packaging_amount(self):
         default_uom = self.product_id.uom_id
         pack = self.product_packaging_id
-        q = default_uom._compute_quantity(pack.qty, self.product_uom)
+        q = default_uom._compute_quantity(pack.qty, self.product_uom_id)
         return q
 
 
@@ -49,13 +49,13 @@ class SaleOrderLine(models.Model):
             self.product_packaging_qty = 1
             self._onchange_product_packaging_qty()
             
-    @api.onchange('product_uom', 'product_uom_qty')
+    @api.onchange('product_uom_id', 'product_uom_qty')
     def _onchange_update_product_packaging_qty(self):
         if not self.product_packaging_id:
             self.product_packaging_qty = False
         else:
             packaging_uom = self.product_packaging_id.product_uom_id
-            packaging_uom_qty = self.product_uom._compute_quantity(self.product_uom_qty, packaging_uom)
+            packaging_uom_qty = self.product_uom_id._compute_quantity(self.product_uom_qty, packaging_uom)
             self.product_packaging_qty = float_round(packaging_uom_qty / self.product_packaging_id.qty, precision_rounding=packaging_uom.rounding)
 
     @api.onchange('product_uom_qty')

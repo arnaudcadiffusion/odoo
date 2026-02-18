@@ -13,7 +13,7 @@ class SaleOrder(models.Model):
     tender_info = fields.Text('Tender Info', compute='_compute_tender_info')
 
     @api.depends('order_line', 'order_line.product_uom_qty',
-                 'order_line.product_uom', 'order_line.product_id',
+                 'order_line.product_uom_id', 'order_line.product_id',
                  'pricelist_id')
     def _compute_tenders(self):
         for record in self:
@@ -26,7 +26,7 @@ class SaleOrder(models.Model):
                     self.env.context,
                     partner_id=record.partner_id.id,
                     date=record.date_order,
-                    uom=order.product_uom.id)
+                    uom=order.product_uom_id.id)
                 _, rule_id = record.pricelist_id.with_context(
                     product_context).get_product_price_rule(
                         order.product_id, order.product_uom_qty or 1.0,

@@ -9,7 +9,7 @@ def _get_compute_packaging_qty(record):
         product_qty = record.product_qty
         default_uom = record.product_id.uom_id
         pack = record.product_packaging_id
-        q = default_uom._compute_quantity(pack.qty, record.product_uom)
+        q = default_uom._compute_quantity(pack.qty, record.product_uom_id)
         packaging_qty = product_qty//q +1 if product_qty%q else product_qty//q
     else:
         packaging_qty = False
