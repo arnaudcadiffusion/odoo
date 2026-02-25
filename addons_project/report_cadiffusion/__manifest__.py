@@ -14,7 +14,7 @@
     "depends": [
         "sale_stock",
         "account",
-        "packaging_qty",
+        # "packaging_qty",
         "purchase",
         "sales_team",
     ],
