@@ -28,9 +28,11 @@ class SaleOrder(models.Model):
                     date=record.date_order,
                     uom=order.product_uom_id.id)
                 _, rule_id = record.pricelist_id.with_context(
-                    product_context).get_product_price_rule(
-                        order.product_id, order.product_uom_qty or 1.0,
-                        record.partner_id)
+                    product_context)._get_product_price_rule(
+                        product=order.product_id,
+                        quantity=order.product_uom_qty or 1.0,
+                        uom=order.product_uom_id,
+                        )
 
                 rule_ids.append(rule_id)
             items = self.env['product.pricelist.item'].browse(rule_ids)

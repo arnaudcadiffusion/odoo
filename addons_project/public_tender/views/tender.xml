@@ -17,7 +17,6 @@
     <record id="view_tender_order_form" model="ir.ui.view">
         <field name="name">Tender Order Form</field>
         <field name="model">tender.order</field>
-        <field name="type">form</field>
         <field name="arch" type="xml">
             <form string="Tender Order">
                 <header>
