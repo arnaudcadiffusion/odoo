@@ -102,12 +102,12 @@
         </field>
     </record>
 
-    <act_window
-        id="action_tender_order"
-        name="Tender"
-        res_model="tender.order"
-        view_mode="list,form"
-        target="current" />
+    <record id="action_tender_order" model="ir.actions.act_window">
+        <field name="name">Tender</field>
+        <field name="res_model">tender.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="target">current</field>
+    </record>
 
     <menuitem id="menu_tender_root"
         name="Tender Order"
