@@ -106,7 +106,7 @@
         id="action_tender_order"
         name="Tender"
         res_model="tender.order"
-        view_mode="tree,form"
+        view_mode="list,form"
         target="current" />
 
     <menuitem id="menu_tender_root"
