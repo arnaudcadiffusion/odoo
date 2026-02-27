@@ -73,8 +73,8 @@
                             <tr>
                                 <t t-set="colspan" t-value="8"/>
                                 <th class="text-left"><span>Description</span></th>
-                                <th><strong>Carton</strong></th>
-                                <th><strong>Unite Carton</strong></th>
+                                <!-- <th><strong>Carton</strong></th>
+                                <th><strong>Unite Carton</strong></th> -->
                                 <th class="d-none text-left"><span>Source Document</span></th>
                                 <th class="text-right"><span>Quantity</span></th>
                                 <th t-attf-class="text-right {{ 'd-none d-md-table-cell' if report_type == 'html' else '' }}"><span>Unit Price</span></th>
@@ -100,8 +100,8 @@
                                 <tr t-att-class="'bg-200 font-weight-bold' if line.display_type == 'line_section' else 'font-italic' if line.display_type == 'line_note' else ''">
                                     <t t-if="not line.display_type" name="account_invoice_line_accountable">
                                         <td name="account_invoice_line_name"><span t-field="line.name" t-options="{'widget': 'text'}"/></td>
-					                    <td  class="text-center"><span t-field="line.packaging_qty"/></td>
-					                    <td><span t-field="line.product_packaging_id.display_name"/></td>
+					                    <!-- <td  class="text-center"><span t-field="line.packaging_qty"/></td>
+					                    <td><span t-field="line.product_packaging_id.display_name"/></td> -->
                                         <td class="text-right">
                                             <span t-field="line.quantity"/>
                                             <span t-field="line.product_uom_id"  groups="uom.group_uom"/>
