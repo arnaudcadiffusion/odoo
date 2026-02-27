@@ -39,8 +39,9 @@
                 <thead>
                     <tr>
                         <th><strong>Description</strong></th>
-                        <th class="text-right"><strong>Carton</strong></th>
-                        <th class="text-right"><strong>Unit Carton</strong></th>
+                        <!-- <th class="text-right"><strong>Carton</strong></th>
+                        <th class="text-right"><strong>Unit Carton</strong></th> -->
+                        <th class="text-right"><strong>Unité de mesure</strong></th>
                         <th class="text-right"><strong>QTÉ</strong></th>
                         <th class="text-right"><strong>PRIX UNITAIRE</strong></th>
                         <th class="text-right"><strong>MONTANT</strong></th>
@@ -51,15 +52,18 @@
                         <td>
                             <span t-field="line.name"/>
                         </td>
-                        <td class="text-right">
+                        <!-- <td class="text-right">
                             <span t-field="line.product_packaging_qty"/>
                         </td>
                         <td class="text-right">
                             <span t-field="line.product_packaging_id.display_name"/>
+                        </td> -->
+                        <td class="text-right">
+                            <span t-field="line.product_uom_id"/>
                         </td>
                         <td class="text-right">
                             <span t-field="line.product_qty"/>
-                            <span t-field="line.product_uom.name" groups="uom.group_uom"/>
+                            <!-- <span t-field="line.product_uom.name" groups="uom.group_uom"/> -->
                         </td>
                         <td class="text-right">
                             <span t-field="line.price_unit"/>

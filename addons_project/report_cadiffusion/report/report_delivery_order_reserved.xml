@@ -111,16 +111,16 @@
 					 <span t-field="move.packaging_qty"/>
 					<t t-set="total_pack_qty" t-value="move.packaging_qty+total_pack_qty"/>
 				</t>
-					<t t-elif="move.reserved_availability and move.product_packaging_id">
+					<!-- <t t-elif="move.reserved_availability and move.product_packaging_id">
 					<t t-set="qty" t-value="move.reserved_availability"/>
 					<t t-set="pack_q" t-value="move.product_packaging_id.qty"/>
 					<t t-set="pack_qty" t-value="int(qty//pack_q)+1 if qty%pack_q else int(qty//pack_q)"/>
 					<span t-esc="pack_qty"/>
 					<t t-set="total_pack_qty" t-value="pack_qty+total_pack_qty"/>
-				</t>
+				</t> -->
 				</td>
 				<td>
-					<span t-field="move.product_packaging_id.display_name"/>
+					<!-- <span t-field="move.product_packaging_id.display_name"/> -->
 				</td>
 
                                 <td>
@@ -130,7 +130,7 @@
     <t t-else="">
       <span t-field="move.reserved_availability"/>
     </t>
-                                    <span t-field="move.product_uom"/>
+                                    <span t-field="move.product_uom_id"/>
                                 </td>
 				<t t-if="article_cmd_flag">
 				<td>
@@ -157,8 +157,8 @@
                                     Lot/Serial Number
                                 </th>
                                 <th><strong>COLIS</strong></th>
-                                <th><strong>CONDITIONNEMENT</strong></th>
-                                <th><strong>QUANTITY</strong></th>
+                                <!-- <th><strong>CONDITIONNEMENT</strong></th>
+                                <th><strong>QUANTITY</strong></th> -->
 				<th t-if="article_flag">
 					<strong>Article cmdé</strong>
                                     <t t-set="colspan" t-value="colspan+1"/>
@@ -187,12 +187,12 @@
                                 <td t-if="has_serial_number" groups="stock.group_lot_on_delivery_slip">
                                     <span t-field="move_line.lot_name"/>
                                 </td>
-				<td>
+				<!-- <td>
 					 <span t-field="move_line.move_id.packaging_qty"/>
 				</td>
 				<td>
 					<span t-field="move_line.move_id.product_packaging_id.display_name"/>
-				</td>
+				</td> -->
 
                                 <td class="text-center">
       <span t-field="move_line.qty_done"/>
@@ -215,21 +215,21 @@
                             <div t-attf-class="#{'col-4' if report_type != 'html' else 'col-sm-7 col-md-5'} ml-auto">
 
 				<table class="table table-sm" t-if="o.state!='done'">
-				    <tr class="border-black" style="border-bottom:1px solid #dddddd;">
+				    <!-- <tr class="border-black" style="border-bottom:1px solid #dddddd;">
 					<td><strong>Total Colis</strong></td>
 					<td class="text-right">
                                             <span t-esc="total_pack_qty"/>
 					</td>
-				    </tr>
+				    </tr> -->
 				</table>
 
                                 <table class="table table-sm" t-if="o.state=='done'">
-                                    <tr class="border-black" style="border-bottom:1px solid #dddddd;">
+                                    <!-- <tr class="border-black" style="border-bottom:1px solid #dddddd;">
                                         <td><strong>Total Colis</strong></td>
                                         <td class="text-right">
 					    <span t-esc="sum([move.packaging_qty for move in o.move_lines])"/>
                                         </td>
-                                    </tr>
+                                    </tr> -->
                                 </table>
                             </div>
                         </div>
