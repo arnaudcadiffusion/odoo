@@ -58,7 +58,7 @@
 
                     <notebook>
                         <page string="Price Lines">
-                            <field name="tender_price_lines" mode="tree,form"
+                            <field name="tender_price_lines" mode="list,form"
                                 readonly="state in ('confirm')">
                                 <list string="Tender Order Lines" editable="bottom">
                                     <field name="product_id" />
@@ -68,7 +68,7 @@
                             </field>
                         </page>
                         <page string="Customer">
-                            <field name="partner_ids" mode="tree,form"
+                            <field name="partner_ids" mode="list,form"
                                 readonly="state in ['confirm']">
                                 <list string="Partners" editable="bottom">
                                     <field name="name" />
