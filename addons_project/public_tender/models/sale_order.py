@@ -43,7 +43,7 @@ class SaleOrder(models.Model):
 
             for tender in record.partner_id.tender_ids:
                 # if tender.end_of_the_tender and tender.end_of_the_tender < fields.Date.today():
-                    # continue
+                # continue
                 if tender.tender_pricelist_id in used_pricelists:
                     related_tenders |= tender
             record.tender_ids = related_tenders
