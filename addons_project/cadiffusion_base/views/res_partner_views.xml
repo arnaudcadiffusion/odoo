@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- res.partner form view -->
+    <record id="view_res_partner_form_studio" model="ir.ui.view">
+        <field name="name">res.partner.form.studio</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!-- Hide meeting and employee buttons -->
+            <xpath expr="//button[@name='schedule_meeting']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- Smart button: Vente Article -->
+            <xpath expr="//button[@name='action_open_employees']" position="after">
+                <button class="oe_stat_button" icon="fa-inbox" type="action" name="944">
+                    <field name="x_order_partner_id_sale_order_line_count" string="Vente Article" widget="statinfo"/>
+                </button>
+            </xpath>
+            <!-- Move ref before address_name -->
+            <xpath expr="//span[@name='address_name']" position="before">
+                <xpath expr="//field[@name='ref']" position="move"/>
+            </xpath>
+            <!-- Fields after vat -->
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="x_studio_prospect" string="A vérifier"/>
+                <field name="x_studio_assurance" string="Credit Safe"/>
+                <field name="x_studio_atradius" string="Assurance"/>
+                <field name="x_studio_secteur" string="Secteur"/>
+            </xpath>
+            <!-- Hide website -->
+            <xpath expr="//field[@name='website']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- category_id placeholder + add categorie_client after -->
+            <xpath expr="//field[@name='category_id']" position="attributes">
+                <attribute name="placeholder"/>
+            </xpath>
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="x_studio_categorie_client" string="Categorie Client" required="1"/>
+                <field name="x_studio_code_service_chorus" string="Code Service Chorus"/>
+            </xpath>
+            <!-- Adresse echantillon inside contact_addresses child form -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='contact_addresses']/field[@name='child_ids']/form[1]/sheet[1]/group[2]/field[@name='comment']" position="attributes">
+                <attribute name="string">Instructions Livraison</attribute>
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='contact_addresses']/field[@name='child_ids']/form[1]/sheet[1]/group[2]/field[@name='comment']" position="after">
+                <field name="x_studio_livraison_vl" string="Livraison VL"/>
+                <field name="x_studio_livraison_xpo" string="Livraison XPO"/>
+                <field name="x_studio_ouverture_1" string="Ouverture 1"/>
+                <field name="x_studio_char_field_zcf7n" string="Fermeture 1"/>
+                <field name="x_studio_ouverture_2" string="Ouverture 2"/>
+                <field name="x_studio_fermeture_2" string="Fermeture 2"/>
+                <field name="x_studio_notes_internes" string="Notes Internes"/>
+            </xpath>
+            <!-- Contact sub-list after contact_addresses child form -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='contact_addresses']/field[@name='child_ids']/form[1]" position="after">
+                <list string="Contacts">
+                    <field name="display_name" string="Nom" readonly="1"/>
+                    <field name="street"/>
+                    <field name="zip" on_change="1"/>
+                    <field name="city"/>
+                    <field name="function" column_invisible="1"/>
+                    <field name="phone"/>
+                    <field name="email" on_change="1"/>
+                    <field name="customer_invoice_transmit_method_id" string="Facturation"/>
+                    <field name="x_studio_prospect"/>
+                    <field name="user_id" column_invisible="1"/>
+                    <field name="is_company" on_change="1" column_invisible="1"/>
+                    <field name="country_id" on_change="1" column_invisible="1"/>
+                    <field name="parent_id" on_change="1" column_invisible="1"/>
+                    <field name="active" column_invisible="1"/>
+                </list>
+            </xpath>
+            <!-- Interets moratoires after bank_ids -->
+            <xpath expr="//field[@name='bank_ids']" position="after">
+                <field name="x_studio_interets_moratoires" string="Interets Moratoires"/>
+            </xpath>
+            <!-- ref string -->
+            <xpath expr="//field[@name='ref']" position="attributes">
+                <attribute name="string">N# Partenaire</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- res.partner list view -->
+    <record id="view_res_partner_list_studio" model="ir.ui.view">
+        <field name="name">res.partner.list.studio</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <!-- display_name renamed to complete_name in Odoo 19 partner list -->
+            <xpath expr="//field[@name='complete_name']" position="before">
+                <field name="ref"/>
+            </xpath>
+            <xpath expr="//field[@name='complete_name']" position="after">
+                <field name="property_product_pricelist"/>
+                <field name="x_studio_secteur"/>
+                <field name="zip"/>
+                <field name="city"/>
+                <field name="customer_invoice_transmit_method_id" string="Facturation"/>
+                <field name="x_studio_atradius" optional="show"/>
+                <field name="x_studio_prospect" readonly="1"/>
+                <field name="credit_on_hold"/>
+            </xpath>
+            <xpath expr="//field[@name='phone']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='email']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='activity_ids']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='company_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- res.partner search view (1) -->
+    <record id="view_res_partner_search_studio_1" model="ir.ui.view">
+        <field name="name">res.partner.search.studio.1</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='group_country']" position="after">
+                <filter context="{'group_by': 'credit_on_hold'}" name="studio_group_by_hold" string="Put on Hold"/>
+                <filter context="{'group_by': 'x_studio_prospect'}" name="studio_group_by_prospect" string="Prospect"/>
+            </xpath>
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="property_product_pricelist"/>
+                <field name="city"/>
+            </xpath>
+            <xpath expr="//filter[@name='studio_group_by_prospect']" position="after">
+                <filter context="{'group_by': 'x_studio_secteur'}" name="studio_group_by_secteur" string="Secteur"/>
+            </xpath>
+            <xpath expr="//filter[@name='studio_group_by_secteur']" position="after">
+                <filter context="{'group_by': 'x_studio_interets_moratoires'}" name="studio_group_by_interets" string="Interets Moratoires"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- res.partner customer statements list view (account_followup) -->
+    <record id="view_res_partner_customer_statements_studio" model="ir.ui.view">
+        <field name="name">res.partner.customer.statements.studio</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="account_followup.customer_statements_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='followup_line_id']" position="after">
+                <field name="property_payment_term_id" optional="show"/>
+                <field name="credit_limit" optional="show"/>
+                <field name="x_studio_interets_moratoires" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- res.partner search view (2) -->
+    <record id="view_res_partner_search_studio_2" model="ir.ui.view">
+        <field name="name">res.partner.search.studio.2</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_res_partner_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="property_product_pricelist"/>
+                <field name="city"/>
+            </xpath>
+            <xpath expr="//filter[@name='group_country']" position="after">
+                <filter name="studio_group_by_hold_2" string="Put on Hold" context="{'group_by': 'credit_on_hold'}"/>
+                <filter name="studio_group_by_interets_2" string="Interets Moratoires" context="{'group_by': 'x_studio_interets_moratoires'}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

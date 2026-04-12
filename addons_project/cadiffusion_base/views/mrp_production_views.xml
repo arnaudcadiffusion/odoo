@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- mrp.production form view -->
+    <record id="view_mrp_production_form_studio" model="ir.ui.view">
+        <field name="name">mrp.production.form.studio</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <!-- Restrict cancel to ADV group (button_scrap removed in Odoo 19) -->
+            <xpath expr="//button[@name='action_cancel']" position="attributes">
+                <attribute name="groups">cadiffusion_base.group_adv</attribute>
+            </xpath>
+            <!-- Conditionnement after bom_id -->
+            <xpath expr="//field[@name='bom_id']" position="after">
+                <field name="x_studio_conditionnement" string="Conditionnement"/>
+            </xpath>
+            <!-- Preparateur_Kit and Impression MO in extra_info group (after user_id) -->
+            <xpath expr="//group[@name='group_extra_info']/field[@name='user_id']" position="after">
+                <field name="x_studio_preparateur_kit" string="Preparateur_Kit"/>
+                <field name="x_studio_impression_mo" string="Impression MO"/>
+            </xpath>
+            <!-- Notes in miscellaneous page -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='miscellaneous']/group[1]/group[2]/field[@name='origin']" position="after">
+                <field name="x_studio_notes" string="Notes"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- mrp.production list view -->
+    <record id="view_mrp_production_list_studio" model="ir.ui.view">
+        <field name="name">mrp.production.list.studio</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date_start']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+        </field>
+    </record>
+
+
+</odoo>
