@@ -5,7 +5,10 @@ class SaleOrder(models.Model):
     
     @api.onchange('partner_id')
     def onchange_partner_id(self):
-        super(SaleOrder,self).onchange_partner_id()
+        # onchange_partner_id was removed in Odoo 17+; call super only if it exists
+        parent = super(SaleOrder, self)
+        if hasattr(parent, 'onchange_partner_id'):
+            parent.onchange_partner_id()
         if not self.partner_id:
             return
         partner = self.partner_id.id

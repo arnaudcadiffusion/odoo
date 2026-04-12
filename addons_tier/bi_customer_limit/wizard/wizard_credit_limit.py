@@ -56,7 +56,7 @@ class wizard_credit_limit(models.TransientModel):
 
                     msg_id = self.env['mail.mail'].sudo().create(email_values)
                     if msg_id:
-                        self.env['mail.mail'].sudo().send([msg_id])
+                        msg_id.send()
         sale_id.write({
             'is_confirm' : True 
         })

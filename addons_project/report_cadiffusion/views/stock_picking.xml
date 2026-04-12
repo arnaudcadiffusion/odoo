@@ -7,7 +7,7 @@
             <field name="type">form</field>
             <field name="arch" type="xml">
 			    <!--move.line tree 视图中添加article cmdé信息-->
-                <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom']" position="after">
+                <xpath expr="//field[@name='move_ids']/list/field[@name='product_uom']" position="after">
 		    <field name="note_text" string="Notes"/>
                     <field name="article_cmd"/>
 			    </xpath>

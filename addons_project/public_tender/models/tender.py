@@ -1,48 +1,37 @@
-from odoo import api, fields, models, _
+from odoo import fields, models, _
 
 
 class Tender(models.Model):
     _inherit = 'mail.thread'
     _name = 'tender.order'
     _description = 'Tender Order'
-    READONLY_STATES = {'confirm': [('readonly', True)]}
-
 
     note = fields.Text('Note')
     active = fields.Boolean('Active', default=True)
-    name = fields.Char('Name', states=READONLY_STATES, required=True)
-    start_date = fields.Date(
-        'Start Date', track_visibility='onchange', states=READONLY_STATES)
-    end_date = fields.Date(
-        'End Date', track_visibility='onchange', states=READONLY_STATES)
-    end_of_the_tender = fields.Date(
-        'End Of The Tender', track_visibility='onchange', states=READONLY_STATES)
-    next_revision_date = fields.Datetime(
-        'Next Revision Date',
-        track_visibility='onchange',
-        states=READONLY_STATES)
-    last_revision_date= fields.Datetime('Last Revision Date',states=READONLY_STATES)
+    name = fields.Char('Name', required=True)
+    start_date = fields.Date('Start Date', tracking=True)
+    end_date = fields.Date('End Date', tracking=True)
+    end_of_the_tender = fields.Date('End Of The Tender', tracking=True)
+    next_revision_date = fields.Datetime('Next Revision Date', tracking=True)
+    last_revision_date = fields.Datetime('Last Revision Date')
     state = fields.Selection(
         [
             ('draft', 'Draft'),
             ('confirm', 'confimed'),
         ],
         string='State',
-        track_visibility='onchange',
-        default='draft',
-        states=READONLY_STATES)
+        tracking=True,
+        default='draft')
     tender_price_lines = fields.One2many(
         'tender.price.line',
         'tender_id',
         copy=True,
-        string='Tender Order Lines',
-        states=READONLY_STATES)
+        string='Tender Order Lines')
     partner_ids = fields.Many2many(
         'res.partner',
         'tender_order_partner_rel',
         'tender_ids',
-        'partner_ids',
-        states=READONLY_STATES)
+        'partner_ids')
     sale_ids = fields.Many2many(
         'sale.order',
         'tender_order_sale_rel',
@@ -52,14 +41,12 @@ class Tender(models.Model):
     currency_id = fields.Many2one(
         'res.currency',
         related='tender_pricelist_id.currency_id',
-        string='Currency',
-        states=READONLY_STATES)
+        string='Currency')
     tender_pricelist_id = fields.Many2one(
         'product.pricelist',
         string='Tender Pricelist',
         ondelete='restrict',
-        copy=False,
-        states=READONLY_STATES)
+        copy=False)
 
     _sql_constraints = [('name_uniq', 'unique(name)', "Name Must Be Unique")]
 
@@ -203,7 +190,6 @@ class Tender(models.Model):
         if partner_pricelists:
             item_values = []
             for line in self.tender_price_lines:
-                item_obj = self.env['product.pricelist.item']
                 value = line._prepare_pricelist_items_value()
                 value.update({
                     'compute_price': 'formula',
