@@ -25,3 +25,6 @@ class MrpProduction(models.Model):
         ],
         string='Preparateur_Kit',
     )
+
+    def action_open_project(self):
+        return True
