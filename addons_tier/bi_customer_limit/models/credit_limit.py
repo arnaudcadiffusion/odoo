@@ -71,7 +71,7 @@ class sale_order(models.Model):
 
             base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
             static_url = "/web"
-            view_id = "?db=%s#id=%s" % (self._cr.dbname, self.id)
+            view_id = "?db=%s#id=%s" % (self.env.cr.dbname, order.id)
             view_type = "&view_type=form&model=sale.order"
             sale_url_id = str(base_url) + static_url + view_id + view_type
 

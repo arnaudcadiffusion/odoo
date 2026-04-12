@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Fix stale Odoo 15 context on stock/mrp product actions.
+        In Odoo 19:
+          - 'search_default_consumable' renamed to 'search_default_goods'
+          - 'default_type': 'product'   replaced by 'default_is_storable': true
+        Without this fix: TypeError on action load + ValueError on product create.
+    -->
+    <record id="stock.product_template_action_product" model="ir.actions.act_window">
+        <field name="context">{"search_default_goods": 1, "default_is_storable": true}</field>
+    </record>
+
+    <record id="mrp.product_template_action" model="ir.actions.act_window">
+        <field name="context">{"search_default_goods": 1, "default_is_storable": true}</field>
+    </record>
+</odoo>
