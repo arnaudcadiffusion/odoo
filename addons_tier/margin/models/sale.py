@@ -60,7 +60,7 @@ class sale_order(models.Model):
 class SaleInvoiceReport(models.Model):
     _inherit = "sale.report"
 
-    margin_subtotal_signed = fields.Float('Margin')
+    margin_subtotal_signed = fields.Float('Marge calculée')
 
     def _select_sale(self):
         select_ = f"""

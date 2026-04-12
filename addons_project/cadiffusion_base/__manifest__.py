@@ -21,6 +21,7 @@
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
+        'data/fix_stale_data.xml',
         'views/account_move_views.xml',
         'views/mrp_production_views.xml',
         'views/product_views.xml',
