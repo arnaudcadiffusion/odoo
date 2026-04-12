@@ -16,6 +16,7 @@
         'product',
         'public_tender',
         'account_followup',
+        'margin',
     ],
     'data': [
         'security/security.xml',

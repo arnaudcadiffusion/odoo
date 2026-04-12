@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
+from odoo import api, fields, models
 
 
 class AccountAccount(models.Model):
@@ -9,6 +9,7 @@ class AccountAccount(models.Model):
         string='Code taxe',
         related='tax_ids.name',
         store=True,
+        translate=False,
     )
 
 
@@ -38,7 +39,7 @@ class AccountMove(models.Model):
         compute='_compute_is_draft_duplicated_ref_ids',
     )
 
-    @api.depends('duplicated_ref_ids', 'duplicated_ref_ids.state')
+    @api.depends('ref', 'partner_id', 'state')
     def _compute_is_draft_duplicated_ref_ids(self):
         for move in self:
             move.is_draft_duplicated_ref_ids = bool(
@@ -46,7 +47,6 @@ class AccountMove(models.Model):
             )
 
     def action_delete_duplicates(self):
-        """Delete draft duplicate documents (stub for view validation)."""
         drafts = self.duplicated_ref_ids.filtered(lambda m: m.state == 'draft')
         drafts.button_cancel()
         drafts.unlink()
@@ -63,7 +63,7 @@ class AccountMoveLine(models.Model):
         readonly=True,
     )
     x_studio_date = fields.Date(
-        string='Date',
+        string='Date Facture',
         related='move_id.date',
         store=True,
         readonly=True,

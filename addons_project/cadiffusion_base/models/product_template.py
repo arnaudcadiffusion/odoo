@@ -29,7 +29,7 @@ class ProductTemplate(models.Model):
             ('MDD', 'MDD'),
             ('VPC', 'VPC'),
         ],
-        string='Marque',
+        string='Marque (variante)',
     )
     x_studio_marque_1 = fields.Selection(
         string='Marque',
