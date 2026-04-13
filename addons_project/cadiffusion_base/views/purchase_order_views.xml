@@ -42,6 +42,7 @@
                 <field name="x_studio_embarquement" string="Embarquement"/>
             </xpath>
             <!-- Order line: add x_studio fields after name -->
+            <!-- Note: product_packaging_id removed from purchase.order.line in Odoo 19 -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='name']" position="after">
                 <field name="x_studio_ref_fournisseur" string="Ref Fournisseur" invisible="1"/>
                 <field name="x_studio_date_initiale" string="Date Initiale" invisible="1"/>
@@ -50,12 +51,12 @@
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='date_planned']" position="attributes">
                 <attribute name="widget">date</attribute>
             </xpath>
-            <!-- Move product_packaging_qty and product_uom_id after qty_received_method -->
+            <!-- Move product_uom_id and product_qty after qty_received_method -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='qty_received_method']" position="after">
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="move"/>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_qty']" position="move"/>
             </xpath>
-            <!-- product_uom_id attributes -->
+            <!-- product_uom_id: hide unit column (field name in Odoo 19 view is product_uom_id) -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
                 <attribute name="readonly">state in ['purchase', 'done', 'cancel']</attribute>
