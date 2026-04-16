@@ -9,6 +9,32 @@ class ResPartner(models.Model):
     # Le champ 'mobile' a été supprimé de res.partner en Odoo 19
     mobile = fields.Char(string='Mobile', tracking=True)
 
+    # NIC = 5 derniers chiffres du SIRET (company_registry).
+    # Champ calculé non stocké, en lecture seule — identique au comportement v15.
+    nic = fields.Char(
+        string='NIC',
+        compute='_compute_nic',
+        store=False,
+    )
+
+    @api.depends('company_registry')
+    def _compute_nic(self):
+        for partner in self:
+            cr = partner.company_registry or ''
+            partner.nic = cr[-5:] if len(cr) >= 9 else False
+
+    # Stub pour account_peppol_response (module non installé) :
+    # la vue res.partner.form.account.peppol.response référence ce champ
+    # dans une condition invisible — sans le champ le formulaire crash.
+    peppol_response_support = fields.Boolean(
+        string='Peppol Response Support',
+        compute='_compute_peppol_response_support',
+    )
+
+    def _compute_peppol_response_support(self):
+        for partner in self:
+            partner.peppol_response_support = False
+
     x_studio_secteur = fields.Selection(
         selection=[
             ('100 - THOMAS', '100 - THOMAS'),
@@ -85,6 +111,19 @@ class ResPartner(models.Model):
     x_studio_ouverture_1 = fields.Char(string='Ouverture 1')
     x_studio_ouverture_2 = fields.Char(string='Ouverture 2')
     x_studio_field_SlKde = fields.Boolean(string='New Case à cocher', default=False)
+
+    # Synchronisation v15 : invoice_sending_method était un related de
+    # customer_invoice_transmit_method_id.code. En Odoo 19 c'est un champ
+    # natif Selection — on le recalcule via onchange pour conserver le comportement v15.
+    @api.onchange('customer_invoice_transmit_method_id')
+    def _onchange_customer_invoice_transmit_method(self):
+        code = self.customer_invoice_transmit_method_id.code
+        if code == 'fr-chorus':
+            self.invoice_sending_method = 'fr_chorus'
+        elif code == 'mail':
+            self.invoice_sending_method = 'email'
+        else:
+            self.invoice_sending_method = 'manual'
 
     x_order_partner_id_sale_order_line_count = fields.Integer(
         string='Vente Article',

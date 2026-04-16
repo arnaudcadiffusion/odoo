@@ -104,6 +104,8 @@
                 <field name='name' string='Tender Order' filter_domain="[('name','ilike',self)]" />
                 <field name='tender_price_lines' string='Order Line'
                     filter_domain="[('tender_price_lines.product_id','ilike',self)]" />
+                <field name='partner_ids' string='Client'/>
+                <field name='tender_pricelist_id' string='Liste de prix'/>
                 <filter name='draft' string='Draft' domain="[('state','=','draft')]" />
                 <filter name='confirm' string='Confirm' domain="[('state','=','confirm')]" />
                 <filter name='studio_filter_archived' string='Archivé' domain="[('active','=',False)]"/>
@@ -112,6 +114,7 @@
                 <separator/>
                 <filter context="{'group_by': 'state'}" name="groupby_state" string="Group By State"/>
                 <filter context="{'group_by': 'write_date'}" name="groupby_write_date" string="Group By Last Updated"/>
+                <filter context="{'group_by': 'write_uid'}" name="groupby_write_uid" string="Group By Last Updated by"/>
             </search>
         </field>
     </record>

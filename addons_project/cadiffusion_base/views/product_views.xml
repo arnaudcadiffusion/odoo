@@ -202,12 +202,6 @@
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='pricelist_rules']/field[@name='item_ids']/list[1]/field[@name='name']" position="after">
                 <field name="base_pricelist_id" optional="show"/>
             </xpath>
-            <xpath expr="//field[@name='date_start']" position="attributes">
-                <attribute name="widget">date</attribute>
-            </xpath>
-            <xpath expr="//field[@name='date_end']" position="attributes">
-                <attribute name="widget">date</attribute>
-            </xpath>
         </field>
     </record>
 

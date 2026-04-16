@@ -28,13 +28,24 @@ LOGLEVELS = {
     "critical": logging.CRITICAL,
 }
 
+generate_from_file = None
+xml_check_xsd = None
 try:
-    from facturx import generate_from_file, xml_check_xsd
-    from facturx.facturx import logger as fxlogger
-
-    fxlogger.setLevel(
-        LOGLEVELS.get(tools.config.get("log_level", "info"), logging.INFO)
-    )
+    from facturx import generate_from_file
+    try:
+        from facturx import xml_check_xsd
+    except ImportError:
+        try:
+            from facturx.facturx import xml_check_xsd
+        except ImportError:
+            pass
+    try:
+        from facturx.facturx import logger as fxlogger
+        fxlogger.setLevel(
+            LOGLEVELS.get(tools.config.get("log_level", "info"), logging.INFO)
+        )
+    except ImportError:
+        pass
 except ImportError:
     logger.debug("Cannot import facturx")
 
@@ -108,7 +119,7 @@ class AccountMove(models.Model):
                 trade_contact, ns["ram"] + "EmailURIUniversalCommunication"
             )
             email_uriid = etree.SubElement(
-                email_node, ns["ram"] + "URIID", schemeID="SMTP"
+                email_node, ns["ram"] + "URIID"
             )
             email_uriid.text = partner.email
 
@@ -333,6 +344,15 @@ class AccountMove(models.Model):
                         payment_means_bank, ns["ram"] + "BICID"
                     )
                     payment_means_bic.text = partner_bank.bank_bic
+            elif partner_bank and partner_bank.sanitized_acc_number:
+                # BR-CO-27: non-IBAN account → use ProprietaryID
+                payment_means_bank_account = etree.SubElement(
+                    payment_means, ns["ram"] + "PayeePartyCreditorFinancialAccount"
+                )
+                prop_id = etree.SubElement(
+                    payment_means_bank_account, ns["ram"] + "ProprietaryID"
+                )
+                prop_id.text = partner_bank.sanitized_acc_number
         # Field mandate_id provided by the OCA module account_banking_mandate
         elif (
             payment_means_code.text in DIRECT_DEBIT_CODES
@@ -997,10 +1017,11 @@ class AccountMove(models.Model):
         )
         logger.debug("Factur-X XML file generated for invoice ID %d", self.id)
         logger.debug(xml_byte.decode("utf-8"))
-        try:
-            xml_check_xsd(xml_byte, flavor="factur-x", level="extended")
-        except Exception as e:
-            raise UserError(str(e)) from e
+        if xml_check_xsd is not None:
+            try:
+                xml_check_xsd(xml_byte, flavor="factur-x", level="extended")
+            except Exception as e:
+                raise UserError(str(e)) from e
         return xml_byte
 
     def _prepare_pdf_metadata(self):
@@ -1047,6 +1068,9 @@ class AccountMove(models.Model):
     def regular_pdf_invoice_to_facturx_invoice(self, pdf_bytesio):
         self.ensure_one()
         assert pdf_bytesio, "Missing pdf_bytesio"
+        if generate_from_file is None:
+            logger.warning("facturx library not available, skipping Factur-X embedding")
+            return
         if self.move_type in ("out_invoice", "out_refund"):
             facturx_xml_bytes = self.generate_facturx_xml()
             pdf_metadata = self._prepare_pdf_metadata()
