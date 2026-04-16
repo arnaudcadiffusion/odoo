@@ -296,27 +296,26 @@ class AccountMove(models.Model):
         return trade_agreement
 
     def _cii_add_trade_settlement_payment_means_block(self, trade_settlement, ns):
-        payment_means = etree.SubElement(
-            trade_settlement, ns["ram"] + "SpecifiedTradeSettlementPaymentMeans"
-        )
-        payment_means_code = etree.SubElement(payment_means, ns["ram"] + "TypeCode")
-        payment_means_info = etree.SubElement(payment_means, ns["ram"] + "Information")
+        # Determine type code and label
         if self.preferred_payment_method_line_id:
-            payment_means_code.text = (
+            type_code = (
                 self.preferred_payment_method_line_id.payment_method_id.unece_code
             )
-            payment_means_info.text = self.preferred_payment_method_line_id.name
+            info_text = self.preferred_payment_method_line_id.name
         else:
-            payment_means_code.text = "30"  # use 30 and not 31,
-            # for wire transfer, according to Factur-X CIUS
-            payment_means_info.text = self.env._("Wire transfer")
+            type_code = "30"
+            info_text = self.env._("Wire transfer")
             logger.info(
                 "Missing payment mode on invoice ID %d. "
                 "Using 30 (wire transfer) as UNECE code as fallback "
                 "for payment mean",
                 self.id,
             )
-        if payment_means_code.text in CREDIT_TRF_CODES:
+
+        # Resolve bank account for credit-transfer codes (BR-CO-27 requires
+        # either IBANID or ProprietaryID when TypeCode is 30/31/42)
+        partner_bank = None
+        if type_code in CREDIT_TRF_CODES:
             partner_bank = self.partner_bank_id
             if (
                 not partner_bank
@@ -327,7 +326,26 @@ class AccountMove(models.Model):
                 partner_bank = (
                     self.preferred_payment_method_line_id.journal_id.bank_account_id
                 )
-            if partner_bank and partner_bank.acc_type == "iban":
+            if not partner_bank or not partner_bank.sanitized_acc_number:
+                # No usable bank account → skip PaymentMeans entirely to avoid
+                # BR-CO-27 schematron violation (IBAN or ProprietaryID required)
+                logger.warning(
+                    "Invoice ID %d: TypeCode %s requires a bank account "
+                    "(BR-CO-27). No account found — PaymentMeans block omitted.",
+                    self.id, type_code,
+                )
+                return
+
+        payment_means = etree.SubElement(
+            trade_settlement, ns["ram"] + "SpecifiedTradeSettlementPaymentMeans"
+        )
+        payment_means_code = etree.SubElement(payment_means, ns["ram"] + "TypeCode")
+        payment_means_code.text = type_code
+        payment_means_info = etree.SubElement(payment_means, ns["ram"] + "Information")
+        payment_means_info.text = info_text
+
+        if type_code in CREDIT_TRF_CODES and partner_bank:
+            if partner_bank.acc_type == "iban":
                 payment_means_bank_account = etree.SubElement(
                     payment_means, ns["ram"] + "PayeePartyCreditorFinancialAccount"
                 )
@@ -344,7 +362,7 @@ class AccountMove(models.Model):
                         payment_means_bank, ns["ram"] + "BICID"
                     )
                     payment_means_bic.text = partner_bank.bank_bic
-            elif partner_bank and partner_bank.sanitized_acc_number:
+            else:
                 # BR-CO-27: non-IBAN account → use ProprietaryID
                 payment_means_bank_account = etree.SubElement(
                     payment_means, ns["ram"] + "PayeePartyCreditorFinancialAccount"
