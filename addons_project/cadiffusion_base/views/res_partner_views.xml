@@ -38,9 +38,12 @@
             </xpath>
             <xpath expr="//field[@name='category_id']" position="after">
                 <field name="x_studio_categorie_client" string="Categorie Client" required="1"/>
-                <field name="x_studio_code_service_chorus" string="Code Service Chorus"/>
             </xpath>
             <!-- Adresse echantillon inside contact_addresses child form -->
+            <!-- In v15 this was before 'nic' (removed in Odoo 19), anchored before 'comment' instead -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='contact_addresses']/field[@name='child_ids']/form[1]/sheet[1]/group[2]/field[@name='comment']" position="before">
+                <field name="x_studio_adresse_echantillon" string="Adresse Echantillon"/>
+            </xpath>
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='contact_addresses']/field[@name='child_ids']/form[1]/sheet[1]/group[2]/field[@name='comment']" position="attributes">
                 <attribute name="string">Instructions Livraison</attribute>
             </xpath>

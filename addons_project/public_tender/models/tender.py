@@ -239,6 +239,7 @@ class Tender(models.Model):
 
 class TenderPriceLine(models.Model):
     _name = 'tender.price.line'
+    _description = 'Tender Price Line'
     product_id = fields.Many2one(
         'product.product',
         string='Product',

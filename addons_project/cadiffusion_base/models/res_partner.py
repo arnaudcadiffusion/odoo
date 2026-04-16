@@ -5,6 +5,10 @@ from odoo import api, fields, models
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
+    # Réintroduit pour compatibilité avec account_invoice_facturx (OCA)
+    # Le champ 'mobile' a été supprimé de res.partner en Odoo 19
+    mobile = fields.Char(string='Mobile', tracking=True)
+
     x_studio_secteur = fields.Selection(
         selection=[
             ('100 - THOMAS', '100 - THOMAS'),
