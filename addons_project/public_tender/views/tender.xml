@@ -29,7 +29,7 @@
                     <button name="analyze_exist_product_pricelist"
                         id="action_analyze_product_pricelist" type="object"
                         string="Analyze" class="btn-primary"
-                        invisible="tender_price_lines != []"
+                        invisible="not tender_price_lines"
                         />
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirm" />
                 </header>
