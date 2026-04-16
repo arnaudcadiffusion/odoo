@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_purchase_order_form_date_format" model="ir.ui.view">
+        <field name="name">purchase.order.form.date.format</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='create_date']" position="attributes">
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+            <xpath expr="//div[@name='date_approve']/field[@name='date_approve']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+            <xpath expr="//div[@name='date_planned_div']/field[@name='date_planned']" position="attributes">
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='order_line']/list[1]/field[@name='date_planned']" position="attributes">
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_purchase_order_form_studio_date_format" model="ir.ui.view">
+        <field name="name">purchase.order.form.studio.date.format</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="cadiffusion_base.view_purchase_order_form_studio"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='x_studio_date_prvue_initiale']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='x_studio_dispo_confirmee']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_purchase_order_tree_date_format" model="ir.ui.view">
+        <field name="name">purchase.order.list.date.format</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="cadiffusion_base.view_purchase_order_list_studio"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='date_approve']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='date_planned']" position="attributes">
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_purchase_order_kpis_tree_date_format" model="ir.ui.view">
+        <field name="name">purchase.order.kpis.list.date.format</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="cadiffusion_base.view_purchase_order_kpis_list_studio"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='date_approve']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='date_planned']" position="attributes">
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+
+    <record id="view_purchase_order_view_tree_date_format" model="ir.ui.view">
+        <field name="name">purchase.order.view.list.date.format</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="cadiffusion_base.view_purchase_order_view_tree_studio"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='date_approve']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='date_planned']" position="attributes">
+                <attribute name="options">{'numeric': True}</attribute>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
