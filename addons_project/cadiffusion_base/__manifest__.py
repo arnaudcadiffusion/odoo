@@ -17,6 +17,8 @@
         'public_tender',
         'account_followup',
         'margin',
+        'account_invoice_transmit_method',
+        'l10n_fr_chorus_account',
     ],
     'data': [
         'security/security.xml',
