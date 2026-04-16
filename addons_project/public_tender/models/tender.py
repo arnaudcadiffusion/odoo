@@ -48,6 +48,14 @@ class Tender(models.Model):
         ondelete='restrict',
         copy=False)
 
+    # Champs Studio (migrés depuis la customisation Studio v15)
+    x_studio_dbut_de_march = fields.Date(string='Début de Marché')
+    x_studio_coordinateur = fields.Char(string='Coordinateur')
+    x_studio_contact = fields.Char(string='Contact')
+    x_studio_tlphone = fields.Char(string='Téléphone')
+    x_studio_email = fields.Char(string='Email')
+    x_studio_notes_march = fields.Text(string='Notes Marché')
+
     _sql_constraints = [('name_uniq', 'unique(name)', "Name Must Be Unique")]
 
 

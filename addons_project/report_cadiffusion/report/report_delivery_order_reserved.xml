@@ -4,13 +4,13 @@
         <t t-call="web.html_container">
             <t t-call="web.external_layout">
                 <t t-set="o" t-value="o.with_context({'lang':o.partner_id.lang})" />
-                <t t-if="o.move_lines and o.move_lines[0].partner_id" name="partner_header">
+                <t t-if="o.move_ids and o.move_ids[0].partner_id" name="partner_header">
                     <t t-set="address">
-                        <div t-field="o.move_lines[0].partner_id"
+                        <div t-field="o.move_ids[0].partner_id"
                         t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
                    </t>
                 </t>
-                <t t-if="not (o.move_lines and o.move_lines[0].partner_id) and o.partner_id" name="partner_header">
+                <t t-if="not (o.move_ids and o.move_ids[0].partner_id) and o.partner_id" name="partner_header">
                     <t t-set="address">
                         <div t-field="o.partner_id"
                         t-options='{"widget": "contact", "fields": ["address", "name", "phone"], "no_marker": True}'/>
@@ -71,7 +71,7 @@
 		    <t t-set="colspan" t-value="4"/>
 		    <t t-set="total_pack_qty" t-value="0"/>
                     <table class="table table-sm mt48" t-if="o.state!='done'">
-			    <t t-set="article_cmd_flag" t-value="any([x.article_cmd for x in o.move_lines])"/>
+			    <t t-set="article_cmd_flag" t-value="any([x.article_cmd for x in o.move_ids])"/>
                         <thead>
                             <tr>
 				
@@ -86,7 +86,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-set="lines" t-value="o.move_lines.filtered(lambda x: x.product_uom_qty)"/>
+                            <t t-set="lines" t-value="o.move_ids.filtered(lambda x: x.product_uom_qty)"/>
                             <t t-foreach="lines" t-as="move">
 				    <t t-if="move.note_text">
 					    <tr>
@@ -95,7 +95,7 @@
                                         </td>
 				</tr>
                                     </t>
-				    <t t-if="move.quantity_done or move.reserved_availability">
+				    <t t-if="move.quantity">
 				    <tr>
                                 <td>
                                     <span t-field="move.product_id"/>
@@ -107,12 +107,12 @@
                                     </p>
                                 </td>
 				<td>
-					<t t-if="move.quantity_done">
-					 <span t-field="move.packaging_qty"/>
-					<t t-set="total_pack_qty" t-value="move.packaging_qty+total_pack_qty"/>
+					<t t-if="move.quantity">
+					 <span t-field="move.packaging_uom_qty"/>
+					<t t-set="total_pack_qty" t-value="move.packaging_uom_qty+total_pack_qty"/>
 				</t>
-					<!-- <t t-elif="move.reserved_availability and move.product_packaging_id">
-					<t t-set="qty" t-value="move.reserved_availability"/>
+					<!-- <t t-elif="move.quantity and move.product_packaging_id">
+					<t t-set="qty" t-value="move.quantity"/>
 					<t t-set="pack_q" t-value="move.product_packaging_id.qty"/>
 					<t t-set="pack_qty" t-value="int(qty//pack_q)+1 if qty%pack_q else int(qty//pack_q)"/>
 					<span t-esc="pack_qty"/>
@@ -124,11 +124,11 @@
 				</td>
 
                                 <td>
-					 <t t-if="move.quantity_done">
-      <span t-field="move.quantity_done"/>
+					 <t t-if="move.quantity">
+      <span t-field="move.quantity"/>
     </t>
     <t t-else="">
-      <span t-field="move.reserved_availability"/>
+      <span t-field="move.quantity"/>
     </t>
                                     <span t-field="move.product_uom_id"/>
                                 </td>
@@ -195,7 +195,7 @@
 				</td> -->
 
                                 <td class="text-center">
-      <span t-field="move_line.qty_done"/>
+      <span t-field="move_line.quantity"/>
                                     <span t-field="move_line.product_uom_id"/>
                                 </td>
 				<t t-if="article_flag">
@@ -227,7 +227,7 @@
                                     <!-- <tr class="border-black" style="border-bottom:1px solid #dddddd;">
                                         <td><strong>Total Colis</strong></td>
                                         <td class="text-right">
-					    <span t-esc="sum([move.packaging_qty for move in o.move_lines])"/>
+					    <span t-esc="sum([move.packaging_uom_qty for move in o.move_ids])"/>
                                         </td>
                                     </tr> -->
                                 </table>
