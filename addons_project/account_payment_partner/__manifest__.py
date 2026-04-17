@@ -5,5 +5,5 @@
     "version": "19.0.1.0.0",
     "summary": "Obsolete — functionality merged into account_payment_mode",
     "depends": ["base"],
-    "installable": False,
+    "installable": True,
 }
