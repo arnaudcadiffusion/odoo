@@ -14,4 +14,69 @@
     <record id="mrp.product_template_action" model="ir.actions.act_window">
         <field name="context">{"search_default_goods": 1, "default_is_storable": true}</field>
     </record>
+
+    <!--
+        GESTION DES VUES : appliqué à chaque upgrade de cadiffusion_base.
+        Sans noupdate, ces états sont forcés même après restauration DB sur Odoo.sh.
+    -->
+
+    <!-- Force view_partner_property_form (account_invoice_transmit_method) toujours actif.
+         Raison : Odoo.sh restaure la prod où la vue peut être archivée,
+         et account_invoice_transmit_method n'est pas re-upgradé si non modifié. -->
+    <record id="account_invoice_transmit_method.view_partner_property_form" model="ir.ui.view">
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Désactive les vues Studio dont les customisations sont dans notre code XML.
+         Ces vues Studio ont priority=99 et écraseraient nos vues code si actives. -->
+    <!-- res.partner -->
+    <record id="studio_customization.odoo_studio_res_part_0a043b2f-fc1d-4198-87fa-de07745681ed" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_res_part_77b3c852-7b47-456f-b4b7-2306c4051a52" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_res_part_c63f7319-9288-4f06-b468-0278f3785f58" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_res_part_28a11ec3-fa26-47c6-b196-e4108fa20213" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <!-- account.move -->
+    <record id="studio_customization.odoo_studio_account__32f893f9-d413-48c1-9506-e6fb62888f5d" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_account__0f1262d2-b0f5-4323-a95d-3f60f49148cf" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_account__63a2ebb9-130a-4aed-b49f-8a290e650206" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_account__bcb55fff-a6c8-486b-b4d8-fbdff03db296" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_account__80208eab-cb94-409a-ae23-ef0aaa8a291f" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <!-- purchase.order -->
+    <record id="studio_customization.odoo_studio_purchase_84bd251b-9a48-4844-847a-545365c686b5" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_purchase_fc383e7b-c413-418e-8279-319bb7a23740" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <!-- sale.order -->
+    <record id="studio_customization.odoo_studio_sale_ord_18c8e523-f58f-4f0e-b753-6d2ef7248049" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_sale_ord_8ec93be2-7d98-4e1b-8df8-429c554f92be" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <!-- stock.picking -->
+    <record id="studio_customization.odoo_studio_stock_pi_d263744e-044d-412c-bd9a-e7b2cd9efefc" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="studio_customization.odoo_studio_stock_pi_5fc63d5e-5c8c-48ea-8fd1-e5d3ff0c8a8b" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
 </odoo>
