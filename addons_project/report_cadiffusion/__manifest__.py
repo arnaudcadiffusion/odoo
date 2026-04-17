@@ -27,6 +27,7 @@
         "report/report_delivery_order.xml",
         "report/report_delivery_order_reserved.xml",
         "report/report_sale_order.xml",
+        
         # 'report/report_external_layout_boxed.xml',  # à adapter si nécessaire
     ],
     "installable": True,
