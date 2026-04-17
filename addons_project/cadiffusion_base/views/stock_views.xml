@@ -161,6 +161,10 @@
             <xpath expr="//field[@name='date']" position="after">
                 <field name="price_unit"/>
             </xpath>
+            <!-- Rendre le groupe Origin visible pour tous -->
+            <xpath expr="//group[@name='origin_grp']" position="attributes">
+                <attribute name="groups"/>
+            </xpath>
         </field>
     </record>
 

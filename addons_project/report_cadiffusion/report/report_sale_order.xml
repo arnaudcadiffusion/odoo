@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Full replacement of sale.report_saleorder_document to match v15 layout -->
+    <template id="report_saleorder_document" inherit_id="sale.report_saleorder_document">
+
+        <!-- 1. Information block: N# Client + Date de commande + Date de livraison + Votre Reference -->
+        <xpath expr="//div[@id='informations']" position="replace">
+            <div class="row mt32 mb32" id="informations">
+                <div class="col-3 mr32">
+                    <strong>N# Client:</strong><br/>
+                    <span t-field="doc.x_studio_n_client"/>
+                </div>
+                <div class="col-3 mr32">
+                    <strong>Date de commande:</strong><br/>
+                    <span t-field="doc.date_order" t-options-widget="&quot;date&quot;"/>
+                </div>
+                <div class="col-3 mr32">
+                    <strong>Date de livraison:</strong><br/>
+                    <span t-field="doc.commitment_date" t-options-widget="&quot;date&quot;"/>
+                </div>
+                <div class="col-3 mr32">
+                    <strong>Votre Reference:</strong><br/>
+                    <span t-field="doc.client_order_ref"/>
+                </div>
+            </div>
+            <!-- Condition de paiement row -->
+            <div class="row" style="margin-top:10px; margin-bottom:10px;">
+                <div class="col-3">
+                    <strong>Condition de paiement:</strong><br/>
+                    <span t-field="doc.payment_term_id"/>
+                </div>
+            </div>
+        </xpath>
+
+        <!-- 2. Font size smaller on page -->
+        <xpath expr="//div[@class='page']" position="attributes">
+            <attribute name="style">font-size: smaller;</attribute>
+        </xpath>
+
+        <!-- 3. Table: rename columns + always show discount, remove taxes -->
+        <xpath expr="//th[@name='th_description']" position="replace">
+            <th name="th_description" class="text-left"><strong>DESCRIPTION</strong></th>
+        </xpath>
+        <xpath expr="//th[@name='th_quantity']" position="replace">
+            <th name="th_quantity" class="text-right"><strong>QUANTITÉ</strong></th>
+        </xpath>
+        <xpath expr="//th[@name='th_priceunit']" position="replace">
+            <th name="th_priceunit" class="text-right"><strong>PRIX UNIT. HT</strong></th>
+        </xpath>
+        <xpath expr="//th[@name='th_discount']" position="replace">
+            <th name="th_discount" class="text-right"><strong>DISCOUNT (%)</strong></th>
+        </xpath>
+        <!-- Always show discount column regardless of display_discount -->
+        <xpath expr="//t[@t-set='display_discount']" position="replace">
+            <t t-set="display_discount" t-value="True"/>
+        </xpath>
+        <!-- Hide taxes column -->
+        <xpath expr="//th[@name='th_taxes']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+        <xpath expr="//th[@name='th_subtotal']" position="replace">
+            <th name="th_subtotal" class="text-right"><strong>MONTANT</strong></th>
+        </xpath>
+
+        <!-- 4. Hide taxes cell on product rows -->
+        <xpath expr="//td[@name='td_product_taxes']" position="attributes">
+            <attribute name="t-if">False</attribute>
+        </xpath>
+
+    </template>
+</odoo>

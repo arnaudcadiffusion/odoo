@@ -11,14 +11,19 @@
             <xpath expr="//button[@name='action_cancel']" position="attributes">
                 <attribute name="groups">cadiffusion_base.group_adv</attribute>
             </xpath>
-            <!-- Conditionnement after bom_id -->
-            <xpath expr="//field[@name='bom_id']" position="after">
+            <!-- Conditionnement in left column after bom_div (bom_id wrapped in div in Odoo 19) -->
+            <xpath expr="//div[@name='bom_div']" position="after">
                 <field name="x_studio_conditionnement" string="Conditionnement"/>
             </xpath>
-            <!-- Preparateur_Kit and Impression MO in extra_info group (after user_id) -->
+            <!-- company_id, Preparateur_Kit and Impression MO in right column after user_id -->
             <xpath expr="//group[@name='group_extra_info']/field[@name='user_id']" position="after">
+                <field name="company_id" readonly="state != 'draft'" force_save="1" options="{'no_create': True}"/>
                 <field name="x_studio_preparateur_kit" string="Preparateur_Kit"/>
                 <field name="x_studio_impression_mo" string="Impression MO"/>
+            </xpath>
+            <!-- Hide company_id from Miscellaneous tab (shown in main form instead) -->
+            <xpath expr="//page[@name='miscellaneous']//field[@name='company_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
             <!-- Notes in miscellaneous page -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='miscellaneous']/group[1]/group[2]/field[@name='origin']" position="after">

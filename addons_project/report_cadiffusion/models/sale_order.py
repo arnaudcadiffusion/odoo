@@ -7,15 +7,6 @@ class SaleOrderLine(models.Model):
 
     article_cmd = fields.Char('Article cmdé')
 
-    # 不需要弹出数量不足的提醒
-    # @api.onchange('product_uom_qty', 'product_uom', 'route_id')
-    # def _onchange_product_id_check_availability(self):
-    #     TODO: check equivalent of model product_packing
-
-    #     if not self.product_id or not self.product_uom_qty or not self.product_uom:
-    #         self.product_packaging_id = False
-    #         return {}
-
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 

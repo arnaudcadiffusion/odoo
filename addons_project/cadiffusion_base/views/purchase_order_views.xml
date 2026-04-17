@@ -41,24 +41,24 @@
                 <xpath expr="//field[@name='effective_date']" position="move"/>
                 <field name="x_studio_embarquement" string="Embarquement"/>
             </xpath>
-            <!-- Order line: add x_studio fields after name -->
+            <!-- Order line: add x_studio fields after name (optional, hidden by default) -->
             <!-- Note: product_packaging_id removed from purchase.order.line in Odoo 19 -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='name']" position="after">
-                <field name="x_studio_ref_fournisseur" string="Ref Fournisseur" invisible="1"/>
-                <field name="x_studio_date_initiale" string="Date Initiale" invisible="1"/>
+                <field name="x_studio_ref_fournisseur" string="Ref Fournisseur" optional="hide"/>
+                <field name="x_studio_date_initiale" string="Date Initiale" optional="hide"/>
             </xpath>
             <!-- date_planned: date widget -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='date_planned']" position="attributes">
                 <attribute name="widget">date</attribute>
             </xpath>
-            <!-- Move product_uom_id and product_qty after qty_received_method -->
+            <!-- Move product_qty then product_uom_id after qty_received_method → order: qty → uom -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='qty_received_method']" position="after">
-                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="move"/>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_qty']" position="move"/>
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="move"/>
             </xpath>
-            <!-- product_uom_id: hide unit column (field name in Odoo 19 view is product_uom_id) -->
+            <!-- product_uom_id: optional, visible by default -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="attributes">
-                <attribute name="invisible">1</attribute>
+                <attribute name="optional">show</attribute>
                 <attribute name="readonly">state in ['purchase', 'done', 'cancel']</attribute>
                 <attribute name="required">display_type == False</attribute>
             </xpath>
@@ -108,8 +108,13 @@
         <field name="model">purchase.order</field>
         <field name="inherit_id" ref="purchase.purchase_order_view_tree"/>
         <field name="arch" type="xml">
+            <!-- Masque date_planned à sa position originale (fin de liste) -->
             <xpath expr="//field[@name='date_planned']" position="attributes">
-                <attribute name="widget">date</attribute>
+                <attribute name="column_invisible">True</attribute>
+            </xpath>
+            <!-- Réinsère date_planned juste après Société (company_id) -->
+            <xpath expr="//field[@name='company_id'][@groups='!base.group_multi_company']" position="after">
+                <field name="date_planned" column_invisible="context.get('quotation_only', False)" optional="show" widget="date"/>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
                 <field name="x_studio_type" optional="show"/>
