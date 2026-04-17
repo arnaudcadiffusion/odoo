@@ -11,7 +11,7 @@
     "author": "Akretion, Odoo Community Association (OCA)",
     "maintainers": ["alexis-via"],
     "website": "https://github.com/OCA/account-invoicing",
-    "depends": ["account", "base_view_inheritance_extension"],
+    "depends": ["account", "base_view_inheritance_extension", "account_payment_mode"],
     "data": [
         "security/ir.model.access.csv",
         "views/account_move.xml",

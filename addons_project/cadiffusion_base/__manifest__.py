@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.1',
+    'version': '19.0.1.0.2',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -17,6 +17,7 @@
         'public_tender',
         'account_followup',
         'margin',
+        'account_payment_mode',
         'account_invoice_transmit_method',
         'l10n_fr_chorus_account',
     ],

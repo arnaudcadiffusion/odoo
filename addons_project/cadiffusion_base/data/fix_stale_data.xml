@@ -80,9 +80,9 @@
         <field name="active" eval="False"/>
     </record>
 
-    <!-- Désactive le rapport Studio facture qui utilise encore tax_totals_json (supprimé en Odoo 17+).
-         Notre rapport report_cadiffusion.report_invoice_document est utilisé à la place. -->
-    <record id="studio_customization.studio_report_docume_a5c6eec8-51b2-4025-a28e-1577b5abcb0d_document" model="ir.ui.view">
-        <field name="active" eval="False"/>
-    </record>
+    <!--
+        Le rapport Studio (studio_report_docume_a5c6eec8...) est désactivé via migration
+        (post-migrate 19.0.1.0.2) car il peut ne pas exister dans certaines bases.
+        Un <record> ici lèverait "Cannot update missing record" si l'XMLID est absent.
+    -->
 </odoo>
