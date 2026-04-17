@@ -5,13 +5,12 @@
     "summary": "Display of the date in dd/mm/yyyy format",
     "category": "Custom",
     "author": "Nexources",
-    "depends": [
-        "purchase",
-        "cadiffusion_base",
-    ],
-    "data": [
-        "views/purchase_order_views.xml",
-    ],
+    "depends": ["cadiffusion_base"],
+    "assets": {
+        "web.assets_backend": [
+            "ca_date_format/static/src/date_field_numeric.js",
+        ],
+    },
     "installable": True,
     "auto_install": False,
     "license": "LGPL-3",
