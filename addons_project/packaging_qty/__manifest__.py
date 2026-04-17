@@ -5,5 +5,5 @@
     "version": "19.0.1.0.0",
     "summary": "Obsolete — use native Odoo 19 packaging",
     "depends": ["base"],
-    "installable": False,
+    "installable": True,
 }

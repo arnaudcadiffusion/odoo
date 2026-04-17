@@ -146,23 +146,16 @@
                         <div id="total" class="row">
                             <div t-attf-class="#{'col-4' if report_type != 'html' else 'col-sm-7 col-md-5'} ml-auto">
                                 <table class="table table-sm">
-                                    <!--Tax totals-->
-                                    <t t-set="tax_totals" t-value="json.loads(o.tax_totals_json)"/>
-                                    <!-- <t t-call="account.document_tax_totals"/> -->
+                                    <!--Tax totals — Odoo 19: tax_totals est un dict direct (plus de tax_totals_json) -->
+                                    <t t-set="tax_totals" t-value="o.tax_totals"/>
                                     <t t-foreach="tax_totals['subtotals']" t-as="subtotal">
                                         <tr class="border-black o_subtotal">
                                             <td><strong t-esc="subtotal['name']"/></td>
-                        
                                             <td class="text-right">
-                                                <span
-                                                    t-att-class="oe_subtotal_footer_separator"
-                                                    t-esc="subtotal['formatted_amount']"
-                                                />
+                                                <span t-esc="subtotal['formatted_amount']"/>
                                             </td>
                                         </tr>
-                        
                                         <t t-set="subtotal_to_show" t-value="subtotal['name']"/>
-                                        <!--<t t-call="account.tax_groups_totals"/>-->
                                         <t t-foreach="tax_totals['groups_by_subtotal'][subtotal_to_show]" t-as="amount_by_group">
                                             <tr style="border-bottom:1px solid #dddddd;">
                                                 <t t-if="len(tax_totals['groups_by_subtotal'][subtotal_to_show]) > 1 or (tax_totals['amount_untaxed'] != amount_by_group['tax_group_base_amount'])">
@@ -179,13 +172,13 @@
                                                 <t t-else="">
                                                     <td><span class="text-nowrap" t-esc="amount_by_group['tax_group_name']"/></td>
                                                     <td class="text-right o_price_total">
-                                                        <span class="text-nowrap" t-esc="amount_by_group['formatted_tax_group_amount']" />
+                                                        <span class="text-nowrap" t-esc="amount_by_group['formatted_tax_group_amount']"/>
                                                     </td>
                                                 </t>
                                             </tr>
                                         </t>
                                     </t>
-                        
+
                                     <!--Total amount with all taxes-->
                                     <tr class="border-black o_total">
                                         <td><strong>Total</strong></td>
@@ -196,7 +189,7 @@
                                     <!--Payments-->
                                     <t t-if="print_with_payments">
                                         <t t-if="o.payment_state != 'invoicing_legacy'">
-                                            <t t-set="payments_vals" t-value="o.sudo()._get_reconciled_info_JSON_values()"/>
+                                            <t t-set="payments_vals" t-value="o.sudo()._get_reconciled_info_json_values()"/>
                                             <t t-foreach="payments_vals" t-as="payment_vals">
                                                 <tr>
                                                     <td>

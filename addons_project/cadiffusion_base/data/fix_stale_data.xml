@@ -79,4 +79,10 @@
     <record id="studio_customization.odoo_studio_stock_pi_5fc63d5e-5c8c-48ea-8fd1-e5d3ff0c8a8b" model="ir.ui.view">
         <field name="active" eval="False"/>
     </record>
+
+    <!-- Désactive le rapport Studio facture qui utilise encore tax_totals_json (supprimé en Odoo 17+).
+         Notre rapport report_cadiffusion.report_invoice_document est utilisé à la place. -->
+    <record id="studio_customization.studio_report_docume_a5c6eec8-51b2-4025-a28e-1577b5abcb0d_document" model="ir.ui.view">
+        <field name="active" eval="False"/>
+    </record>
 </odoo>
