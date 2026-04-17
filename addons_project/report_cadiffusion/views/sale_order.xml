@@ -16,6 +16,24 @@
                 <xpath expr="//field[@name='order_line']/list/field[@name='currency_id']" position="after">
                     <field name="article_cmd"/>
 			    </xpath>
+                <!-- Masque product_uom_id à sa position originale -->
+                <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_id']" position="attributes">
+                    <attribute name="column_invisible">True</attribute>
+                </xpath>
+                <!-- Réinsère product_uom_id juste après Quantité, sans restriction de groupe -->
+                <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_qty']" position="after">
+                    <field name="product_uom_id"
+                           force_save="1"
+                           readonly="product_uom_readonly"
+                           widget="many2one_uom"
+                           options='{"no_open": True, "no_create": True}'
+                           optional="show"/>
+                </xpath>
             </field>
+        </record>
+
+        <!-- Supprime "Devis / Commande" du PDF Quote Builder du menu Imprimer -->
+        <record id="sale_pdf_quote_builder.action_report_saleorder_raw" model="ir.actions.report">
+            <field name="binding_model_id" eval="False"/>
         </record>
 </odoo>
