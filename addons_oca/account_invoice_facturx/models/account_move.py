@@ -99,14 +99,17 @@ class AccountMove(models.Model):
     @api.model
     def _cii_add_trade_contact_block(self, partner, parent_node, ns):
         trade_contact = etree.SubElement(parent_node, ns["ram"] + "DefinedTradeContact")
-        contact_name = etree.SubElement(trade_contact, ns["ram"] + "PersonName")
-        contact_name.text = partner.name
         department = self._cii_trade_contact_department_name(partner)
         if department:
+            # CII-SR-465/CII-SR-466: PersonName and DepartmentName are
+            # mutually exclusive within DefinedTradeContact.
             department_name = etree.SubElement(
                 trade_contact, ns["ram"] + "DepartmentName"
             )
             department_name.text = department
+        else:
+            contact_name = etree.SubElement(trade_contact, ns["ram"] + "PersonName")
+            contact_name.text = partner.name
         phone = partner.phone or getattr(partner, "mobile", False)
         if phone:
             phone_node = etree.SubElement(
@@ -1103,6 +1106,7 @@ class AccountMove(models.Model):
                 flavor="factur-x",
                 level="extended",
                 check_xsd=False,
+                check_schematron=False,
                 pdf_metadata=pdf_metadata,
                 lang=lang,
                 attachments=attachments,
