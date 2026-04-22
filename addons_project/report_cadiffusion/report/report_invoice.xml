@@ -30,46 +30,46 @@
 
                     <!-- Info header: 2 rows × 4 cols -->
                     <t t-set="all_so" t-value="o._report_sale_order()"/>
-                    <table width="100%" cellspacing="0" cellpadding="2" style="margin-top:8px; margin-bottom:8px;">
-                        <tr>
-                            <td width="25%" style="vertical-align:top; padding-bottom:4px;">
-                                <t t-if="o.partner_id.ref">
-                                    <strong>N# Partenaire:</strong><br/>
-                                    <span t-field="o.partner_id.ref"/>
-                                </t>
-                            </td>
-                            <td width="25%" style="vertical-align:top; padding-bottom:4px;">
-                                <strong>Date de commande:</strong><br/>
-                                <span t-esc="o._report_sale_order_date() and o._report_sale_order_date().strftime('%d/%m/%Y') or ''"/>
-                            </td>
-                            <td width="25%" style="vertical-align:top; padding-bottom:4px;">
-                                <strong>Date d'expédition:</strong><br/>
-                                <span t-esc="o._report_sale_effective_date() and o._report_sale_effective_date().strftime('%d/%m/%Y') or ''"/>
-                            </td>
-                            <td width="25%" style="vertical-align:top; padding-bottom:4px;"/>
-                        </tr>
-                        <tr>
-                            <td style="vertical-align:top;">
-                                <strong>Référence fournisseur:</strong><br/>
-                                <t t-if="all_so"><span t-esc="all_so[0].name"/></t>
-                                <t t-else=""><span t-field="o.invoice_origin"/></t>
-                            </td>
-                            <td style="vertical-align:top;">
-                                <strong>Date de la facture:</strong><br/>
-                                <span t-field="o.invoice_date"/>
-                            </td>
-                            <td style="vertical-align:top;">
-                                <strong>Date d'échéance:</strong><br/>
-                                <span t-field="o.invoice_date_due"/>
-                            </td>
-                            <td style="vertical-align:top;">
-                                <t t-if="all_so and all_so[0].client_order_ref">
-                                    <strong>Votre référence:</strong><br/>
-                                    <span t-esc="all_so[0].client_order_ref"/>
-                                </t>
-                            </td>
-                        </tr>
-                    </table>
+                    <div style="overflow:hidden; margin-top:8px; margin-bottom:4px;">
+                        <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
+                            <t t-if="o.partner_id.ref">
+                                <strong>N# Partenaire:</strong><br/>
+                                <span t-field="o.partner_id.ref"/>
+                            </t>
+                        </div>
+                        <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
+                            <strong>Date de commande:</strong><br/>
+                            <span t-esc="o._report_sale_order_date() and o._report_sale_order_date().strftime('%d/%m/%Y') or ''"/>
+                        </div>
+                        <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
+                            <strong>Date d'expédition:</strong><br/>
+                            <span t-esc="o._report_sale_effective_date() and o._report_sale_effective_date().strftime('%d/%m/%Y') or ''"/>
+                        </div>
+                        <div style="float:left; width:25%;"/>
+                    </div>
+                    <div style="clear:both;"/>
+                    <div style="overflow:hidden; margin-bottom:8px;">
+                        <div style="float:left; width:25%; vertical-align:top;">
+                            <strong>Référence fournisseur:</strong><br/>
+                            <t t-if="all_so"><span t-esc="all_so[0].name"/></t>
+                            <t t-else=""><span t-field="o.invoice_origin"/></t>
+                        </div>
+                        <div style="float:left; width:25%; vertical-align:top;">
+                            <strong>Date de la facture:</strong><br/>
+                            <span t-field="o.invoice_date"/>
+                        </div>
+                        <div style="float:left; width:25%; vertical-align:top;">
+                            <strong>Date d'échéance:</strong><br/>
+                            <span t-field="o.invoice_date_due"/>
+                        </div>
+                        <div style="float:left; width:25%; vertical-align:top;">
+                            <t t-if="all_so and all_so[0].client_order_ref">
+                                <strong>Votre référence:</strong><br/>
+                                <span t-esc="all_so[0].client_order_ref"/>
+                            </t>
+                        </div>
+                    </div>
+                    <div style="clear:both;"/>
 
                     <!-- Product table: 5 columns -->
                     <table class="table table-sm table-bordered" name="invoice_line_table">
@@ -183,22 +183,21 @@
                 <div class="page" style="font-size: smaller;">
 
                     <!-- Info box -->
-                    <table width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #aaa; border-collapse:collapse; margin-top:8px; margin-bottom:16px;">
-                        <tr>
-                            <td width="33%" style="text-align:center; padding:6px; border-right:1px solid #aaa;">
-                                <strong>Facture :</strong><br/>
-                                <span t-field="o.name"/>
-                            </td>
-                            <td width="33%" style="text-align:center; padding:6px; border-right:1px solid #aaa;">
-                                <strong>Date de facturation :</strong><br/>
-                                <span t-field="o.invoice_date"/>
-                            </td>
-                            <td width="34%" style="text-align:center; padding:6px;">
-                                <strong>Date d'échéance :</strong><br/>
-                                <span t-field="o.invoice_date_due"/>
-                            </td>
-                        </tr>
-                    </table>
+                    <div style="overflow:hidden; margin-top:8px; margin-bottom:16px;">
+                        <div style="float:left; width:33%; text-align:center; padding:6px;">
+                            <strong>Facture :</strong><br/>
+                            <span t-field="o.name"/>
+                        </div>
+                        <div style="float:left; width:33%; text-align:center; padding:6px;">
+                            <strong>Date de facturation :</strong><br/>
+                            <span t-field="o.invoice_date"/>
+                        </div>
+                        <div style="float:left; width:34%; text-align:center; padding:6px;">
+                            <strong>Date d'échéance :</strong><br/>
+                            <span t-field="o.invoice_date_due"/>
+                        </div>
+                    </div>
+                    <div style="clear:both;"/>
 
                     <!-- 2-column table -->
                     <table class="table table-sm table-bordered" name="invoice_line_table">
