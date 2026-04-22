@@ -31,10 +31,14 @@ def _deactivate_all_studio(cr):
         )
     """)
 
-    # Redirige les actions rapport pointant sur un template Studio cassé.
+    # Redirige toutes les actions rapport account.move qui utilisent encore
+    # un template Odoo standard ou Studio (copie) vers notre template custom.
     cr.execute("""
         UPDATE ir_act_report_xml
         SET report_name = 'report_cadiffusion.report_invoice_with_payments'
-        WHERE report_name LIKE '%studio_report_docume_a5c6eec8%'
-          AND model = 'account.move'
+        WHERE model = 'account.move'
+          AND (
+              report_name LIKE '%studio_report%'
+              OR report_name LIKE 'account.report_invoice_copy%'
+          )
     """)
