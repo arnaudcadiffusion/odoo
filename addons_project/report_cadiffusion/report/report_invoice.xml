@@ -35,36 +35,45 @@
                         <thead>
                             <tr t-attf-style="background-color:#{o.company_id.primary_color}; color:white;">
                                 <th class="text-left">LIBELLÉ</th>
-                                <th class="text-right" style="width:15%;">MONTANT</th>
+                                <th class="text-end" style="width:15%;">MONTANT</th>
                             </tr>
                         </thead>
                         <tbody class="invoice_tbody">
                             <t t-foreach="o.invoice_line_ids.sorted(key=lambda l: l.sequence)" t-as="line">
-                                <tr t-att-class="'bg-200 font-weight-bold' if line.display_type == 'line_section' else 'font-italic' if line.display_type == 'line_note' else ''">
-                                    <t t-if="not line.display_type" name="account_invoice_line_accountable">
+                                <t t-if="line.display_type == 'product'">
+                                    <tr>
                                         <td name="account_invoice_line_name">
                                             <span t-field="line.name" t-options="{'widget': 'text'}"/>
                                         </td>
-                                        <td class="text-right">
+                                        <td class="text-end">
                                             <span t-field="line.price_subtotal" groups="account.group_show_line_subtotals_tax_excluded"/>
                                             <span t-field="line.price_total" groups="account.group_show_line_subtotals_tax_included"/>
                                         </td>
-                                    </t>
-                                    <t t-if="line.display_type in ('line_section', 'line_note')">
+                                    </tr>
+                                </t>
+                                <t t-elif="line.display_type in ('line_section', 'line_subsection')">
+                                    <tr class="bg-200 fw-bold">
                                         <td colspan="2">
                                             <span t-field="line.name"/>
                                         </td>
-                                    </t>
-                                </tr>
+                                    </tr>
+                                </t>
+                                <t t-elif="line.display_type == 'line_note'">
+                                    <tr class="font-italic">
+                                        <td colspan="2">
+                                            <span t-field="line.name"/>
+                                        </td>
+                                    </tr>
+                                </t>
                             </t>
                         </tbody>
                     </table>
 
                     <!-- Totaux -->
-                    <div class="clearfix">
-                        <div id="total" class="row">
-                            <div t-attf-class="#{'col-4' if report_type != 'html' else 'col-sm-7 col-md-5'} ml-auto">
-                                <table class="table table-sm">
+                    <div class="clearfix mt8">
+                        <div id="total" class="row justify-content-end">
+                            <div class="col-5">
+                                <table class="table table-sm table-bordered">
                                     <t t-set="tax_totals" t-value="o.tax_totals or {}"/>
                                     <t t-set="currency" t-value="o.currency_id"/>
                                     <t t-call="account.document_tax_totals"/>
@@ -75,18 +84,18 @@
                                             <t t-foreach="payments_vals" t-as="payment_vals">
                                                 <tr t-if="payment_vals['is_exchange'] == 0">
                                                     <td>
-                                                        <i class="oe_form_field text-right oe_payment_label">Payé le <t t-esc="payment_vals['date']" t-options='{"widget": "date"}'/></i>
+                                                        <i class="oe_payment_label">Payé le <t t-esc="payment_vals['date']" t-options='{"widget": "date"}'/></i>
                                                     </td>
-                                                    <td class="text-right">
+                                                    <td class="text-end">
                                                         <span t-esc="payment_vals['amount']" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
                                                     </td>
                                                 </tr>
                                             </t>
                                             <t t-if="len(payments_vals) > 0">
-                                                <tr class="border-black">
+                                                <tr>
                                                     <td><strong>Montant restant dû</strong></td>
-                                                    <td class="text-right">
-                                                        <span t-field="o.amount_residual"/>
+                                                    <td class="text-end">
+                                                        <strong><span t-field="o.amount_residual"/></strong>
                                                     </td>
                                                 </tr>
                                             </t>
