@@ -1,22 +1,26 @@
 """
 Migration 19.0.1.0.4 — post-upgrade
 
-Redirige toutes les actions rapport account.move qui utilisent encore
-des templates Odoo standard ou Studio (copies) vers notre template custom.
-Couvre :
-  - account.report_invoice_copy_1  (Studio "Factures Autre" migré depuis v15)
-  - account.report_invoice_copy_*  (toute autre copie Studio)
-  - tout pattern studio_report*    (rapports Studio génériques)
+Archive (retire du menu Imprimer) les rapports Studio liés aux factures,
+SAUF "Factures Autre" et "Facture TCARE" qui sont redirigés vers nos
+templates hardcodés via report_main.xml et doivent rester visibles.
 """
+
+_KEEP_STUDIO_REPORTS = (
+    'factures_sans_paieme_ef6af8d0-5ebc-472e-9d25-22d565f71397',
+    'pieces_comptables_ra_f16b32c4-f6ea-4d4e-bc8a-d341f6a3a987',
+)
 
 
 def migrate(cr, _version):
     cr.execute("""
         UPDATE ir_act_report_xml
-        SET report_name = 'report_cadiffusion.report_invoice_with_payments'
+        SET binding_model_id = NULL
         WHERE model = 'account.move'
-          AND (
-              report_name LIKE 'account.report_invoice_copy%'
-              OR report_name LIKE '%studio_report%'
+          AND id IN (
+              SELECT res_id FROM ir_model_data
+              WHERE module = 'studio_customization'
+                AND model = 'ir.actions.report'
+                AND name NOT IN %s
           )
-    """)
+    """, (tuple(_KEEP_STUDIO_REPORTS),))

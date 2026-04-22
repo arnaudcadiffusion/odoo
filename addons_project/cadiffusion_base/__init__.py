@@ -31,14 +31,17 @@ def _deactivate_all_studio(cr):
         )
     """)
 
-    # Redirige toutes les actions rapport account.move qui utilisent encore
-    # un template Odoo standard ou Studio (copie) vers notre template custom.
+    # Archive (retire du menu) les rapports Studio pour account.move,
+    # SAUF "Factures Autre" et "Facture TCARE" qui sont gérés via report_main.xml.
     cr.execute("""
         UPDATE ir_act_report_xml
-        SET report_name = 'report_cadiffusion.report_invoice_with_payments'
+        SET binding_model_id = NULL
         WHERE model = 'account.move'
-          AND (
-              report_name LIKE '%studio_report%'
-              OR report_name LIKE 'account.report_invoice_copy%'
+          AND id IN (
+              SELECT res_id FROM ir_model_data
+              WHERE module = 'studio_customization'
+                AND model = 'ir.actions.report'
+                AND name NOT IN %s
           )
-    """)
+    """, (('factures_sans_paieme_ef6af8d0-5ebc-472e-9d25-22d565f71397',
+            'pieces_comptables_ra_f16b32c4-f6ea-4d4e-bc8a-d341f6a3a987'),))

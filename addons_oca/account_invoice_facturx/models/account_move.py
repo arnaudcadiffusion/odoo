@@ -1106,7 +1106,6 @@ class AccountMove(models.Model):
                 flavor="factur-x",
                 level="extended",
                 check_xsd=False,
-                check_schematron=False,
                 pdf_metadata=pdf_metadata,
                 lang=lang,
                 attachments=attachments,

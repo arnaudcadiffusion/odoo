@@ -23,6 +23,7 @@
         "views/account_invoice.xml",
         "report/report_main.xml",
         "report/report_invoice.xml",
+        "report/report_invoice_autre.xml",
         "report/report_purchase_order.xml",
         "report/report_delivery_order.xml",
         "report/report_delivery_order_reserved.xml",
