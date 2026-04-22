@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.2',
+    'version': '19.0.1.0.3',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
