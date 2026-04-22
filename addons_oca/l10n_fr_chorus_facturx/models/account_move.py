@@ -9,10 +9,15 @@ class AccountMove(models.Model):
     _inherit = "account.move"
 
     def _cii_trade_contact_department_name(self, partner):
+        # Only add chorus service department for the buyer contact (BT-56).
+        # Applying it to the seller contact (BT-41) is semantically wrong and
+        # triggers CII-SR-465: PersonName and DepartmentName are mutually
+        # exclusive — you cannot have both in the same DefinedTradeContact.
+        if partner != self.partner_id:
+            return super()._cii_trade_contact_department_name(partner)
         chorus_service = self._get_chorus_service()
         if chorus_service:
-            dpt_name = chorus_service.name or partner.name
-            return dpt_name
+            return chorus_service.name or partner.name
         return super()._cii_trade_contact_department_name(partner)
 
     def _cii_trade_agreement_buyer_ref(self, partner):
