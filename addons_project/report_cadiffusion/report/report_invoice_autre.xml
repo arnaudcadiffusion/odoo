@@ -166,5 +166,26 @@
             </t>
         </template>
 
+        <!-- Report actions — created here so they work on fresh install without migrations -->
+        <record id="action_report_invoice_autre" model="ir.actions.report">
+            <field name="name">Factures Autre</field>
+            <field name="model">account.move</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">report_cadiffusion.report_invoice_autre</field>
+            <field name="report_file">report_cadiffusion.report_invoice_autre</field>
+            <field name="binding_model_id" ref="account.model_account_move"/>
+            <field name="binding_type">report</field>
+        </record>
+
+        <record id="action_report_invoice_tcare" model="ir.actions.report">
+            <field name="name">Facture TCARE</field>
+            <field name="model">account.move</field>
+            <field name="report_type">qweb-pdf</field>
+            <field name="report_name">report_cadiffusion.report_invoice_tcare</field>
+            <field name="report_file">report_cadiffusion.report_invoice_tcare</field>
+            <field name="binding_model_id" ref="account.model_account_move"/>
+            <field name="binding_type">report</field>
+        </record>
+
     </data>
 </odoo>
