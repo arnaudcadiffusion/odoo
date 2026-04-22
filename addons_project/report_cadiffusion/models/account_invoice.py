@@ -36,11 +36,20 @@ class AccountMove(models.Model):
         return all_so
 
     def _report_sale_order_date(self):
-        all_so = self._report_sale_order()
-        if all_so:
-            return all_so[0].date_order
+        try:
+            all_so = self._report_sale_order()
+            if all_so:
+                return all_so[0].date_order
+        except Exception:
+            pass
+        return None
 
     def _report_sale_effective_date(self):
-        all_so = self._report_sale_order()
-        if all_so:
-            return all_so[0].effective_date
+        try:
+            all_so = self._report_sale_order()
+            if all_so:
+                val = all_so[0].effective_date
+                return val if val else None
+        except Exception:
+            pass
+        return None
