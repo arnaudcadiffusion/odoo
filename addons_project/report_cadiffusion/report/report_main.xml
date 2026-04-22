@@ -23,12 +23,6 @@
         <field name="report_file">report_cadiffusion.report_invoice</field>
     </record>
 
-    <!-- Ancien record custom : désactiver is_invoice_report pour éviter doublon PDF -->
-    <record id="account_account_invoices" model="ir.actions.report">
-        <field name="name">Invoices (legacy)</field>
-        <field name="is_invoice_report" eval="False"/>
-    </record>
-
     <!-- ========================= -->
     <!-- Delivery Slip -->
     <!-- ========================= -->
