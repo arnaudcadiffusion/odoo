@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ir.ui.view.custom list view -->
+    <record id="view_ir_ui_view_custom_list_studio" model="ir.ui.view">
+        <field name="name">ir.ui.view.custom.list.studio</field>
+        <field name="model">ir.ui.view.custom</field>
+        <field name="inherit_id" ref="base.view_view_custom_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='ref_id']" position="after">
+                <field name="create_date"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- mail.activity list view -->
+    <record id="view_mail_activity_list_studio" model="ir.ui.view">
+        <field name="name">mail.activity.list.studio</field>
+        <field name="model">mail.activity</field>
+        <field name="inherit_id" ref="mail.mail_activity_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='res_name']" position="after">
+                <field name="user_id" optional="show"/>
+                <field name="create_uid" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
