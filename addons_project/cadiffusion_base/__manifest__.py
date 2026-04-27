@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.6',
+    'version': '19.0.1.0.9',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -33,6 +33,7 @@
         'views/sale_order_views.xml',
         'views/stock_views.xml',
         'views/tender_order_views.xml',
+        'views/misc_views.xml',
     ],
     'installable': True,
     'auto_install': False,
