@@ -14,7 +14,7 @@
                         invisible="invoice_count==0" groups='sales_team.group_sale_manager'/>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/list" position="inside">
-                    <field name="article_cmd" optional="show"/>
+                    <field name="article_cmd" optional="show" />
 			    </xpath>
                 <!-- Masque product_uom_id à sa position originale -->
                 <xpath expr="//field[@name='order_line']/list/field[@name='product_uom_id']" position="attributes">
