@@ -20,8 +20,8 @@ class UneceCodeList(models.Model):
     description = fields.Text()
     active = fields.Boolean(default=True)
 
-    _type_code_uniq = models.UniqueIndex(
-        "(type, code)",
+    _type_code_uniq = models.Constraint(
+        "unique(type, code)",
         "An UNECE code of the same type already exists",
     )
 

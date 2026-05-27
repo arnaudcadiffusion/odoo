@@ -29,8 +29,8 @@ class ChorusPartnerService(models.Model):
     chorus_identifier = fields.Integer(readonly=True)
     engagement_required = fields.Boolean()
 
-    _partner_code_uniq = models.UniqueIndex(
-        "(partner_id, code)",
+    _partner_code_uniq = models.Constraint(
+        "unique(partner_id, code)",
         "This Chorus service code already exists for that partner!",
     )
 
