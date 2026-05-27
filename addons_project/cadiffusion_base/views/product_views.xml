@@ -53,8 +53,11 @@
                     <field optional="show" name="x_studio_origine" string="Origine"/>
                 </list>
             </xpath>
-            <!-- Carton dimensions after hs_code -->
-            <xpath expr="//field[@name='hs_code']" position="after">
+            <!-- Carton dimensions + HS Code/Origin moved into Logistics group.
+                 In Odoo 19, hs_code is added by stock_delivery inside Traceability
+                 (groups="stock.group_production_lot") so hidden unless user has that group.
+                 We extract them and put them with the carton info, always visible. -->
+            <xpath expr="//page[@name='inventory']/group[@name='inventory']/group[@name='group_lots_and_weight']" position="inside">
                 <field name="x_studio_poids_carton" string="Poids Carton"/>
                 <field name="x_studio_longueur_carton" string="Longueur Carton"/>
                 <field name="x_studio_largeur_carton" string="Largeur Carton"/>
