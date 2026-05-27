@@ -10,7 +10,7 @@
 		    <xpath expr="//page[@name='sales_purchases']" position="after">
 			    <page name="Tender Orders" string="Tender Orders">
 				    <field name="tender_ids" mode="list,form" readonly="1">
-					    <list string="Tender Orders" editable="bottom">
+					    <list string="Tender Orders">
 						    <field name="name"/>
 						    <field name="state"/>
 						    <field name="end_of_the_tender"/>

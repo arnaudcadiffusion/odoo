@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class MrpProduction(models.Model):
@@ -7,7 +7,18 @@ class MrpProduction(models.Model):
 
     x_studio_conditionnement = fields.Char(
         string='Conditionnement',
+        compute='_compute_x_studio_conditionnement',
+        store=True,
+        readonly=False,
+        precompute=True,
     )
+
+    @api.depends('product_id')
+    def _compute_x_studio_conditionnement(self):
+        for production in self:
+            packaging = production.product_id.product_tmpl_id.uom_ids[:1]
+            production.x_studio_conditionnement = packaging.name if packaging else False
+
     x_studio_impression_mo = fields.Boolean(
         string='Impression MO',
         default=False,
