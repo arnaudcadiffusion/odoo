@@ -34,5 +34,5 @@ class TestPartner(common.TransactionCase):
             'partner_ids': [(6,0,[partner_1.id])],
         })
 
-        # self.assertEquals(self.env['tender.order'].browse([record3.id]), partner_1.tender_ids,"The partner's tenders filter by end_of_the_tender")
-        self.assertEquals(self.env['tender.order'].browse([record.id,record2.id,record3.id,record4.id]), partner_1.tender_ids,"The partner's tenders filter by end_of_the_tender")
+        # self.assertEqual(self.env['tender.order'].browse([record3.id]), partner_1.tender_ids,"The partner's tenders filter by end_of_the_tender")
+        self.assertEqual(self.env['tender.order'].browse([record.id,record2.id,record3.id,record4.id]), partner_1.tender_ids,"The partner's tenders filter by end_of_the_tender")
