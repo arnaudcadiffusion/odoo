@@ -56,7 +56,7 @@ class Tender(models.Model):
     x_studio_email = fields.Char(string='Email')
     x_studio_notes_march = fields.Text(string='Notes Marché')
 
-    _sql_constraints = [('name_uniq', 'unique(name)', "Name Must Be Unique")]
+    _name_uniq = models.Constraint('unique(name)', "Name Must Be Unique")
 
 
     def copy(self, default=None):
