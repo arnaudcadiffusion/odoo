@@ -39,11 +39,13 @@ class AccountMove(models.Model):
         compute='_compute_is_draft_duplicated_ref_ids',
     )
 
-    @api.depends('ref', 'partner_id', 'state')
+    @api.depends('duplicated_ref_ids')
     def _compute_is_draft_duplicated_ref_ids(self):
         for move in self:
-            move.is_draft_duplicated_ref_ids = bool(
-                move.duplicated_ref_ids.filtered(lambda m: m.state == 'draft')
+            drafts = move.duplicated_ref_ids.filtered(lambda m: m.state == 'draft')
+            move.is_draft_duplicated_ref_ids = bool(drafts)
+            move.is_exact_move_duplicate = any(
+                d.amount_total == move.amount_total for d in drafts
             )
 
     def action_delete_duplicates(self):
