@@ -192,16 +192,16 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="l10n_fr_chorus_account.view_partner_form"/>
         <field name="arch" type="xml">
-            <!-- fr_chorus_service_id sur le partenaire principal -->
-            <xpath expr="//field[@name='fr_chorus_service_id'][1]" position="attributes">
+            <!-- fr_chorus_service_id sur le partenaire principal (juste après <field name="ref">) -->
+            <xpath expr="//field[@name='ref']/following-sibling::field[@name='fr_chorus_service_id']" position="attributes">
                 <attribute name="invisible">not parent_id or customer_invoice_transmit_method_code != 'fr-chorus'</attribute>
             </xpath>
             <!-- fr_chorus_service_id dans le sous-formulaire contact enfant -->
             <xpath expr="//group[@name='fr_chorus_service']/field[@name='fr_chorus_service_id']" position="attributes">
                 <attribute name="invisible">type != 'invoice' or parent.customer_invoice_transmit_method_code != 'fr-chorus'</attribute>
             </xpath>
-            <!-- Bouton Get Chorus Info -->
-            <xpath expr="//button[@name='fr_chorus_identifier_and_required_button'][1]" position="attributes">
+            <!-- Bouton « Get Chorus Info » (le bouton direct du groupe invoice_send_settings) -->
+            <xpath expr="//group[@id='invoice_send_settings']/button[@name='fr_chorus_identifier_and_required_button']" position="attributes">
                 <attribute name="invisible">customer_invoice_transmit_method_code != 'fr-chorus' or fr_chorus_required</attribute>
             </xpath>
             <!-- Label fr_chorus_required -->

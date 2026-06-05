@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Add Conditionnement (packaging) to the Manufacturing Order PDF,
+         displayed right below the product, above the components table. -->
+    <template id="report_mrporder_conditionnement" inherit_id="mrp.report_mrporder">
+        <xpath expr="//div[@t-if='o.move_raw_ids']" position="before">
+            <div class="row mt32 mb32" t-if="o.x_studio_conditionnement">
+                <div class="col-12">
+                    <strong>Conditionnement :</strong>
+                    <span t-field="o.x_studio_conditionnement">Carton de 12</span>
+                </div>
+            </div>
+        </xpath>
+    </template>
+
+</odoo>

@@ -36,6 +36,7 @@
         'views/stock_views.xml',
         'views/tender_order_views.xml',
         'views/misc_views.xml',
+        'report/mrp_production_report.xml',
     ],
     'installable': True,
     'auto_install': False,
