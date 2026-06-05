@@ -192,8 +192,12 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="l10n_fr_chorus_account.view_partner_form"/>
         <field name="arch" type="xml">
-            <!-- fr_chorus_service_id sur le partenaire principal (juste après <field name="ref">) -->
-            <xpath expr="//field[@name='ref']/following-sibling::field[@name='fr_chorus_service_id']" position="attributes">
+            <!-- fr_chorus_service_id sur le partenaire principal (hors sous-formulaire contact enfant).
+                 On n'utilise PAS le following-sibling de <field name="ref"> : une vue Studio
+                 réorganise le formulaire et déplace "ref" dans un autre groupe, ce qui casse
+                 l'ancrage selon l'ordre d'application des vues. Le champ principal est le seul
+                 fr_chorus_service_id qui n'est pas dans le sous-formulaire child_ids. -->
+            <xpath expr="//field[@name='fr_chorus_service_id'][not(ancestor::field[@name='child_ids'])]" position="attributes">
                 <attribute name="invisible">not parent_id or customer_invoice_transmit_method_code != 'fr-chorus'</attribute>
             </xpath>
             <!-- fr_chorus_service_id dans le sous-formulaire contact enfant -->
