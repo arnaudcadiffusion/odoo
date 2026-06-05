@@ -153,6 +153,9 @@
                     </div>
                     <div style="clear:both;"/>
 
+                    <p t-if="o.payment_reference" name="payment_communication">
+                        Merci d'utiliser le numéro suivant pour votre paiement : <b><span t-field="o.payment_reference"/></b>
+                    </p>
                     <t t-if="o.narration" name="comment">
                         <p><span t-field="o.narration"/></p>
                     </t>
@@ -266,6 +269,9 @@
                     </div>
                     <div style="clear:both;"/>
 
+                    <p t-if="o.payment_reference" name="payment_communication">
+                        Merci d'utiliser le numéro suivant pour votre paiement : <b><span t-field="o.payment_reference"/></b>
+                    </p>
                     <t t-if="o.narration" name="comment">
                         <p><span t-field="o.narration"/></p>
                     </t>
