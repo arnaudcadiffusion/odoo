@@ -21,6 +21,7 @@
         'margin',
         'account_payment_mode',
         'account_invoice_transmit_method',
+        'account_invoice_facturx',
         'l10n_fr_chorus_account',
     ],
     'data': [
