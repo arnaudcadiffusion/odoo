@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import api, fields, models
+
+_logger = logging.getLogger(__name__)
 
 
 class AccountAccount(models.Model):
@@ -53,6 +57,30 @@ class AccountMove(models.Model):
         drafts.button_cancel()
         drafts.unlink()
         return True
+
+    def regular_pdf_invoice_to_facturx_invoice(self, pdf_bytesio):
+        """Defensive wrapper around the OCA factur-x embed call.
+
+        The native implementation calls ``facturx.generate_from_file`` (binary
+        operation on the PDF stream). On large invoices, malformed PDFs or
+        memory-constrained workers this call can segfault and kill the Odoo
+        worker process — which manifests as 'server se coupe' for the user
+        clicking Print Invoice.
+
+        Here we catch any exception, log it, and return the raw PDF without the
+        embedded XML. The user gets their PDF; only the Factur-X compliance
+        is silently dropped for that single render (the rest of the workflow
+        — Chorus, etc. — keeps working since the XML is regenerated when
+        actually transmitted)."""
+        try:
+            return super().regular_pdf_invoice_to_facturx_invoice(pdf_bytesio)
+        except Exception as exc:  # noqa: BLE001 — intentionally broad to keep worker alive
+            _logger.warning(
+                "Factur-X embedding failed for invoice %s (id=%s); returning plain PDF. Error: %s",
+                getattr(self, 'name', '?'), getattr(self, 'id', '?'), exc,
+                exc_info=True,
+            )
+            return None
 
 
 class AccountMoveLine(models.Model):
