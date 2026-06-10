@@ -30,8 +30,6 @@
 
                     <!-- Info header: 2 rows × 4 cols -->
                     <t t-set="all_so" t-value="o._report_sale_order()"/>
-                    <t t-set="so_order_date" t-value="all_so and all_so[0].date_order or False"/>
-                    <t t-set="so_effective_date" t-value="all_so and all_so[0].effective_date or False"/>
                     <div style="overflow:hidden; margin-top:8px; margin-bottom:4px;">
                         <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
                             <t t-if="o.partner_id.ref">
@@ -41,11 +39,11 @@
                         </div>
                         <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
                             <strong>Date de commande:</strong><br/>
-                            <span t-esc="so_order_date and so_order_date.strftime('%d/%m/%Y') or ''"/>
+                            <span t-esc="o._report_sale_order_date() and o._report_sale_order_date().strftime('%d/%m/%Y') or ''"/>
                         </div>
                         <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
                             <strong>Date d'expédition:</strong><br/>
-                            <span t-esc="so_effective_date and so_effective_date.strftime('%d/%m/%Y') or ''"/>
+                            <span t-esc="o._report_sale_effective_date() and o._report_sale_effective_date().strftime('%d/%m/%Y') or ''"/>
                         </div>
                         <div style="float:left; width:25%;"/>
                     </div>
@@ -85,17 +83,8 @@
                             </tr>
                         </thead>
                         <tbody class="invoice_tbody">
-                            <t t-set="picking_by_line" t-value="o._report_picking_name_by_line()"/>
-                            <t t-set="prev_picking_name" t-value="''"/>
                             <t t-foreach="o.invoice_line_ids.sorted(key=lambda l: l.sequence)" t-as="line">
                                 <t t-if="line.display_type == 'product'">
-                                    <t t-set="current_picking_name" t-value="picking_by_line.get(line.id, '')"/>
-                                    <t t-if="current_picking_name and current_picking_name != prev_picking_name">
-                                        <tr class="bg-200 fw-bold">
-                                            <td colspan="5">BL : <span t-esc="current_picking_name"/></td>
-                                        </tr>
-                                        <t t-set="prev_picking_name" t-value="current_picking_name"/>
-                                    </t>
                                     <tr>
                                         <td name="account_invoice_line_name">
                                             <span t-field="line.name" t-options="{'widget': 'text'}"/>
@@ -105,7 +94,7 @@
                                             <span t-field="line.product_uom_id" groups="uom.group_uom"/>
                                         </td>
                                         <td class="text-end">
-                                            <span t-esc="line._report_price_per_piece()" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                            <span t-field="line.price_unit_reduced"/>
                                         </td>
                                         <td class="text-start">
                                             <span t-esc="', '.join(map(lambda x: x.description or x.name, line.tax_ids))"/>
