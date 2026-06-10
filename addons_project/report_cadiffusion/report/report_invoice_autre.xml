@@ -37,6 +37,8 @@
 
                     <!-- Info header -->
                     <t t-set="all_so" t-value="o._report_sale_order()"/>
+                    <t t-set="so_order_date" t-value="all_so and all_so[0].date_order or False"/>
+                    <t t-set="so_effective_date" t-value="all_so and all_so[0].effective_date or False"/>
                     <div class="row mt16 mb8">
                         <div class="col-3" t-if="o.partner_id.ref">
                             <strong>N# Partenaire:</strong><br/>
@@ -44,11 +46,11 @@
                         </div>
                         <div class="col-3">
                             <strong>Date de commande:</strong><br/>
-                            <span t-esc="o._report_sale_order_date() and o._report_sale_order_date().strftime('%d/%m/%Y') or ''"/>
+                            <span t-esc="so_order_date and so_order_date.strftime('%d/%m/%Y') or ''"/>
                         </div>
                         <div class="col-3">
                             <strong>Date de livraison:</strong><br/>
-                            <span t-esc="o._report_sale_effective_date() and o._report_sale_effective_date().strftime('%d/%m/%Y') or ''"/>
+                            <span t-esc="so_effective_date and so_effective_date.strftime('%d/%m/%Y') or ''"/>
                         </div>
                     </div>
                     <div class="row mb16">
