@@ -14,6 +14,31 @@ class AccountMoveLine(models.Model):
         for record in self:
             record.price_unit_reduced = record.price_unit * (1- (record.discount or 0.0)/100.0)
 
+    def _report_picking_name(self):
+        """Return the delivery order (stock.picking) name linked to this invoice line.
+        Used by the invoice PDF to display 'BL: XXX' sections grouping lines by delivery."""
+        self.ensure_one()
+        if not self.sale_line_ids:
+            return ''
+        pickings = self.sale_line_ids.move_ids.picking_id.filtered(lambda p: p.state == 'done')
+        return pickings[:1].name or ''
+
+    def _report_price_per_piece(self):
+        """Return the unit price expressed in the product's base UOM (price per piece).
+        If the invoice line UOM equals the product's base UOM, returns price_unit_reduced.
+        Otherwise converts to base UOM for display."""
+        self.ensure_one()
+        if not self.product_id or not self.quantity:
+            return self.price_unit_reduced
+        base_uom = self.product_id.uom_id
+        line_uom = self.product_uom_id
+        if not line_uom or line_uom == base_uom:
+            return self.price_unit_reduced
+        qty_base = line_uom._compute_quantity(self.quantity, base_uom)
+        if not qty_base:
+            return self.price_unit_reduced
+        return self.price_subtotal / qty_base
+
 class AccountMove(models.Model):
     _inherit = 'account.move'
 

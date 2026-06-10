@@ -83,8 +83,16 @@
                             </tr>
                         </thead>
                         <tbody class="invoice_tbody">
+                            <t t-set="prev_picking_name" t-value="''"/>
                             <t t-foreach="o.invoice_line_ids.sorted(key=lambda l: l.sequence)" t-as="line">
                                 <t t-if="line.display_type == 'product'">
+                                    <t t-set="current_picking_name" t-value="line._report_picking_name()"/>
+                                    <t t-if="current_picking_name and current_picking_name != prev_picking_name">
+                                        <tr class="bg-200 fw-bold">
+                                            <td colspan="5">BL : <span t-esc="current_picking_name"/></td>
+                                        </tr>
+                                        <t t-set="prev_picking_name" t-value="current_picking_name"/>
+                                    </t>
                                     <tr>
                                         <td name="account_invoice_line_name">
                                             <span t-field="line.name" t-options="{'widget': 'text'}"/>
@@ -94,7 +102,7 @@
                                             <span t-field="line.product_uom_id" groups="uom.group_uom"/>
                                         </td>
                                         <td class="text-end">
-                                            <span t-field="line.price_unit_reduced"/>
+                                            <span t-esc="line._report_price_per_piece()" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
                                         </td>
                                         <td class="text-start">
                                             <span t-esc="', '.join(map(lambda x: x.description or x.name, line.tax_ids))"/>
