@@ -50,6 +50,21 @@ class SaleOrder(models.Model):
     x_studio_notes_commande = fields.Text(string='Notes Commande')
     x_studio_siret = fields.Char(string='SIRET')
 
+    def _create_invoices(self, grouped=False, final=False, date=None):
+        """When an invoice is created from one or several sale orders, insert a
+        ``line_section`` line for every distinct delivery order (``stock.picking``)
+        in state ``done`` that contributed product lines. The section name is the
+        picking ``name`` (e.g. ``WH/OUT/00012``).
+
+        Sections are written into the invoice as real ``account.move.line``
+        records (display_type='line_section'), so they survive editing, are
+        visible in the form, and require no special PDF logic — the standard
+        section rendering takes care of them."""
+        moves = super()._create_invoices(grouped=grouped, final=final, date=date)
+        for move in moves:
+            move._cadiffusion_insert_picking_sections()
+        return moves
+
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'

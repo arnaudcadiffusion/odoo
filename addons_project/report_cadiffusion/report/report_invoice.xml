@@ -28,22 +28,22 @@
                         <span t-field="o.name"/>
                     </h2>
 
-                    <!-- Info header: 2 rows × 4 cols -->
+                    <!-- Info header: 2 rows × 4 cols (all fields always rendered) -->
                     <t t-set="all_so" t-value="o._report_sale_order()"/>
+                    <t t-set="so_order_date" t-value="all_so and all_so[0].date_order or False"/>
+                    <t t-set="so_effective_date" t-value="all_so and all_so[0].effective_date or False"/>
                     <div style="overflow:hidden; margin-top:8px; margin-bottom:4px;">
                         <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
-                            <t t-if="o.partner_id.ref">
-                                <strong>N# Partenaire:</strong><br/>
-                                <span t-field="o.partner_id.ref"/>
-                            </t>
+                            <strong>N# Partenaire:</strong><br/>
+                            <span t-field="o.partner_id.ref"/>
                         </div>
                         <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
                             <strong>Date de commande:</strong><br/>
-                            <span t-esc="o._report_sale_order_date() and o._report_sale_order_date().strftime('%d/%m/%Y') or ''"/>
+                            <span t-esc="so_order_date and so_order_date.strftime('%d/%m/%Y') or ''"/>
                         </div>
                         <div style="float:left; width:25%; vertical-align:top; padding-bottom:4px;">
                             <strong>Date d'expédition:</strong><br/>
-                            <span t-esc="o._report_sale_effective_date() and o._report_sale_effective_date().strftime('%d/%m/%Y') or ''"/>
+                            <span t-esc="so_effective_date and so_effective_date.strftime('%d/%m/%Y') or ''"/>
                         </div>
                         <div style="float:left; width:25%;"/>
                     </div>
@@ -51,8 +51,7 @@
                     <div style="overflow:hidden; margin-bottom:8px;">
                         <div style="float:left; width:25%; vertical-align:top;">
                             <strong>Référence fournisseur:</strong><br/>
-                            <t t-if="all_so"><span t-esc="all_so[0].name"/></t>
-                            <t t-else=""><span t-field="o.invoice_origin"/></t>
+                            <span t-esc="(all_so and all_so[0].name) or o.invoice_origin or ''"/>
                         </div>
                         <div style="float:left; width:25%; vertical-align:top;">
                             <strong>Date de la facture:</strong><br/>
@@ -63,10 +62,8 @@
                             <span t-field="o.invoice_date_due"/>
                         </div>
                         <div style="float:left; width:25%; vertical-align:top;">
-                            <t t-if="all_so and all_so[0].client_order_ref">
-                                <strong>Votre référence:</strong><br/>
-                                <span t-esc="all_so[0].client_order_ref"/>
-                            </t>
+                            <strong>Votre référence:</strong><br/>
+                            <span t-esc="(all_so and all_so[0].client_order_ref) or ''"/>
                         </div>
                     </div>
                     <div style="clear:both;"/>
@@ -77,7 +74,7 @@
                             <tr t-attf-style="background-color:#{o.company_id.primary_color}; color:white;">
                                 <th class="text-start">DESCRIPTION</th>
                                 <th class="text-end">QUANTITÉ</th>
-                                <th class="text-end">PRIX UNIT</th>
+                                <th class="text-end">PRIX UNIT / PIÈCE</th>
                                 <th class="text-start">TAXES</th>
                                 <th class="text-end">MONTANT</th>
                             </tr>
@@ -94,10 +91,10 @@
                                             <span t-field="line.product_uom_id" groups="uom.group_uom"/>
                                         </td>
                                         <td class="text-end">
-                                            <span t-field="line.price_unit_reduced"/>
+                                            <span t-esc="line._cadiffusion_price_per_piece()" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
                                         </td>
                                         <td class="text-start">
-                                            <span t-esc="', '.join(map(lambda x: x.description or x.name, line.tax_ids))"/>
+                                            <span t-esc="', '.join([x.invoice_label or x.name for x in line.tax_ids])"/>
                                         </td>
                                         <td class="text-end">
                                             <span t-field="line.price_subtotal"/>

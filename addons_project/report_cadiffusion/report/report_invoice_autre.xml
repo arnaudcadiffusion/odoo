@@ -79,7 +79,7 @@
                                 <t t-set="colspan" t-value="5"/>
                                 <th class="text-start">Description</th>
                                 <th class="text-end">Quantité</th>
-                                <th class="text-end">P.U.</th>
+                                <th class="text-end">P.U. / pièce</th>
                                 <th class="text-start">Taxes</th>
                                 <t t-if="article_cmd_flag">
                                     <th>Article cmdé</th>
@@ -103,7 +103,7 @@
                                             <span t-field="line.price_unit_reduced"/>
                                         </td>
                                         <td class="text-start">
-                                            <span t-esc="', '.join(map(lambda x: x.description or x.name, line.tax_ids))"/>
+                                            <span t-esc="', '.join([x.invoice_label or x.name for x in line.tax_ids])"/>
                                         </td>
                                         <t t-if="article_cmd_flag">
                                             <td><span t-field="line.article_cmd"/></td>
