@@ -58,6 +58,62 @@ class AccountMove(models.Model):
         drafts.unlink()
         return True
 
+    def _cadiffusion_insert_picking_sections(self):
+        """Insert ``line_section`` rows above each contiguous group of product
+        lines that share the same done ``stock.picking``.
+
+        Called from ``sale.order._create_invoices`` so the data is materialised
+        once at invoice creation. Each section is named ``BL : <picking.name>``.
+
+        Sequence trick: existing line sequences are multiplied by 10, then each
+        section is inserted at ``(first_product_of_group.sequence) - 5`` — i.e.
+        just before its group, without colliding with neighbours."""
+        self.ensure_one()
+        product_lines = self.invoice_line_ids.sorted(key=lambda l: l.sequence).filtered(
+            lambda l: l.display_type == 'product'
+        )
+        if not product_lines:
+            return
+
+        # Resolve picking name per line in a single batched read.
+        product_lines.mapped('sale_line_ids.move_ids.picking_id.state')
+        picking_by_line = {}
+        for line in product_lines:
+            if not line.sale_line_ids:
+                picking_by_line[line.id] = ''
+                continue
+            done_pickings = line.sale_line_ids.move_ids.picking_id.filtered(
+                lambda p: p.state == 'done'
+            )
+            picking_by_line[line.id] = done_pickings[:1].name or ''
+
+        # Detect picking changes BEFORE we touch sequences.
+        sections_specs = []  # list of (anchor_line_id, picking_name)
+        prev_name = None
+        for line in product_lines:
+            current_name = picking_by_line.get(line.id, '')
+            if current_name and current_name != prev_name:
+                sections_specs.append((line.id, current_name))
+                prev_name = current_name
+
+        if not sections_specs:
+            return
+
+        # Spread existing sequences ×10 so we can drop sections in between.
+        for ln in self.invoice_line_ids:
+            ln.sequence = max((ln.sequence or 0) * 10, 10)
+
+        sections_to_create = []
+        for anchor_id, picking_name in sections_specs:
+            anchor = self.invoice_line_ids.browse(anchor_id)
+            sections_to_create.append({
+                'name': 'BL : %s' % picking_name,
+                'display_type': 'line_section',
+                'move_id': self.id,
+                'sequence': max(anchor.sequence - 5, 1),
+            })
+        self.env['account.move.line'].create(sections_to_create)
+
     def regular_pdf_invoice_to_facturx_invoice(self, pdf_bytesio):
         """Defensive wrapper around the OCA factur-x embed call.
 
@@ -98,6 +154,29 @@ class AccountMoveLine(models.Model):
         store=True,
         readonly=True,
     )
+
+    def _cadiffusion_price_per_piece(self):
+        """Return ``price_unit_reduced`` converted to the product's base UOM
+        so the invoice PDF always shows a per-piece price even when the line
+        is denominated in a packaging UOM (carton of 100, lot of 20, etc.).
+
+        Falls back to ``price_unit_reduced`` if the line has no product or if
+        its UOM already matches the product's base UOM (so behaviour is
+        unchanged for pieces)."""
+        self.ensure_one()
+        base_price = getattr(self, 'price_unit_reduced', self.price_unit)
+        if not self.product_id:
+            return base_price
+        base_uom = self.product_id.uom_id
+        line_uom = self.product_uom_id
+        if not line_uom or line_uom == base_uom:
+            return base_price
+        # Convert 1 unit of line_uom into base_uom: gives the number of base
+        # units in one line unit. price_per_base = price_per_line / ratio.
+        ratio = line_uom._compute_quantity(1.0, base_uom, raise_if_failure=False)
+        if not ratio:
+            return base_price
+        return base_price / ratio
 
 
 class AccountPayment(models.Model):

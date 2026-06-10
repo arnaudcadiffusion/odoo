@@ -8,7 +8,6 @@
             <xpath expr="//div[@class='o_footer_content']" position="replace">
                 <div class="o_footer_content border-top pt-2" style="overflow:hidden; font-size:8pt;">
                     <div style="float:right; width:18%; text-align:right; white-space:nowrap;">
-                        <span t-if="report_type == 'pdf' and display_name_in_footer" class="text-muted" t-out="str(o.name) + ', '"/>
                         <span t-if="report_type == 'pdf'" class="text-muted">Page <span class="page"/> / <span class="topage"/></span>
                     </div>
                     <div style="float:left; width:80%;">
