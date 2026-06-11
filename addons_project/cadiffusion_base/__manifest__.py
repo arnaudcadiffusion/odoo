@@ -23,6 +23,7 @@
         'account_invoice_transmit_method',
         'account_invoice_facturx',
         'l10n_fr_chorus_account',
+        'l10n_fr_facturx_chorus_pro',
     ],
     'data': [
         'security/security.xml',
