@@ -22,8 +22,38 @@ class AccountMove(models.Model):
 
     x_studio_code_service_chorus = fields.Char(
         string='Code Service Chorus',
-        related='partner_id.parent_id.x_studio_code_service_chorus',
+        compute='_compute_x_studio_code_service_chorus',
         store=True,
+        readonly=False,
+    )
+
+    @api.depends('partner_id', 'partner_id.x_studio_code_service_chorus',
+                 'partner_id.parent_id.x_studio_code_service_chorus')
+    def _compute_x_studio_code_service_chorus(self):
+        """Take the chorus service code from the billing address (partner_id).
+        Fall back to the parent partner's code if the billing contact itself
+        doesn't have one — covers the case where the code is stored on the
+        commercial entity rather than on the billing contact."""
+        for move in self:
+            partner = move.partner_id
+            move.x_studio_code_service_chorus = (
+                partner.x_studio_code_service_chorus
+                or (partner.parent_id and partner.parent_id.x_studio_code_service_chorus)
+                or False
+            )
+
+    @api.depends('name', 'state')
+    def _compute_purchase_order_reference(self):
+        """Set 'Engagement juridique' (Chorus PRO) to the invoice number once
+        the invoice is posted. Keeps the field editable so users can override."""
+        for move in self:
+            if move.state == 'posted' and move.name and move.name != '/':
+                move.purchase_order_reference = move.name
+
+    purchase_order_reference = fields.Char(
+        compute='_compute_purchase_order_reference',
+        store=True,
+        readonly=False,
     )
     x_studio_etiquettes_clients = fields.Many2many(
         'res.partner.category',
