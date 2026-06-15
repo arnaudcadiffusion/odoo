@@ -1,7 +1,7 @@
 {
     "name": "Cadiffusion Report",
     "summary": "Add Invoice and Picking Report",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "description": """
     Re-design delivery slip and invoice report, remove the Studio generated
     reports. Add text field 'article cmdé' on sale_order_line, picking and
@@ -16,6 +16,10 @@
         "account",
         "purchase",
         "sales_team",
+        # Les rapports (facture + commande) appellent des méthodes définies
+        # dans cadiffusion_base (_cadiffusion_price_per_piece,
+        # _cadiffusion_qty_display, _cadiffusion_insert_picking_sections…).
+        "cadiffusion_base",
     ],
     "data": [
         "views/sale_order.xml",
