@@ -37,7 +37,7 @@
             <attribute name="style">font-size: smaller;</attribute>
         </xpath>
 
-        <!-- 3. Table: rename columns + always show discount, remove taxes -->
+        <!-- 3. Table headers: rename + drop the Discount and Taxes columns -->
         <xpath expr="//th[@name='th_description']" position="replace">
             <th name="th_description" class="text-left"><strong>DESCRIPTION</strong></th>
         </xpath>
@@ -45,26 +45,35 @@
             <th name="th_quantity" class="text-right"><strong>QUANTITÉ</strong></th>
         </xpath>
         <xpath expr="//th[@name='th_priceunit']" position="replace">
-            <th name="th_priceunit" class="text-right"><strong>PRIX UNIT. HT</strong></th>
-        </xpath>
-        <xpath expr="//th[@name='th_discount']" position="replace">
-            <th name="th_discount" class="text-right"><strong>DISCOUNT (%)</strong></th>
-        </xpath>
-        <!-- Always show discount column regardless of display_discount -->
-        <xpath expr="//t[@t-set='display_discount']" position="replace">
-            <t t-set="display_discount" t-value="True"/>
-        </xpath>
-        <!-- Hide taxes column -->
-        <xpath expr="//th[@name='th_taxes']" position="attributes">
-            <attribute name="t-if">False</attribute>
+            <th name="th_priceunit" class="text-right"><strong>PRIX UNIT. HT / PIÈCE</strong></th>
         </xpath>
         <xpath expr="//th[@name='th_subtotal']" position="replace">
             <th name="th_subtotal" class="text-right"><strong>MONTANT</strong></th>
         </xpath>
+        <!-- Drop Discount column entirely (header + every body cell are gated
+             on display_discount; Taxes idem). -->
+        <xpath expr="//t[@t-set='display_discount']" position="replace">
+            <t t-set="display_discount" t-value="False"/>
+        </xpath>
+        <xpath expr="//t[@t-set='display_taxes']" position="replace">
+            <t t-set="display_taxes" t-value="False"/>
+        </xpath>
 
-        <!-- 4. Hide taxes cell on product rows -->
-        <xpath expr="//td[@name='td_product_taxes']" position="attributes">
-            <attribute name="t-if">False</attribute>
+        <!-- 4. Quantity cell: show pieces + all packaging (cartons), not units -->
+        <xpath expr="//td[@name='td_product_quantity']" position="replace">
+            <td name="td_product_quantity" class="o_td_quantity text-end">
+                <span class="text-nowrap" t-out="line._cadiffusion_qty_display()"/>
+            </td>
+        </xpath>
+
+        <!-- 5. Unit price cell: per-piece price, discount already deducted.
+             Float with "Product Price" precision (4 dp) — these unit prices are
+             sub-cent (e.g. 0.0320), so a 2-dp monetary widget would lose them. -->
+        <xpath expr="//td[@name='td_product_priceunit']" position="replace">
+            <td name="td_product_priceunit" class="text-end text-nowrap">
+                <span t-out="line._cadiffusion_price_per_piece()"
+                      t-options='{"widget": "float", "decimal_precision": "Product Price"}'/>
+            </td>
         </xpath>
 
     </template>
