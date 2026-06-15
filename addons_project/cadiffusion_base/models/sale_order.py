@@ -140,25 +140,6 @@ class SaleOrderLine(models.Model):
             return base_price
         return base_price / ratio
 
-    def _cadiffusion_packaging_uoms(self):
-        """UDM d'emballage du produit (ratio vers l'UDM de base > 1),
-        triées par ratio croissant. Renvoie une liste de tuples (ratio, uom)."""
-        self.ensure_one()
-        if not self.product_id:
-            return []
-        base_uom = self.product_id.uom_id
-        cartons = []
-        # Odoo 19 a supprimé uom.category_id : les uom_ids du produit forment
-        # déjà un arbre de conversion commun, _compute_quantity suffit.
-        for uom in self.product_id.product_tmpl_id.uom_ids:
-            if uom == base_uom:
-                continue
-            ratio = uom._compute_quantity(1.0, base_uom, raise_if_failure=False)
-            if ratio and ratio > 1:
-                cartons.append((ratio, uom))
-        cartons.sort(key=lambda c: c[0])
-        return cartons
-
     @staticmethod
     def _cadiffusion_format_qty(value):
         """Formatage compact d'un nombre : entier sans décimale, sinon 2 max."""
@@ -166,23 +147,12 @@ class SaleOrderLine(models.Model):
             return str(int(value))
         return ('%.2f' % value).rstrip('0').rstrip('.')
 
-    @staticmethod
-    def _cadiffusion_carton_label(name, plural):
-        """« CARTON DE 500 » -> « carton de 500 » / « cartons de 500 » (pluriel)."""
-        label = (name or '').strip().lower()
-        if plural and ' de ' in label:
-            head, sep, tail = label.partition(' de ')
-            if not head.endswith('s'):
-                head += 's'
-            label = head + sep + tail
-        return label
-
     def _cadiffusion_qty_display(self):
-        """Libellé quantité du PDF commande : nombre de pièces + détail de
-        tous les conditionnements du produit.
+        """Libellé quantité du PDF commande : uniquement le nombre de pièces
+        (la quantité de ligne est exprimée dans l'UDM de base = la pièce ;
+        on convertit par sécurité si une ligne était saisie dans une UDM carton).
 
-        Ex. : « 9000 pièces (180 cartons de 50 / 18 cartons de 500) ».
-        Sans conditionnement, renvoie simplement la quantité."""
+        Ex. : « 30000 pièces »."""
         self.ensure_one()
         qty = self.product_uom_qty
         product = self.product_id
@@ -192,17 +162,5 @@ class SaleOrderLine(models.Model):
             pieces = line_uom._compute_quantity(qty, base_uom, raise_if_failure=False)
         else:
             pieces = qty
-        cartons = self._cadiffusion_packaging_uoms()
-        if not cartons:
-            return self._cadiffusion_format_qty(qty)
         unit_word = 'pièce' if pieces == 1 else 'pièces'
-        parts = []
-        for ratio, uom in cartons:
-            count = pieces / ratio
-            parts.append('%s %s' % (
-                self._cadiffusion_format_qty(count),
-                self._cadiffusion_carton_label(uom.name, count != 1),
-            ))
-        return '%s %s (%s)' % (
-            self._cadiffusion_format_qty(pieces), unit_word, ' / '.join(parts),
-        )
+        return '%s %s' % (self._cadiffusion_format_qty(pieces), unit_word)
