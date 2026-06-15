@@ -45,7 +45,7 @@
             <th name="th_quantity" class="text-right"><strong>QUANTITÉ</strong></th>
         </xpath>
         <xpath expr="//th[@name='th_priceunit']" position="replace">
-            <th name="th_priceunit" class="text-right"><strong>PRIX UNIT. HT / PIÈCE</strong></th>
+            <th name="th_priceunit" class="text-right"><strong>PRIX UNIT</strong></th>
         </xpath>
         <xpath expr="//th[@name='th_subtotal']" position="replace">
             <th name="th_subtotal" class="text-right"><strong>MONTANT</strong></th>
