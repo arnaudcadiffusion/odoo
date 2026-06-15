@@ -16,10 +16,14 @@
         "account",
         "purchase",
         "sales_team",
-        # Les rapports (facture + commande) appellent des méthodes définies
-        # dans cadiffusion_base (_cadiffusion_price_per_piece,
-        # _cadiffusion_qty_display, _cadiffusion_insert_picking_sections…).
-        "cadiffusion_base",
+        # NB : les rapports (facture + commande) appellent des méthodes de
+        # cadiffusion_base (_cadiffusion_price_per_piece, _cadiffusion_qty_display…)
+        # mais UNIQUEMENT au rendu QWeb (t-esc/t-out) — ce n'est PAS un besoin
+        # d'install. On ne déclare donc PAS la dépendance : l'ajouter forcerait
+        # l'installation de tout le graphe cadiffusion_base à chaque upgrade de
+        # report_cadiffusion et casserait le build si cadiffusion_base échoue.
+        # (cadiffusion_base reste requis au moment d'imprimer ; il est installé
+        # séparément, comme pour le rapport facture qui fonctionne déjà ainsi.)
     ],
     "data": [
         "views/sale_order.xml",
