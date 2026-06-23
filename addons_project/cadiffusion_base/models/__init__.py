@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from . import account_move
+from . import account_edi_xml_ubl_bis3
 from . import ir_actions_report
 from . import mrp_production
 from . import product_pricelist
