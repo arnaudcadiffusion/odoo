@@ -101,6 +101,19 @@ class SaleOrderLine(models.Model):
         compute='_compute_x_studio_marge',
         store=True,
     )
+    # Équivalents v19 des colonnes v15 « Colis » (product_packaging_id) et
+    # « Nb Carton » (product_packaging_qty), supprimées avec product.packaging.
+    carton_uom_id = fields.Many2one(
+        'uom.uom',
+        string='Colis',
+        compute='_compute_carton',
+    )
+    nb_carton = fields.Float(
+        string='Nb Carton',
+        compute='_compute_carton',
+        inverse='_inverse_nb_carton',
+        digits='Product Unit of Measure',
+    )
 
     @api.depends('price_unit', 'purchase_price', 'discount')
     def _compute_x_studio_marge(self):
@@ -113,11 +126,78 @@ class SaleOrderLine(models.Model):
                 rec.x_studio_marge = 0.0
 
     # ------------------------------------------------------------------
-    # Affichage PDF commande (report_cadiffusion.report_saleorder_document)
+    # Conditionnement : affichage PDF commande
+    # (report_cadiffusion.report_saleorder_document) et colonnes
+    # « Colis » / « Nb Carton » de la vue formulaire.
     # Le conditionnement est porté par les UDM d'emballage du produit
     # (product.template.uom_ids, ex. « CARTON DE 500 »), pas par l'UDM de
     # la ligne (qui reste en pièces). On dérive donc tout du produit.
     # ------------------------------------------------------------------
+    def _cadiffusion_carton_uom(self):
+        """UDM d'emballage « carton » de la ligne : l'UDM de la ligne
+        elle-même si elle a été saisie dans un conditionnement (ratio > 1
+        vers l'UDM de base), sinon celle du produit (voir
+        product.template._cadiffusion_carton_uom)."""
+        self.ensure_one()
+        if not self.product_id:
+            return self.env['uom.uom']
+        base_uom = self.product_id.uom_id
+        line_uom = self.product_uom_id
+        if line_uom and line_uom != base_uom:
+            ratio = line_uom._compute_quantity(
+                1.0, base_uom, raise_if_failure=False)
+            if ratio and ratio > 1:
+                return line_uom
+        return self.product_id.product_tmpl_id._cadiffusion_carton_uom()
+
+    def _cadiffusion_pieces(self):
+        """Quantité de la ligne en pièces (UDM de base du produit ; la ligne
+        est normalement saisie en pièces, on convertit par sécurité si elle
+        était saisie dans une UDM carton)."""
+        self.ensure_one()
+        qty = self.product_uom_qty
+        product = self.product_id
+        line_uom = self.product_uom_id
+        base_uom = product.uom_id if product else line_uom
+        if product and line_uom and base_uom and line_uom != base_uom:
+            return line_uom._compute_quantity(
+                qty, base_uom, raise_if_failure=False)
+        return qty
+
+    @api.depends('product_id', 'product_uom_id', 'product_uom_qty')
+    def _compute_carton(self):
+        for line in self:
+            carton_uom = line._cadiffusion_carton_uom()
+            line.carton_uom_id = carton_uom
+            if not carton_uom:
+                line.nb_carton = 0.0
+                continue
+            per_carton = carton_uom._compute_quantity(
+                1.0, line.product_id.uom_id, raise_if_failure=False)
+            line.nb_carton = (
+                line._cadiffusion_pieces() / per_carton if per_carton else 0.0)
+
+    def _inverse_nb_carton(self):
+        """Saisir un nombre de cartons met à jour la quantité de la ligne
+        (2 × CARTON DE 2000 → 4000), comme product_packaging_qty en v15."""
+        for line in self:
+            carton_uom = line._cadiffusion_carton_uom()
+            if not carton_uom:
+                continue
+            base_uom = line.product_id.uom_id
+            per_carton = carton_uom._compute_quantity(
+                1.0, base_uom, raise_if_failure=False)
+            if not per_carton:
+                continue
+            pieces = line.nb_carton * per_carton
+            line_uom = line.product_uom_id
+            if line_uom and base_uom and line_uom != base_uom:
+                qty = base_uom._compute_quantity(
+                    pieces, line_uom, raise_if_failure=False) or pieces
+            else:
+                qty = pieces
+            line.product_uom_qty = qty
+
     def _cadiffusion_price_per_piece(self):
         """Prix unitaire par pièce, remise déduite.
 
@@ -154,13 +234,6 @@ class SaleOrderLine(models.Model):
 
         Ex. : « 30000 pièces »."""
         self.ensure_one()
-        qty = self.product_uom_qty
-        product = self.product_id
-        line_uom = self.product_uom_id
-        base_uom = product.uom_id if product else line_uom
-        if product and line_uom and base_uom and line_uom != base_uom:
-            pieces = line_uom._compute_quantity(qty, base_uom, raise_if_failure=False)
-        else:
-            pieces = qty
+        pieces = self._cadiffusion_pieces()
         unit_word = 'pièce' if pieces == 1 else 'pièces'
         return '%s %s' % (self._cadiffusion_format_qty(pieces), unit_word)

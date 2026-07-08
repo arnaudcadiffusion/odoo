@@ -23,7 +23,7 @@
     <!-- ========================= -->
     <!-- Delivery Slip -->
     <!-- ========================= -->
-    <record id="stock_action_report_delivery" model="ir.actions.report">
+    <record id="stock.action_report_delivery" model="ir.actions.report">
         <field name="name">Delivery Slip</field>
         <field name="model">stock.picking</field>
         <field name="report_type">qweb-pdf</field>
@@ -51,7 +51,7 @@
     <!-- ========================= -->
     <!-- Purchase Order -->
     <!-- ========================= -->
-    <record id="purchase_action_report_purchase_order" model="ir.actions.report">
+    <record id="purchase.action_report_purchase_order" model="ir.actions.report">
         <field name="name">Purchase Order</field>
         <field name="model">purchase.order</field>
         <field name="report_type">qweb-pdf</field>

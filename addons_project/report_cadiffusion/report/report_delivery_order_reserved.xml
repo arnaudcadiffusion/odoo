@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
-    <!-- Bon de livraison réservé : uniquement les lignes avec quantité réservée ou faite -->
+    <!-- Bon de livraison - Rupture : toutes les lignes de la demande, mais
+         COLIS = cartons entiers (arrondi supérieur) calculés depuis la quantité
+         RÉSERVÉE (une ligne non réservée sort sans colis) et Total Colis = somme
+         des colis affichés. En v19 le conditionnement n'est plus porté par la
+         ligne (product_packaging_id supprimé, packaging_uom_id vaut l'UDM pièce
+         sur les moves migrés) : l'UDM carton = la plus grande UDM d'emballage
+         du produit (uom_ids), « CARTON » préférée à ratio égal. -->
     <template id="report_delivery_document_reserved">
         <t t-call="web.html_container">
             <t t-call="web.external_layout">
@@ -75,6 +81,7 @@
 
                     <!-- Table : mouvements non validés (quantités réservées) -->
                     <t t-set="article_cmd_flag" t-value="any(m.article_cmd for m in o.move_ids)"/>
+                    <t t-set="total_colis" t-value="0"/>
                     <table class="table table-sm mt-3" t-if="o.state != 'done'">
                         <thead>
                             <tr>
@@ -86,7 +93,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-foreach="o.move_ids.filtered(lambda m: m.quantity)" t-as="move">
+                            <t t-foreach="o.move_ids.filtered(lambda m: m.product_uom_qty)" t-as="move">
                                 <tr t-if="move.note_text">
                                     <td t-att-colspan="5 if article_cmd_flag else 4">
                                         <span t-field="move.note_text"/>
@@ -102,11 +109,21 @@
                                             <span t-field="move.product_id.sudo().description_pickingin"/>
                                         </p>
                                     </td>
-                                    <td><span t-if="move.packaging_uom_qty" t-field="move.packaging_uom_qty"/></td>
-                                    <td><span t-if="move.packaging_uom_id" t-field="move.packaging_uom_id"/></td>
                                     <td>
-                                        <span t-field="move.quantity"/>
-                                        <span t-field="move.product_uom_id"/>
+                                        <!-- Cartons entiers depuis le réservé : ceil(réservé / qté par carton), comme le v15. -->
+                                        <t t-set="base_uom" t-value="move.product_id.uom_id"/>
+                                        <t t-set="carton_uom" t-value="move.product_id.uom_ids.filtered(lambda u: u.factor and base_uom.factor and u.factor > base_uom.factor).sorted(key=lambda u: (u.factor, (u.name or '').upper().startswith('CARTON')))[-1:]"/>
+                                        <t t-set="colis_f" t-value="move.product_uom._compute_quantity(move.quantity, carton_uom, round=False) if carton_uom else 0"/>
+                                        <t t-set="colis" t-value="int(colis_f) + (1 if round(colis_f % 1, 6) else 0)"/>
+                                        <t t-if="colis">
+                                            <span t-out="colis"/>
+                                            <t t-set="total_colis" t-value="total_colis + colis"/>
+                                        </t>
+                                    </td>
+                                    <td><span t-out="carton_uom.name or ''"/></td>
+                                    <td>
+                                        <span t-field="move.product_uom_qty"/>
+                                        <span t-field="move.product_uom"/>
                                     </td>
                                     <td t-if="article_cmd_flag">
                                         <span t-field="move.article_cmd"/>
@@ -116,9 +133,8 @@
                         </tbody>
                     </table>
 
-                    <!-- Total Colis (non validé) -->
+                    <!-- Total Colis (non validé) : somme des colis des lignes affichées (v15) -->
                     <t t-if="o.state != 'done'">
-                        <t t-set="total_colis" t-value="sum(m.packaging_uom_qty for m in o.move_ids if m.packaging_uom_qty)"/>
                         <table class="table table-sm" style="width:40%; float:right;" t-if="total_colis">
                             <tr>
                                 <td style="background-color:#333; color:#fff; font-weight:bold;">Total Colis</td>
@@ -132,6 +148,7 @@
 
                     <!-- Table : mouvements validés (done) -->
                     <t t-set="article_flag" t-value="any(ml.move_id.article_cmd for ml in o.move_line_ids)"/>
+                    <t t-set="total_colis_done" t-value="0"/>
                     <table class="table table-sm mt-3" t-if="o.move_line_ids and o.state == 'done'">
                         <t t-set="has_lot" t-value="o.move_line_ids.mapped('lot_id')"/>
                         <thead>
@@ -164,8 +181,17 @@
                                     <td t-if="has_lot" groups="stock.group_lot_on_delivery_slip">
                                         <span t-field="move_line.lot_name"/>
                                     </td>
-                                    <td><span t-if="move_line.move_id.packaging_uom_qty" t-field="move_line.move_id.packaging_uom_qty"/></td>
-                                    <td><span t-if="move_line.move_id.packaging_uom_id" t-field="move_line.move_id.packaging_uom_id"/></td>
+                                    <td>
+                                        <t t-set="base_uom" t-value="move_line.product_id.uom_id"/>
+                                        <t t-set="carton_uom" t-value="move_line.product_id.uom_ids.filtered(lambda u: u.factor and base_uom.factor and u.factor > base_uom.factor).sorted(key=lambda u: (u.factor, (u.name or '').upper().startswith('CARTON')))[-1:]"/>
+                                        <t t-set="colis_f" t-value="move_line.product_uom_id._compute_quantity(move_line.quantity, carton_uom, round=False) if carton_uom else 0"/>
+                                        <t t-set="colis_done" t-value="int(colis_f) + (1 if round(colis_f % 1, 6) else 0)"/>
+                                        <t t-if="colis_done">
+                                            <span t-out="colis_done"/>
+                                            <t t-set="total_colis_done" t-value="total_colis_done + colis_done"/>
+                                        </t>
+                                    </td>
+                                    <td><span t-out="carton_uom.name or ''"/></td>
                                     <td class="text-center">
                                         <span t-field="move_line.quantity"/>
                                         <span t-field="move_line.product_uom_id"/>
@@ -178,9 +204,8 @@
                         </tbody>
                     </table>
 
-                    <!-- Total Colis (validé) -->
+                    <!-- Total Colis (validé) : somme des colis des lignes affichées -->
                     <t t-if="o.state == 'done'">
-                        <t t-set="total_colis_done" t-value="sum(ml.move_id.packaging_uom_qty for ml in o.move_line_ids if ml.move_id.packaging_uom_qty)"/>
                         <table class="table table-sm" style="width:40%; float:right;" t-if="total_colis_done">
                             <tr>
                                 <td style="background-color:#333; color:#fff; font-weight:bold;">Total Colis</td>

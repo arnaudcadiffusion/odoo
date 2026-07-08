@@ -76,8 +76,13 @@
             <!-- Add availability in order_line list after name -->
             <xpath expr="//field[@name='order_line']/list//field[@name='name']" position="after">
                 <field optional="show" name="x_studio_availability" string="Availability"/>
+                <!-- Colis / Nb Carton : équivalents v19 de product_packaging_id /
+                     product_packaging_qty (supprimés en 19), dérivés de l'UDM
+                     carton du produit ; saisir Nb Carton met à jour la quantité -->
+                <field name="carton_uom_id" string="Colis" optional="show"/>
+                <field name="nb_carton" string="Nb Carton" optional="show"
+                       readonly="is_downpayment"/>
             </xpath>
-            <!-- product_packaging_id/qty removed in Odoo 19 sale.order.line -->
             <!-- Instructions Livraison group -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]" position="after">
                 <group name="studio_group_ITLU3">

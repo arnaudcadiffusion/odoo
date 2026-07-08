@@ -1,7 +1,7 @@
 {
     "name": "Cadiffusion Report",
     "summary": "Add Invoice and Picking Report",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.0.3",
     "description": """
     Re-design delivery slip and invoice report, remove the Studio generated
     reports. Add text field 'article cmdé' on sale_order_line, picking and
@@ -26,6 +26,10 @@
         # séparément, comme pour le rapport facture qui fonctionne déjà ainsi.)
     ],
     "data": [
+        # Nettoyage des doublons de rapports générés par Odoo Studio
+        # (studio_customization) qui polluent le menu Imprimer et lèvent
+        # « Modèle introuvable » à l'impression.
+        "data/cleanup_studio_reports.xml",
         "views/sale_order.xml",
         "views/stock_picking.xml",
         "views/account_invoice.xml",
@@ -33,6 +37,7 @@
         "report/report_invoice.xml",
         "report/report_invoice_autre.xml",
         "report/report_purchase_order.xml",
+        "report/report_purchase_quotation.xml",
         "report/report_delivery_order.xml",
         "report/report_delivery_order_reserved.xml",
         "report/report_sale_order.xml",
