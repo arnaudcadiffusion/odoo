@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+      Nettoyage des rapports dupliqués par Odoo Studio.
+
+      Contexte : « studio_customization » est un module présent uniquement en
+      base (aucune source sur disque) et ses enregistrements sont noupdate=True.
+      Il n'est donc jamais mis à jour ni nettoyé automatiquement.
+
+      Symptôme : dans le menu « Imprimer » d'un bon de livraison apparaissent des
+      doublons « Delivery Slip » (…_copy_1 / _copy_2). Cliquer dessus lève
+      « Modèle introuvable : report_cadiffusion.report_deliveryslip_copy_2 ».
+
+      Cause : Studio a créé ces actions avec report_name = "…report_deliveryslip
+      _copy_2" (= la CLÉ de la vue) alors que l'external ID réel de la vue est
+      "studio_customization.report_deliveryslip_<uuid>". Le moteur de rapport
+      résout le template par external ID (env.ref) et non par clé -> échec.
+
+      Correctif : on supprime ces actions dupliquées ET leurs vues QWeb
+      orphelines. Idempotent : sur une base déjà propre, les search() renvoient
+      vide et unlink() ne fait rien.
+    -->
+
+    <!-- 1) Actions de rapport dupliquées (menu Imprimer) -->
+    <delete model="ir.actions.report"
+            search="[('report_name', 'in', [
+                'report_cadiffusion.report_deliveryslip_copy_1',
+                'report_cadiffusion.report_deliveryslip_copy_2',
+                'mrp.report_mrporder_copy_1',
+            ])]"/>
+
+    <!-- 2a) Vues héritées (Studio « gen_key.* ») qui pointent sur ces templates
+             _copy_ via inherit_id : à supprimer AVANT les parents, sinon la
+             contrainte FK ir_ui_view_inherit_id_fkey bloque la suppression. -->
+    <delete model="ir.ui.view"
+            search="[('active', 'in', [True, False]), ('inherit_id.key', 'in', [
+                'report_cadiffusion.report_deliveryslip_copy_1',
+                'report_cadiffusion.report_delivery_document_copy_1',
+                'report_cadiffusion.report_deliveryslip_copy_2',
+                'report_cadiffusion.report_delivery_document_copy_2',
+                'mrp.report_mrporder_copy_1',
+                'account.report_invoice_copy_1',
+                'account.report_invoice_document_copy_1',
+                'stock.report_deliveryslip_copy_1',
+            ])]"/>
+
+    <!-- 2b) Vues QWeb « _copy_ » laissées par Studio (templates + sous-documents).
+             On cible par clé pour rester robuste aux external IDs UUID de Studio.
+             Ces vues sont archivées (active=False) : le leaf ('active','in',...)
+             désactive le filtre active_test implicite, sinon search() les ignore.
+             NB : on n'inclut pas les vues website.footer_copyright_* (cœur Odoo). -->
+    <delete model="ir.ui.view"
+            search="[('active', 'in', [True, False]), ('key', 'in', [
+                'report_cadiffusion.report_deliveryslip_copy_1',
+                'report_cadiffusion.report_delivery_document_copy_1',
+                'report_cadiffusion.report_deliveryslip_copy_2',
+                'report_cadiffusion.report_delivery_document_copy_2',
+                'mrp.report_mrporder_copy_1',
+                'account.report_invoice_copy_1',
+                'account.report_invoice_document_copy_1',
+                'stock.report_deliveryslip_copy_1',
+            ])]"/>
+</odoo>

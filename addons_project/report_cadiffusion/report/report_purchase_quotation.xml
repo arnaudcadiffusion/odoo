@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================= -->
+    <!-- Demande de prix (RFQ) : rétablit les personnalisations v15         -->
+    <!--   - bloc d'instructions livraison (FR + EN) au-dessus du tableau   -->
+    <!--   - suffixe (DD/MM/YYYY) sur l'entête "Date prévue"                -->
+    <!-- ================================================================= -->
+    <template id="report_purchasequotation_document_cadiffusion"
+              inherit_id="purchase.report_purchasequotation_document">
+
+        <!-- Bloc d'instructions au-dessus du tableau -->
+        <xpath expr="//table[hasclass('table-borderless')]" position="before">
+            <div class="mb-3" name="cadiffusion_delivery_instructions">
+                <p><strong>Merci de respecter les instructions suivantes avant livraison :</strong></p>
+                <p><strong>&gt; Prise du RDV par le transporteur exclusivement par email à :</strong></p>
+                <p><strong>reception@cadiffusion.com/cc : achats@cadiffusion.com</strong></p>
+                <p><strong>&gt; Bons de livraisons à joindre impérativement à la demande</strong></p>
+                <p><strong>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;Sans ces conditions, aucun RDV ne pourra être pris.</strong></p>
+                <p><strong>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;——————————————————</strong></p>
+                <p><strong>Please pay attention to the following instructions before delivery :</strong></p>
+                <p><strong>&gt; Appointment booking only by the carrier by email to :</strong></p>
+                <p><strong>reception@cadiffusion.com/cc : achats@cadiffusion.com</strong></p>
+                <p><strong>&gt; Delivery notes must be attached to the request.</strong></p>
+                <p><strong>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;No appointment scheduled without these conditions.</strong></p>
+            </div>
+        </xpath>
+
+        <!-- Suffixe (DD/MM/YYYY) sur l'entête "Date prévue" -->
+        <xpath expr="//th[@name='th_expected_date']/strong" position="after">
+            <span> (DD/MM/YYYY)</span>
+        </xpath>
+    </template>
+</odoo>
