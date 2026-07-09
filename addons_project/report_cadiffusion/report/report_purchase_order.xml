@@ -104,6 +104,22 @@
                 </div>
             </div>
 
+            <!-- Instructions livraison (FR + EN) : en v15 ce bloc était une
+                 personnalisation Studio (en base) du rapport PO ; recréé ici
+                 en dur avec le texte de la prod (email logistique@). -->
+            <div class="mt-4" name="cadiffusion_delivery_instructions">
+                <p>Merci de respecter les instructions suivantes avant livraison :</p>
+                <p>&gt; Prise du RDV par le transporteur exclusivement par email à :</p>
+                <p>logistique@cadiffusion.com</p>
+                <p>&gt; Bons de livraisons à joindre impérativement à la demande</p>
+                <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;Sans ces conditions, aucun RDV ne pourra être pris.</p>
+                <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;——————————————————</p>
+                <p>Please pay attention to the following instructions before delivery :</p>
+                <p>&gt; Appointment booking only by the carrier by email to :</p>
+                <p>logistique@cadiffusion.com</p>
+                <p>&gt; Delivery notes must be attached to the request.</p>
+                <p>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;No appointment scheduled without these conditions.</p>
+            </div>
             <p t-field="o.note" class="mt-4"/>
             <div class="oe_structure"/>
         </div>
