@@ -33,7 +33,7 @@
         </xpath>
 
         <!-- 2. Font size smaller on page -->
-        <xpath expr="//div[@class='page']" position="attributes">
+        <xpath expr="//div[hasclass('page')]" position="attributes">
             <attribute name="style">font-size: smaller;</attribute>
         </xpath>
 
