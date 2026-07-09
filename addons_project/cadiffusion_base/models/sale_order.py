@@ -103,14 +103,19 @@ class SaleOrderLine(models.Model):
     )
     # Équivalents v19 des colonnes v15 « Colis » (product_packaging_id) et
     # « Nb Carton » (product_packaging_qty), supprimées avec product.packaging.
+    # Le colis est choisi par l'utilisateur parmi les conditionnements du
+    # produit (pré-rempli avec le plus grand carton) ; stocké pour que le
+    # choix survive aux enregistrements et soit utilisable par les rapports.
     carton_uom_id = fields.Many2one(
         'uom.uom',
         string='Colis',
-        compute='_compute_carton',
+        compute='_compute_carton_uom_id',
+        store=True,
+        readonly=False,
     )
     nb_carton = fields.Float(
         string='Nb Carton',
-        compute='_compute_carton',
+        compute='_compute_nb_carton',
         inverse='_inverse_nb_carton',
         digits='Product Unit of Measure',
     )
@@ -133,8 +138,8 @@ class SaleOrderLine(models.Model):
     # (product.template.uom_ids, ex. « CARTON DE 500 »), pas par l'UDM de
     # la ligne (qui reste en pièces). On dérive donc tout du produit.
     # ------------------------------------------------------------------
-    def _cadiffusion_carton_uom(self):
-        """UDM d'emballage « carton » de la ligne : l'UDM de la ligne
+    def _cadiffusion_default_carton_uom(self):
+        """UDM d'emballage « carton » par défaut : l'UDM de la ligne
         elle-même si elle a été saisie dans un conditionnement (ratio > 1
         vers l'UDM de base), sinon celle du produit (voir
         product.template._cadiffusion_carton_uom)."""
@@ -150,6 +155,12 @@ class SaleOrderLine(models.Model):
                 return line_uom
         return self.product_id.product_tmpl_id._cadiffusion_carton_uom()
 
+    def _cadiffusion_carton_uom(self):
+        """UDM d'emballage effective de la ligne : le colis choisi par
+        l'utilisateur, sinon le défaut."""
+        self.ensure_one()
+        return self.carton_uom_id or self._cadiffusion_default_carton_uom()
+
     def _cadiffusion_pieces(self):
         """Quantité de la ligne en pièces (UDM de base du produit ; la ligne
         est normalement saisie en pièces, on convertit par sécurité si elle
@@ -164,11 +175,16 @@ class SaleOrderLine(models.Model):
                 qty, base_uom, raise_if_failure=False)
         return qty
 
-    @api.depends('product_id', 'product_uom_id', 'product_uom_qty')
-    def _compute_carton(self):
+    @api.depends('product_id', 'product_uom_id')
+    def _compute_carton_uom_id(self):
+        for line in self:
+            line.carton_uom_id = line._cadiffusion_default_carton_uom()
+
+    @api.depends('product_id', 'product_uom_id', 'product_uom_qty',
+                 'carton_uom_id')
+    def _compute_nb_carton(self):
         for line in self:
             carton_uom = line._cadiffusion_carton_uom()
-            line.carton_uom_id = carton_uom
             if not carton_uom:
                 line.nb_carton = 0.0
                 continue

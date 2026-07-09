@@ -72,3 +72,53 @@ class PurchaseOrderLine(models.Model):
         store=True,
         readonly=True,
     )
+
+    # ------------------------------------------------------------------
+    # Affichage PDF bon de commande
+    # (report_cadiffusion.report_purchaseorder_document)
+    # En v15 les colonnes « Carton » / « Unit Carton » venaient de
+    # product_packaging_qty / product_packaging_id ; en v19 product.packaging
+    # n'existe plus, le conditionnement est porté par les UDM d'emballage du
+    # produit (product.template.uom_ids, ex. « CARTON DE 12 ») et la quantité
+    # de ligne reste en pièces (UDM de base). On dérive donc tout du produit,
+    # comme pour le rapport commande client (sale_order.py).
+    # ------------------------------------------------------------------
+    def _cadiffusion_carton_uom(self):
+        """UDM d'emballage « carton » du produit de la ligne (voir
+        product.template._cadiffusion_carton_uom)."""
+        self.ensure_one()
+        if not self.product_id:
+            return self.env['uom.uom']
+        return self.product_id.product_tmpl_id._cadiffusion_carton_uom()
+
+    @staticmethod
+    def _cadiffusion_format_qty(value):
+        """Formatage compact d'un nombre : entier sans décimale, sinon 2 max."""
+        if value == int(value):
+            return str(int(value))
+        return ('%.2f' % value).rstrip('0').rstrip('.')
+
+    def _cadiffusion_carton_qty_display(self):
+        """Nombre de cartons de la ligne (pièces ÷ pièces/carton), formaté
+        compact ; chaîne vide si le produit n'a pas d'UDM carton."""
+        self.ensure_one()
+        carton_uom = self._cadiffusion_carton_uom()
+        if not carton_uom:
+            return ''
+        base_uom = self.product_id.uom_id
+        line_uom = self.product_uom_id
+        if line_uom and base_uom and line_uom != base_uom:
+            pieces = line_uom._compute_quantity(
+                self.product_qty, base_uom, raise_if_failure=False)
+        else:
+            pieces = self.product_qty
+        per_carton = carton_uom._compute_quantity(
+            1.0, base_uom, raise_if_failure=False)
+        if not per_carton:
+            return ''
+        return self._cadiffusion_format_qty(pieces / per_carton)
+
+    def _cadiffusion_carton_label(self):
+        """Libellé du conditionnement (ex. « CARTON DE 12 ») ; vide si aucun."""
+        self.ensure_one()
+        return self._cadiffusion_carton_uom().name or ''

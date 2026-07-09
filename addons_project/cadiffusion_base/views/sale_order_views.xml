@@ -77,9 +77,14 @@
             <xpath expr="//field[@name='order_line']/list//field[@name='name']" position="after">
                 <field optional="show" name="x_studio_availability" string="Availability"/>
                 <!-- Colis / Nb Carton : équivalents v19 de product_packaging_id /
-                     product_packaging_qty (supprimés en 19), dérivés de l'UDM
-                     carton du produit ; saisir Nb Carton met à jour la quantité -->
-                <field name="carton_uom_id" string="Colis" optional="show"/>
+                     product_packaging_qty (supprimés en 19). Le colis est
+                     choisi parmi les UDM du produit (pré-rempli avec le plus
+                     grand carton) ; saisir Nb Carton met à jour la quantité -->
+                <field name="allowed_uom_ids" column_invisible="1"/>
+                <field name="carton_uom_id" string="Colis" optional="show"
+                       domain="[('id', 'in', allowed_uom_ids)]"
+                       options="{'no_create': True, 'no_open': True}"
+                       readonly="is_downpayment"/>
                 <field name="nb_carton" string="Nb Carton" optional="show"
                        readonly="is_downpayment"/>
             </xpath>
