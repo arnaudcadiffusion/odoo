@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from . import models
+
+_logger = logging.getLogger(__name__)
 
 
 def post_init_hook(env):
@@ -7,7 +11,10 @@ def post_init_hook(env):
     Sur install fresh, Odoo n'exécute pas les scripts de migrations/.
     On rejoue donc ici toute la logique des migrations 19.0.1.0.1 → 19.0.1.0.10
     pour aligner l'état du système (vues Studio archivées, rapports redirigés,
-    filtres corrigés, données copiées) comme si on venait d'un upgrade depuis v15/v16.
+    filtres corrigés, données copiées) comme si on venait d'un upgrade depuis v15/v16,
+    puis la réparation des données abîmées par la plateforme d'upgrade
+    (_repair_upgrade_data — c'est le cas de chaque rebuild Odoo.sh par upgrade
+    complet : le module y est installé neuf, jamais mis à jour).
 
     Idempotent : chaque opération filtre déjà sur l'état avant modification
     (WHERE active = true, NOT ILIKE, IS NULL, etc.).
@@ -23,6 +30,63 @@ def post_init_hook(env):
     _migrate_19_0_1_0_8(cr)
     _migrate_19_0_1_0_9(cr)
     _migrate_19_0_1_0_10(cr)
+    _repair_upgrade_data(env)
+
+
+# ---------------------------------------------------------------------------
+# Réparation des données laissées par la plateforme d'upgrade v15 → v19.
+# Partagée entre le post_init_hook (install fresh : rebuilds Odoo.sh, prod)
+# et migrations/19.0.1.0.14/post-migrate.py (bases déjà installées).
+# Idempotent.
+# ---------------------------------------------------------------------------
+def _repair_upgrade_data(env):
+    # 1. UDM sans facteur calculé : les UDM créées depuis les product.packaging
+    #    v15 (« CARTON DE 10 », « BOITE »…) arrivent avec le champ calculé
+    #    stocké ``factor`` à NULL. Toute conversion passant par elles renvoie
+    #    alors 0 (colis des BL, prix à la pièce, quantités MRP…).
+    env.cr.execute("SELECT count(*) FROM uom_uom WHERE factor IS NULL")
+    nb_null = env.cr.fetchone()[0]
+    uoms = env['uom.uom'].with_context(active_test=False).search([])
+    env.add_to_compute(uoms._fields['factor'], uoms)
+    uoms.flush_recordset(['factor'])
+    _logger.info(
+        "cadiffusion_base: facteurs UDM recalculés (%s NULL sur %s avant réparation)",
+        nb_null, len(uoms))
+
+    # 2. Conditionnement des moves ouverts : l'upgrade a mis packaging_uom_id
+    #    à l'UDM pièce (perte du product_packaging_id v15). Le recalcul passe
+    #    par la surcharge cadiffusion de _compute_packaging_uom_id (le carton).
+    #    La quantité doit être recalculée APRÈS l'écriture du nouveau
+    #    conditionnement, sinon elle est convertie avec l'ancien (la pièce).
+    moves = env['stock.move'].search([('state', 'not in', ('done', 'cancel'))])
+    env.add_to_compute(moves._fields['packaging_uom_id'], moves)
+    moves.flush_recordset(['packaging_uom_id'])
+    env.add_to_compute(moves._fields['packaging_uom_qty'], moves)
+    moves.flush_recordset(['packaging_uom_qty'])
+    _logger.info(
+        "cadiffusion_base: conditionnement recalculé sur %s moves ouverts", len(moves))
+
+    # 3. Réservations perdues : plus aucune stock.move.line sur les transferts
+    #    non terminés alors que les pickings restent affichés « assigned ».
+    #    On ré-exécute la réservation standard (action_assign), picking par
+    #    picking sous savepoint : un transfert corrompu ne doit pas faire
+    #    échouer l'install/upgrade. En v19, action_assign trie lui-même les
+    #    moves par priorité / échéance / date.
+    ok = ko = 0
+    for picking in env['stock.picking'].search([
+            ('state', 'in', ('confirmed', 'waiting', 'assigned'))]):
+        try:
+            with env.cr.savepoint():
+                picking.action_assign()
+            ok += 1
+        except Exception:
+            ko += 1
+            _logger.warning(
+                "cadiffusion_base: action_assign en échec sur %s (ignoré)",
+                picking.name, exc_info=True)
+    _logger.info(
+        "cadiffusion_base: re-réservation terminée — %s transferts traités, %s en échec",
+        ok, ko)
 
 
 # ---------------------------------------------------------------------------
