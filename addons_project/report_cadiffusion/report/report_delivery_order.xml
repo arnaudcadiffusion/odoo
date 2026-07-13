@@ -111,12 +111,13 @@
                                         </p>
                                     </td>
                                     <!-- COLIS = cartons entiers (arrondi sup.) sur la quantité DEMANDÉE.
-                                         En v19 le conditionnement n'est plus porté par la ligne
-                                         (product_packaging_id supprimé) : l'UDM carton = la plus grande
-                                         UDM d'emballage du produit (uom_ids), « CARTON » préférée à ratio égal. -->
+                                         Conditionnement : uniquement l'UDM d'emballage du move
+                                         (packaging_uom_id, héritée de la ligne de vente/achat = le
+                                         « Colis » du backoffice) ; si le move n'en porte pas (UDM
+                                         pièce), colonnes vides. -->
                                     <td t-att-style="cad_border">
                                         <t t-set="base_uom" t-value="move.product_id.uom_id"/>
-                                        <t t-set="carton_uom" t-value="move.product_id.uom_ids.filtered(lambda u: u.factor and base_uom.factor and u.factor > base_uom.factor).sorted(key=lambda u: (u.factor, (u.name or '').upper().startswith('CARTON')))[-1:]"/>
+                                        <t t-set="carton_uom" t-value="move.packaging_uom_id.filtered(lambda u: u.factor and base_uom.factor and u.factor > base_uom.factor)"/>
                                         <t t-set="colis_f" t-value="move.product_uom._compute_quantity(move.product_uom_qty, carton_uom, round=False) if carton_uom else 0"/>
                                         <t t-set="colis" t-value="int(colis_f) + (1 if round(colis_f % 1, 6) else 0)"/>
                                         <t t-if="colis">
@@ -188,7 +189,7 @@
                                     </td>
                                     <td t-att-style="cad_border">
                                         <t t-set="base_uom" t-value="move_line.product_id.uom_id"/>
-                                        <t t-set="carton_uom" t-value="move_line.product_id.uom_ids.filtered(lambda u: u.factor and base_uom.factor and u.factor > base_uom.factor).sorted(key=lambda u: (u.factor, (u.name or '').upper().startswith('CARTON')))[-1:]"/>
+                                        <t t-set="carton_uom" t-value="move_line.move_id.packaging_uom_id.filtered(lambda u: u.factor and base_uom.factor and u.factor > base_uom.factor)"/>
                                         <t t-set="colis_f" t-value="move_line.product_uom_id._compute_quantity(move_line.quantity, carton_uom, round=False) if carton_uom else 0"/>
                                         <t t-set="colis_done" t-value="int(colis_f) + (1 if round(colis_f % 1, 6) else 0)"/>
                                         <t t-if="colis_done">
@@ -241,7 +242,7 @@
                                     </td>
                                     <td t-att-style="cad_border">
                                         <t t-set="b_base_uom" t-value="bmove.product_id.uom_id"/>
-                                        <t t-set="b_carton_uom" t-value="bmove.product_id.uom_ids.filtered(lambda u: u.factor and b_base_uom.factor and u.factor > b_base_uom.factor).sorted(key=lambda u: (u.factor, (u.name or '').upper().startswith('CARTON')))[-1:]"/>
+                                        <t t-set="b_carton_uom" t-value="bmove.packaging_uom_id.filtered(lambda u: u.factor and b_base_uom.factor and u.factor > b_base_uom.factor)"/>
                                         <t t-set="b_colis_f" t-value="bmove.product_uom._compute_quantity(bmove.product_uom_qty, b_carton_uom, round=False) if b_carton_uom else 0"/>
                                         <t t-set="b_colis" t-value="int(b_colis_f) + (1 if round(b_colis_f % 1, 6) else 0)"/>
                                         <span t-if="b_colis" t-out="b_colis"/>
