@@ -1,7 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Full replacement of sale.report_saleorder_document to match v15 layout -->
+    <!-- Layout v15 (Studio) du bon de commande / devis / proforma :
+         DESCRIPTION | CARTON | UNITE CARTON | QUANTITÉ | PRIX UNIT. HT | MONTANT
+         La proforma (sale.report_saleorder_pro_forma) appelle le même
+         report_saleorder_document : elle hérite automatiquement de ce layout. -->
     <template id="report_saleorder_document" inherit_id="sale.report_saleorder_document">
+
+        <!-- 0. Titre v15 : « Commande n° BC/… » / « Devis n° … » /
+             « Facture proforma n° … » (la traduction core v19 donne
+             « Commande # », pas le « n° » du v15). -->
+        <xpath expr="//t[@t-set='layout_document_title']" position="replace">
+            <t t-set="layout_document_title">
+                <span t-if="is_proforma">Facture proforma n° </span>
+                <span t-elif="doc.state in ['draft','sent']">Devis n° </span>
+                <span t-else="">Commande n° </span>
+                <span t-field="doc.name"/>
+            </t>
+        </xpath>
 
         <!-- 1. Information block: N# Client + Date de commande + Date de livraison + Votre Reference -->
         <xpath expr="//div[@id='informations']" position="replace">
@@ -39,16 +54,22 @@
 
         <!-- 3. Table headers: rename + drop the Discount and Taxes columns -->
         <xpath expr="//th[@name='th_description']" position="replace">
-            <th name="th_description" class="text-left"><strong>DESCRIPTION</strong></th>
+            <th name="th_description" class="text-start"><strong>DESCRIPTION</strong></th>
+        </xpath>
+        <!-- Colonnes conditionnement v15 : CARTON (nb de cartons) puis
+             UNITE CARTON (ex. « CARTON DE 1000 ») -->
+        <xpath expr="//th[@name='th_description']" position="after">
+            <th name="th_cad_carton" class="text-center"><strong>CARTON</strong></th>
+            <th name="th_cad_carton_uom" class="text-center"><strong>UNITE CARTON</strong></th>
         </xpath>
         <xpath expr="//th[@name='th_quantity']" position="replace">
-            <th name="th_quantity" class="text-right"><strong>QUANTITÉ</strong></th>
+            <th name="th_quantity" class="text-end"><strong>QUANTITÉ</strong></th>
         </xpath>
         <xpath expr="//th[@name='th_priceunit']" position="replace">
-            <th name="th_priceunit" class="text-right"><strong>PRIX UNIT</strong></th>
+            <th name="th_priceunit" class="text-end text-nowrap"><strong>PRIX UNIT. HT</strong></th>
         </xpath>
         <xpath expr="//th[@name='th_subtotal']" position="replace">
-            <th name="th_subtotal" class="text-right"><strong>MONTANT</strong></th>
+            <th name="th_subtotal" class="text-end"><strong>MONTANT</strong></th>
         </xpath>
         <!-- Drop Discount column entirely (header + every body cell are gated
              on display_discount; Taxes idem). -->
@@ -59,16 +80,44 @@
             <t t-set="display_taxes" t-value="False"/>
         </xpath>
 
-        <!-- 4. Quantity cell: show pieces + all packaging (cartons), not units -->
-        <xpath expr="//td[@name='td_product_quantity']" position="replace">
-            <td name="td_product_quantity" class="o_td_quantity text-end">
-                <span class="text-nowrap" t-out="line._cadiffusion_qty_display()"/>
+        <!-- 4. Body cells CARTON / UNITE CARTON (lignes produit uniquement ;
+             vides quand le produit n'a pas de conditionnement carton). -->
+        <xpath expr="//td[@name='td_product_name']" position="after">
+            <t t-set="cad_carton_uom" t-value="line._cadiffusion_carton_uom()"/>
+            <td name="td_cad_carton" class="text-end">
+                <span t-if="cad_carton_uom" class="text-nowrap"
+                      t-out="line.nb_carton"
+                      t-options='{"widget": "float", "precision": 1}'/>
+            </td>
+            <td name="td_cad_carton_uom" class="text-center">
+                <span t-if="cad_carton_uom" t-out="cad_carton_uom.display_name"/>
             </td>
         </xpath>
 
-        <!-- 5. Unit price cell: per-piece price, discount already deducted.
+        <!-- Les lignes section / note / combo doivent enjamber les 2 colonnes
+             ajoutées : 3 → 5 (les colonnes Remise/Taxes restent désactivées). -->
+        <xpath expr="//t[@t-set='section_name_colspan']" position="replace">
+            <t
+                t-set="section_name_colspan"
+                t-value="5 + (1 if display_discount else 0) + (1 if display_taxes else 0)"
+            />
+        </xpath>
+        <xpath expr="//td[@name='td_combo_name']" position="attributes">
+            <attribute name="t-att-colspan">5 + (1 if display_discount else 0) + (1 if display_taxes else 0)</attribute>
+        </xpath>
+
+        <!-- 5. Quantity cell: nombre de pièces uniquement (v15 : quantité sans
+             l'UDM, ex. « 40 000 »). -->
+        <xpath expr="//td[@name='td_product_quantity']" position="replace">
+            <td name="td_product_quantity" class="o_td_quantity text-end">
+                <span class="text-nowrap" t-out="line._cadiffusion_pieces()"
+                      t-options='{"widget": "float", "precision": 0}'/>
+            </td>
+        </xpath>
+
+        <!-- 6. Unit price cell: per-piece price, discount already deducted.
              Float with "Product Price" precision (4 dp) — these unit prices are
-             sub-cent (e.g. 0.0320), so a 2-dp monetary widget would lose them. -->
+             sub-cent (e.g. 0.0245), so a 2-dp monetary widget would lose them. -->
         <xpath expr="//td[@name='td_product_priceunit']" position="replace">
             <td name="td_product_priceunit" class="text-end text-nowrap">
                 <span t-out="line._cadiffusion_price_per_piece()"
