@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
+from io import BytesIO
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
+
+try:
+    from facturx import get_facturx_xml_from_pdf
+except ImportError:
+    get_facturx_xml_from_pdf = None
 
 _logger = logging.getLogger(__name__)
 
@@ -143,6 +150,74 @@ class AccountMove(models.Model):
                 'sequence': max(anchor.sequence - 5, 1),
             })
         self.env['account.move.line'].create(sections_to_create)
+
+    def _chorus_get_invoice(self, chorus_invoice_format):
+        """Envoi Chorus au format pdf_factur-x : le PDF DOIT contenir le XML.
+
+        cadiffusion_base désactive l'embedding Factur-X sur tous les rendus
+        PDF (voir ir_actions_report.py — protection segfault à l'impression) ;
+        on le réactive explicitement pour ce chemin-ci, puis on vérifie le
+        résultat car regular_pdf_invoice_to_facturx_invoice (ci-dessous)
+        avale les erreurs d'embed — sans ce contrôle, un PDF nu partirait à
+        Chorus et serait rejeté en aval sans erreur visible."""
+        if chorus_invoice_format == "pdf_factur-x":
+            self_ctx = self.with_context(**{"no_embedded_factur-x_xml": False})
+            content = super(AccountMove, self_ctx)._chorus_get_invoice(
+                chorus_invoice_format)
+            self._chorus_check_facturx_xml_embedded(content)
+            return content
+        return super()._chorus_get_invoice(chorus_invoice_format)
+
+    def _chorus_check_facturx_xml_embedded(self, pdf_content):
+        """Chorus Pro rejette un flux pdf_factur-x dont le PDF ne contient
+        pas de factur-x.xml embarqué. L'embedding peut être sauté en silence
+        (lib facturx absente, ou exception avalée par le wrapper ci-dessous) :
+        on échoue ici avec un message clair plutôt que chez Chorus.
+
+        NB : ne pas tester avec ``b'factur-x.xml' in pdf_content`` — les
+        streams pypdf sont compressés, faux négatif garanti."""
+        self.ensure_one()
+        xml_filename = None
+        if get_facturx_xml_from_pdf is not None:
+            # check_xsd=False : le XML a déjà été validé XSD à sa génération
+            # par generate_facturx_xml()
+            xml_filename = get_facturx_xml_from_pdf(
+                BytesIO(pdf_content), check_xsd=False
+            )[0]
+        if not xml_filename:
+            raise UserError(self.env._(
+                "Le PDF généré pour la facture %s ne contient pas le fichier "
+                "XML Factur-X embarqué exigé par Chorus Pro. L'embedding "
+                "Factur-X a échoué ou a été sauté — consulter les logs "
+                "serveur.", self.display_name))
+
+    def generate_facturx_xml(self):
+        """Pré-contrôle : le schéma CII exige au moins un bloc de ventilation
+        TVA (ApplicableTradeTax) dans l'en-tête. Il n'est émis que si une
+        ligne est sans taxe (groupe Exonéré) ou porte une taxe configurée
+        UNECE 'VAT'. Si toutes les lignes ne portent que des taxes non
+        configurées (cas réel : facture 260470 d'intérêts moratoires avec
+        « TVA 0% EXO » sans codes UNECE), l'OCA générerait un XML invalide
+        rejeté par le XSD avec un message trompeur sur
+        SpecifiedTradePaymentTerms. On échoue ici avec la vraie cause."""
+        self.ensure_one()
+        product_lines = self.invoice_line_ids.filtered(
+            lambda line: line.display_type == "product")
+        has_vat_group = any(not line.tax_ids for line in product_lines) or any(
+            tax.unece_type_code == "VAT" for tax in product_lines.tax_ids)
+        if product_lines and not has_vat_group:
+            bad_taxes = product_lines.tax_ids.filtered(
+                lambda tax: tax.unece_type_code != "VAT")
+            raise UserError(self.env._(
+                "Facture %(invoice)s : impossible de générer la ventilation "
+                "TVA exigée par Factur-X car aucune taxe des lignes n'est "
+                "configurée comme TVA. Renseigner le Type de taxe UNECE "
+                "'VAT' et la Catégorie UNECE (ex. 'Exempt from tax' pour "
+                "une taxe d'exonération 0%%) sur : %(taxes)s "
+                "(Comptabilité > Configuration > Taxes).",
+                invoice=self.display_name,
+                taxes=", ".join(bad_taxes.mapped("display_name"))))
+        return super().generate_facturx_xml()
 
     def regular_pdf_invoice_to_facturx_invoice(self, pdf_bytesio):
         """Defensive wrapper around the OCA factur-x embed call.

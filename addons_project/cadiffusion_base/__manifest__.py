@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.15',
+    'version': '19.0.1.0.16',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -24,6 +24,9 @@
         'account_invoice_transmit_method',
         'account_invoice_facturx',
         'l10n_fr_chorus_account',
+        # l'override de _chorus_get_invoice (account_move.py) doit charger
+        # APRÈS l10n_fr_chorus_facturx pour l'envelopper dans le MRO
+        'l10n_fr_chorus_facturx',
         'l10n_fr_facturx_chorus_pro',
     ],
     'data': [

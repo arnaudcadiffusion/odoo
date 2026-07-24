@@ -31,6 +31,7 @@ def post_init_hook(env):
     _migrate_19_0_1_0_9(cr)
     _migrate_19_0_1_0_10(cr)
     _repair_upgrade_data(env)
+    _configure_unece_exo_taxes(env)
 
 
 # ---------------------------------------------------------------------------
@@ -87,6 +88,35 @@ def _repair_upgrade_data(env):
     _logger.info(
         "cadiffusion_base: re-réservation terminée — %s transferts traités, %s en échec",
         ok, ko)
+
+
+# ---------------------------------------------------------------------------
+# Codes UNECE des taxes d'exonération 0% (« TVA 0% EXO »).
+# Sans unece_type_code='VAT', generate_facturx_xml n'émet aucun bloc
+# ApplicableTradeTax d'en-tête quand toutes les lignes de la facture portent
+# une telle taxe (intérêts moratoires, journal « Factures IM »…) → XML
+# invalide contre le XSD CII, envoi Chorus impossible.
+# Partagée entre le post_init_hook (install fresh : rebuilds Odoo.sh, prod)
+# et migrations/19.0.1.0.16/post-migrate.py (bases déjà installées).
+# Idempotent : ne touche que les taxes 0% « EXO » encore sans type UNECE.
+# ---------------------------------------------------------------------------
+def _configure_unece_exo_taxes(env):
+    candidates = env['account.tax'].with_context(active_test=False).search([
+        ('type_tax_use', '=', 'sale'),
+        ('amount', '=', 0),
+        ('unece_type_code', '=', False),
+    ])
+    # Pas de ilike SQL sur le nom : en v19 il matche par sous-séquence de
+    # caractères ('EXO' → '%E%X%O%') et attraperait aussi « TVA 0% EXPORT »
+    # / « TVA 0% export (vente) », dont la catégorie UNECE correcte est G
+    # (export), pas E (exonération).
+    taxes = candidates.filtered(
+        lambda tax: (tax.name or '').strip().upper() == 'TVA 0% EXO')
+    if taxes:
+        taxes.write({'unece_type_code': 'VAT', 'unece_categ_code': 'E'})
+    _logger.info(
+        "cadiffusion_base: codes UNECE VAT/E configurés sur %s taxe(s) 0%% EXO %s",
+        len(taxes), taxes.mapped('display_name'))
 
 
 # ---------------------------------------------------------------------------
