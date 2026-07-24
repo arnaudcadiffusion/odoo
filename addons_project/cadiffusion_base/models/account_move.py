@@ -4,11 +4,7 @@ from io import BytesIO
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
-
-try:
-    from facturx import get_facturx_xml_from_pdf
-except ImportError:
-    get_facturx_xml_from_pdf = None
+from odoo.tools.pdf import OdooPdfFileReader, OdooPdfFileWriter
 
 _logger = logging.getLogger(__name__)
 
@@ -154,37 +150,67 @@ class AccountMove(models.Model):
     def _chorus_get_invoice(self, chorus_invoice_format):
         """Envoi Chorus au format pdf_factur-x : le PDF DOIT contenir le XML.
 
-        cadiffusion_base désactive l'embedding Factur-X sur tous les rendus
-        PDF (voir ir_actions_report.py — protection segfault à l'impression) ;
-        on le réactive explicitement pour ce chemin-ci, puis on vérifie le
-        résultat car regular_pdf_invoice_to_facturx_invoice (ci-dessous)
-        avale les erreurs d'embed — sans ce contrôle, un PDF nu partirait à
-        Chorus et serait rejeté en aval sans erreur visible."""
+        Surtout NE PAS réactiver l'embedding OCA (lib facturx) sur ce
+        chemin : ``facturx.generate_from_file`` tue le worker Odoo.sh
+        (502 reproductible en ~7 s — même segfault que celui qui a motivé
+        la désactivation globale dans ir_actions_report.py). On laisse donc
+        le rendu produire un PDF nu, puis on embarque le XML OCA (qui porte
+        le code service Chorus en BuyerReference) avec le writer PDF natif
+        d'Odoo — la même machinerie que le flux Envoyer/Peppol
+        (account_edi_ubl_cii), éprouvée sur ce build Odoo.sh."""
         if chorus_invoice_format == "pdf_factur-x":
-            self_ctx = self.with_context(**{"no_embedded_factur-x_xml": False})
-            content = super(AccountMove, self_ctx)._chorus_get_invoice(
-                chorus_invoice_format)
+            content = super()._chorus_get_invoice(chorus_invoice_format)
+            content = self._chorus_embed_facturx_xml(content)
             self._chorus_check_facturx_xml_embedded(content)
             return content
         return super()._chorus_get_invoice(chorus_invoice_format)
 
+    def _chorus_embed_facturx_xml(self, pdf_content):
+        """Embarque le XML Factur-X OCA dans le PDF avec odoo.tools.pdf,
+        en répliquant account_edi_ubl_cii/_hook_invoice_document_after_
+        pdf_report_render : pièce jointe AFRelationship=Alternative,
+        conversion PDF/A-3 et métadonnées XMP Factur-X."""
+        self.ensure_one()
+        xml_bytes = self.generate_facturx_xml()
+        reader = OdooPdfFileReader(BytesIO(pdf_content), strict=False)
+        writer = OdooPdfFileWriter()
+        writer.cloneReaderDocumentRoot(reader)
+        writer.addAttachment(
+            "factur-x.xml", xml_bytes,
+            subtype="text/xml", afrelationship="/Alternative")
+        if not writer.is_pdfa:
+            try:
+                writer.convert_to_pdfa()
+            except Exception:
+                _logger.exception(
+                    "Conversion PDF/A échouée pour l'envoi Chorus de %s "
+                    "(PDF envoyé sans conformité PDF/A)", self.name)
+        metadata = self.env["ir.qweb"]._render(
+            "account_edi_ubl_cii.account_invoice_pdfa_3_facturx_metadata",
+            {"title": self.name, "date": fields.Date.context_today(self)},
+        )
+        writer.add_file_metadata(str(metadata).encode())
+        buf = BytesIO()
+        writer.write(buf)
+        return buf.getvalue()
+
     def _chorus_check_facturx_xml_embedded(self, pdf_content):
         """Chorus Pro rejette un flux pdf_factur-x dont le PDF ne contient
-        pas de factur-x.xml embarqué. L'embedding peut être sauté en silence
-        (lib facturx absente, ou exception avalée par le wrapper ci-dessous) :
-        on échoue ici avec un message clair plutôt que chez Chorus.
+        pas de factur-x.xml embarqué : on échoue ici avec un message clair
+        plutôt que chez Chorus. Lecture via odoo.tools.pdf (PAS la lib
+        facturx, dont la partie pypdf tue le worker sur Odoo.sh).
 
         NB : ne pas tester avec ``b'factur-x.xml' in pdf_content`` — les
         streams pypdf sont compressés, faux négatif garanti."""
         self.ensure_one()
-        xml_filename = None
-        if get_facturx_xml_from_pdf is not None:
-            # check_xsd=False : le XML a déjà été validé XSD à sa génération
-            # par generate_facturx_xml()
-            xml_filename = get_facturx_xml_from_pdf(
-                BytesIO(pdf_content), check_xsd=False
-            )[0]
-        if not xml_filename:
+        try:
+            reader = OdooPdfFileReader(BytesIO(pdf_content), strict=False)
+            names = [name for name, _data in reader.getAttachments()]
+        except Exception:
+            _logger.exception("Lecture des pièces jointes PDF impossible (%s)",
+                              self.name)
+            names = []
+        if "factur-x.xml" not in names:
             raise UserError(self.env._(
                 "Le PDF généré pour la facture %s ne contient pas le fichier "
                 "XML Factur-X embarqué exigé par Chorus Pro. L'embedding "
