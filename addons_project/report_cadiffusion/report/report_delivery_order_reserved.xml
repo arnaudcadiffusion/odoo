@@ -32,12 +32,31 @@
                 <div class="page">
                     <h2><span t-field="o.name" t-attf-style="color: {{ o.company_id.primary_color or 'black' }};"/></h2>
 
-                    <!-- Statut BL -->
-                    <p style="margin-bottom:4px;">
-                        <strong>Statut BL :</strong>
-                        <t t-if="o.x_studio_bl_groupe">Groupé</t>
-                        <t t-else="">Non groupé</t>
-                    </p>
+                    <!-- Statut BL : Groupé (icône, nb de BL, liste des BL groupés) / Non groupé (v15) -->
+                    <div class="row small">
+                        <div class="col-12">
+                            <t t-if="o.x_studio_bl_groupe">
+                                <div style="font-size: 14px; font-weight: bold;">
+                                    <span style="font-size: 18px; margin-right: 4px;">&#9888;</span>
+                                    <strong>Statut BL :</strong>
+                                    Groupé
+                                    <t t-if="o.x_studio_nb_bl_groupe">
+                                        – <span t-esc="o.x_studio_nb_bl_groupe"/> BL
+                                    </t>
+                                </div>
+                                <t t-if="o.x_studio_id_bl_groupe">
+                                    <div style="margin-top: 3px; margin-left: 20px;">
+                                        <strong>BL groupés :</strong><br/>
+                                        <span t-esc="o.x_studio_id_bl_groupe" style="white-space: pre-line;"/>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <strong>Statut BL :</strong>
+                                Non groupé
+                            </t>
+                        </div>
+                    </div>
 
                     <!-- En-tête : 5 colonnes sur une ligne (en float : la grille
                          flex n'est pas rendue par wkhtmltopdf) -->
@@ -223,38 +242,82 @@
                         <div style="clear:both;"/>
                     </t>
 
-                    <!-- Reliquat (v15) : lignes des reliquats ouverts avec colis à expédier -->
-                    <t t-set="reliquat_moves" t-value="o.backorder_ids.filtered(lambda x: x.state not in ('done', 'cancel')).move_ids.filtered(lambda m: m.product_uom_qty)"/>
-                    <t t-if="reliquat_moves">
-                        <p>Tous les articles n'ont pas pu être expédiés, le reliquat de votre commande sera expédié séparément.</p>
-                        <table class="table table-sm" t-att-style="cad_border + ' color: #495057;'">
-                            <thead>
-                                <tr>
-                                    <th t-att-style="cad_th_style"><strong>ARTICLE</strong></th>
-                                    <th t-att-style="cad_th_style"><strong>COLIS</strong></th>
-                                    <th t-att-style="cad_th_style"><strong>À EXPÉDIER</strong></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr t-foreach="reliquat_moves" t-as="bmove">
-                                    <td t-att-style="cad_border">
-                                        <span t-field="bmove.product_id"/>
-                                    </td>
-                                    <td t-att-style="cad_border">
-                                        <t t-set="b_base_uom" t-value="bmove.product_id.uom_id"/>
-                                        <t t-set="b_carton_uom" t-value="bmove.packaging_uom_id.filtered(lambda u: u.factor and b_base_uom.factor and u.factor > b_base_uom.factor)"/>
-                                        <t t-set="b_colis_f" t-value="bmove.product_uom._compute_quantity(bmove.product_uom_qty, b_carton_uom, round=False) if b_carton_uom else 0"/>
-                                        <t t-set="b_colis" t-value="int(b_colis_f) + (1 if round(b_colis_f % 1, 6) else 0)"/>
-                                        <span t-if="b_colis" t-out="b_colis"/>
-                                    </td>
-                                    <td t-att-style="cad_border + ' background-color: #e9ecef;'">
-                                        <span t-field="bmove.product_uom_qty"/>
-                                        <span t-field="bmove.product_uom"/>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Reliquat (v15) -->
+                    <!-- 3.a) avant validation : lignes dont demandé > préparé/réservé (quantity) -->
+                    <t t-if="o.state != 'done'">
+                        <t t-set="remaining_moves" t-value="o.move_ids.filtered(lambda m: m.product_uom_qty and round(m.product_uom_qty - m.quantity, 6) > 0)"/>
+                        <t t-if="remaining_moves">
+                            <p>Tous les articles n'ont pas pu être expédiés, le reliquat de votre commande sera expédié séparément.</p>
+                            <table class="table table-sm" t-att-style="cad_border + ' color: #495057;'">
+                                <thead>
+                                    <tr>
+                                        <th t-att-style="cad_th_style"><strong>ARTICLE</strong></th>
+                                        <th t-att-style="cad_th_style"><strong>COLIS</strong></th>
+                                        <th t-att-style="cad_th_style"><strong>À EXPÉDIER</strong></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="remaining_moves" t-as="rmove">
+                                        <t t-set="r_remaining" t-value="rmove.product_uom_qty - rmove.quantity"/>
+                                        <td t-att-style="cad_border">
+                                            <span t-field="rmove.product_id"/>
+                                        </td>
+                                        <td t-att-style="cad_border">
+                                            <t t-set="r_base_uom" t-value="rmove.product_id.uom_id"/>
+                                            <t t-set="r_carton_uom" t-value="rmove.packaging_uom_id.filtered(lambda u: u.factor and r_base_uom.factor and u.factor > r_base_uom.factor)"/>
+                                            <t t-set="r_colis_f" t-value="rmove.product_uom._compute_quantity(r_remaining, r_carton_uom, round=False) if r_carton_uom else 0"/>
+                                            <t t-set="r_colis" t-value="int(r_colis_f) + (1 if round(r_colis_f % 1, 6) else 0)"/>
+                                            <span t-if="r_colis" t-out="r_colis"/>
+                                        </td>
+                                        <td t-att-style="cad_border + ' background-color: #e9ecef;'">
+                                            <span t-out="int(round(r_remaining, 6))"/>
+                                            <span t-field="rmove.product_uom"/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
                     </t>
+
+                    <!-- 3.b) après validation : lignes des reliquats créés (backorders) -->
+                    <t t-if="o.state == 'done' and o.backorder_ids">
+                        <t t-set="reliquat_moves" t-value="o.backorder_ids.move_ids.filtered(lambda m: m.product_uom_qty)"/>
+                        <t t-if="reliquat_moves">
+                            <p>Tous les articles n'ont pas pu être expédiés, le reliquat de votre commande sera expédié séparément.<br/>Merci pour votre compréhension</p>
+                            <table class="table table-sm" t-att-style="cad_border + ' color: #495057;'">
+                                <thead>
+                                    <tr>
+                                        <th t-att-style="cad_th_style"><strong>ARTICLE</strong></th>
+                                        <th t-att-style="cad_th_style"><strong>COLIS</strong></th>
+                                        <th t-att-style="cad_th_style"><strong>À EXPÉDIER</strong></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="reliquat_moves" t-as="bmove">
+                                        <td t-att-style="cad_border">
+                                            <span t-field="bmove.product_id"/>
+                                        </td>
+                                        <td t-att-style="cad_border">
+                                            <t t-set="b_base_uom" t-value="bmove.product_id.uom_id"/>
+                                            <t t-set="b_carton_uom" t-value="bmove.packaging_uom_id.filtered(lambda u: u.factor and b_base_uom.factor and u.factor > b_base_uom.factor)"/>
+                                            <t t-set="b_colis_f" t-value="bmove.product_uom._compute_quantity(bmove.product_uom_qty, b_carton_uom, round=False) if b_carton_uom else 0"/>
+                                            <t t-set="b_colis" t-value="int(b_colis_f) + (1 if round(b_colis_f % 1, 6) else 0)"/>
+                                            <span t-if="b_colis" t-out="b_colis"/>
+                                        </td>
+                                        <td t-att-style="cad_border + ' background-color: #e9ecef;'">
+                                            <span t-field="bmove.product_uom_qty"/>
+                                            <span t-field="bmove.product_uom"/>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </t>
+                    </t>
+
+                    <!-- Message reliquat en cours (anglais) -->
+                    <p t-if="o.backorder_ids.filtered(lambda x: x.state not in ('done', 'cancel'))">
+                        All items couldn't be shipped, the remaining ones will be shipped as soon as they become available.
+                    </p>
 
                     <!-- Pied : Instruction Livraison, Notes Internes, Transport, Poids -->
                     <div class="mt-3">
