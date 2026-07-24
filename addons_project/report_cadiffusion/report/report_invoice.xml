@@ -68,11 +68,14 @@
                     </div>
                     <div style="clear:both;"/>
 
-                    <!-- Product table: 5 columns -->
+                    <!-- Product table: 7 columns (layout v15 :
+                         DESCRIPTION | CARTON | UNITE CARTON | QUANTITÉ | PRIX UNIT | TAXES | MONTANT) -->
                     <table class="table table-sm table-bordered" name="invoice_line_table">
                         <thead>
                             <tr t-attf-style="background-color:#{o.company_id.primary_color}; color:white;">
                                 <th class="text-start">DESCRIPTION</th>
+                                <th class="text-center">CARTON</th>
+                                <th class="text-center">UNITE CARTON</th>
                                 <th class="text-end">QUANTITÉ</th>
                                 <th class="text-end">PRIX UNIT / PIÈCE</th>
                                 <th class="text-start">TAXES</th>
@@ -86,12 +89,28 @@
                                         <td name="account_invoice_line_name">
                                             <span t-field="line.name" t-options="{'widget': 'text'}"/>
                                         </td>
+                                        <!-- Colonnes conditionnement v15 : nb de cartons puis
+                                             UNITE CARTON (ex. « CARTON DE 50 ») ; vides quand le
+                                             produit n'a pas de conditionnement carton. -->
+                                        <t t-set="cad_carton_uom" t-value="line._cadiffusion_carton_uom()"/>
+                                        <td class="text-end">
+                                            <span t-if="cad_carton_uom" class="text-nowrap"
+                                                  t-out="line.nb_carton"
+                                                  t-options='{"widget": "float", "precision": 1}'/>
+                                        </td>
+                                        <td class="text-center">
+                                            <span t-if="cad_carton_uom" t-out="cad_carton_uom.display_name"/>
+                                        </td>
                                         <td class="text-end">
                                             <span t-field="line.quantity"/>
                                             <span t-field="line.product_uom_id" groups="uom.group_uom"/>
                                         </td>
-                                        <td class="text-end">
-                                            <span t-esc="line._cadiffusion_price_per_piece()" t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                        <!-- Prix par pièce en précision « Product Price » (4 déc.) :
+                                             le widget monetary arrondirait à 2 déc. et écraserait
+                                             les prix sub-centime (ex. 1,2546). -->
+                                        <td class="text-end text-nowrap">
+                                            <span t-out="line._cadiffusion_price_per_piece()"
+                                                  t-options='{"widget": "float", "decimal_precision": "Product Price"}'/>
                                         </td>
                                         <td class="text-start">
                                             <span t-esc="', '.join([x.invoice_label or x.name for x in line.tax_ids])"/>
@@ -103,12 +122,12 @@
                                 </t>
                                 <t t-elif="line.display_type in ('line_section', 'line_subsection')">
                                     <tr class="bg-200 fw-bold">
-                                        <td colspan="5"><span t-field="line.name"/></td>
+                                        <td colspan="7"><span t-field="line.name"/></td>
                                     </tr>
                                 </t>
                                 <t t-elif="line.display_type == 'line_note'">
                                     <tr class="fst-italic">
-                                        <td colspan="5"><span t-field="line.name"/></td>
+                                        <td colspan="7"><span t-field="line.name"/></td>
                                     </tr>
                                 </t>
                             </t>

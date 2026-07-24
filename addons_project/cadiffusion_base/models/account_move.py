@@ -185,6 +185,78 @@ class AccountMoveLine(models.Model):
         readonly=True,
     )
 
+    # ------------------------------------------------------------------
+    # Conditionnement : affichage v15 « Colis » / « Nb Carton » de la
+    # facture (vue back-office + PDF report_cadiffusion.report_invoice).
+    # Même logique que sale.order.line, mais en lecture seule : la
+    # quantité facturée vient de la commande / du BL, on ne la modifie
+    # pas depuis le nombre de cartons.
+    # ------------------------------------------------------------------
+    carton_uom_id = fields.Many2one(
+        'uom.uom',
+        string='Colis',
+        compute='_compute_carton_uom_id',
+    )
+    nb_carton = fields.Float(
+        string='Nb Carton',
+        compute='_compute_nb_carton',
+        digits='Product Unit of Measure',
+    )
+
+    def _cadiffusion_carton_uom(self):
+        """UDM d'emballage « carton » de la ligne : l'UDM de la ligne
+        elle-même si elle est libellée dans un conditionnement (ratio > 1
+        vers l'UDM de base), sinon le colis choisi sur la ligne de commande
+        d'origine (comme le BL — en v15 le product_packaging_id de la
+        facture était copié depuis la commande), sinon celle du produit
+        (voir product.template._cadiffusion_carton_uom)."""
+        self.ensure_one()
+        if not self.product_id:
+            return self.env['uom.uom']
+        base_uom = self.product_id.uom_id
+        line_uom = self.product_uom_id
+        if line_uom and line_uom != base_uom:
+            ratio = line_uom._compute_quantity(
+                1.0, base_uom, raise_if_failure=False)
+            if ratio and ratio > 1:
+                return line_uom
+        sale_carton = self.sale_line_ids.carton_uom_id[:1]
+        if sale_carton:
+            return sale_carton
+        return self.product_id.product_tmpl_id._cadiffusion_carton_uom()
+
+    def _cadiffusion_pieces(self):
+        """Quantité de la ligne en pièces (UDM de base du produit ; on
+        convertit par sécurité si la ligne était libellée dans une UDM
+        carton)."""
+        self.ensure_one()
+        qty = self.quantity
+        product = self.product_id
+        line_uom = self.product_uom_id
+        base_uom = product.uom_id if product else line_uom
+        if product and line_uom and base_uom and line_uom != base_uom:
+            return line_uom._compute_quantity(
+                qty, base_uom, raise_if_failure=False)
+        return qty
+
+    @api.depends('product_id', 'product_uom_id', 'sale_line_ids.carton_uom_id')
+    def _compute_carton_uom_id(self):
+        for line in self:
+            line.carton_uom_id = line._cadiffusion_carton_uom()
+
+    @api.depends('product_id', 'product_uom_id', 'quantity',
+                 'sale_line_ids.carton_uom_id')
+    def _compute_nb_carton(self):
+        for line in self:
+            carton_uom = line._cadiffusion_carton_uom()
+            if not carton_uom:
+                line.nb_carton = 0.0
+                continue
+            per_carton = carton_uom._compute_quantity(
+                1.0, line.product_id.uom_id, raise_if_failure=False)
+            line.nb_carton = (
+                line._cadiffusion_pieces() / per_carton if per_carton else 0.0)
+
     def _cadiffusion_price_per_piece(self):
         """Return ``price_unit_reduced`` converted to the product's base UOM
         so the invoice PDF always shows a per-piece price even when the line

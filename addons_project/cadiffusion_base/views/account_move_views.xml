@@ -27,9 +27,17 @@
             <xpath expr="//field[@name='discount']" position="attributes">
                 <attribute name="groups"/>
             </xpath>
-            <!-- product_uom_id: optional hide -->
+            <!-- product_uom_id: optional hide + readonly (comme en vente :
+                 l'unité est portée par le produit, pas modifiable à la main) -->
             <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='product_uom_id']" position="attributes">
                 <attribute name="optional">hide</attribute>
+                <attribute name="readonly">1</attribute>
+            </xpath>
+            <!-- Colis / Nb Carton (affichage v15, lecture seule) avant la
+                 quantité, comme sur la commande de vente -->
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='quantity']" position="before">
+                <field name="carton_uom_id" string="Colis" optional="show"/>
+                <field name="nb_carton" string="Nb Carton" optional="show"/>
             </xpath>
             <!-- journal_div: show conditionally -->
             <div name="journal_div" position="replace">
