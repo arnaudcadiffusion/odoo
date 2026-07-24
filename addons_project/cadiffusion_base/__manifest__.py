@@ -23,6 +23,8 @@
         'account_payment_mode',
         'account_invoice_transmit_method',
         'account_invoice_facturx',
+        # writer PDF natif + template XMP utilisés par _chorus_embed_facturx_xml
+        'account_edi_ubl_cii',
         'l10n_fr_chorus_account',
         # l'override de _chorus_get_invoice (account_move.py) doit charger
         # APRÈS l10n_fr_chorus_facturx pour l'envelopper dans le MRO
