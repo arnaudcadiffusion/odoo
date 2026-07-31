@@ -1,6 +1,6 @@
 {
     "name": "Cadiffusion Picking Label Print",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "category": "Stock",
     "license": "AGPL-3",
     "summary": "Print picking labels from delivery orders",
