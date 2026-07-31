@@ -3,6 +3,7 @@
     <record id="view_picking_form" model="ir.ui.view">
         <field name="name">stock.picking.form.send.label</field>
         <field name="model">stock.picking</field>
+        <field name="active" eval="True"/>
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
             <xpath expr="//button[@name='%(stock.action_report_delivery)d']" position="before">
@@ -21,6 +22,7 @@
     <record id="view_picking_tree" model="ir.ui.view">
         <field name="name">stock.picking.list.view.client_order_ref</field>
         <field name="model">stock.picking</field>
+        <field name="active" eval="True"/>
         <field name="inherit_id" ref="stock.vpicktree"/>
         <field name="arch" type="xml">
             <field name="origin" position="after">
