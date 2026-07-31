@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.16',
+    'version': '19.0.1.0.17',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -13,6 +13,8 @@
         'account',
         'stock',
         'sale_stock',
+        # stock.move.purchase_line_id, utilisé par _compute_packaging_uom_id
+        'purchase_stock',
         'stock_delivery',
         'mrp',
         'product',

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import csv
 import logging
+
+from odoo.tools import file_open
 
 from . import models
 
@@ -30,8 +33,131 @@ def post_init_hook(env):
     _migrate_19_0_1_0_8(cr)
     _migrate_19_0_1_0_9(cr)
     _migrate_19_0_1_0_10(cr)
+    _apply_v15_carton_choices(env)
     _repair_upgrade_data(env)
     _configure_unece_exo_taxes(env)
+
+
+# ---------------------------------------------------------------------------
+# Reprise des conditionnements choisis en v15 (product_packaging_id des
+# lignes de vente et d'achat, supprimé par l'upgrade sans conversion).
+#
+# ~90 % des lignes v15 utilisaient le plus grand conditionnement du produit,
+# ce que le défaut calculé de carton_uom_id retrouve tout seul
+# (_cadiffusion_default_carton_uom). Les CSV data/carton_uom_v15_*.csv ne
+# contiennent QUE les écarts : les lignes dont le choix v15 diffère de ce
+# défaut (1 101 achats, 27 493 ventes), sous la forme (id de ligne, nom
+# normalisé de l'UDM v19 — les ids de lignes survivent à l'upgrade, pas les
+# ids d'UDM, recréées à chaque passage de la plateforme).
+#
+# CSV générés depuis la base v15 (croisement cadiffusion16 × cadiffusion du
+# 31/07/2026) par data/build_carton_uom_v15.py (outil dev, non chargé) : à
+# régénérer depuis le dump v15 final si la bascule production repart d'une
+# base plus récente — mode d'emploi dans son docstring.
+#
+# Partagée entre le post_init_hook (install fresh : rebuilds Odoo.sh) et
+# migrations/19.0.1.0.17/post-migrate.py (bases déjà installées).
+# Idempotent : UPDATE conditionnel (IS DISTINCT FROM), résolution du nom
+# dans les UDM du produit actuel de la ligne (aucun effet si l'UDM n'y est
+# plus).
+# ---------------------------------------------------------------------------
+def _apply_v15_carton_choices(env):
+    specs = [
+        ('sale_order_line',
+         'cadiffusion_base/data/carton_uom_v15_sale_order_line.csv'),
+        ('purchase_order_line',
+         'cadiffusion_base/data/carton_uom_v15_purchase_order_line.csv'),
+    ]
+    for table, path in specs:
+        with file_open(path) as csvfile:
+            rows = [(int(r['line_id']), r['uom_name'])
+                    for r in csv.DictReader(csvfile)]
+        updated = 0
+        for start in range(0, len(rows), 10000):
+            chunk = rows[start:start + 10000]
+            values_sql = ','.join(['(%s, %s)'] * len(chunk))
+            params = [value for row in chunk for value in row]
+            # Résout le nom d'UDM v15 (normalisé : majuscules, espaces
+            # réduits) parmi les UDM d'emballage du produit de la ligne.
+            env.cr.execute("""
+                UPDATE {table} line
+                   SET carton_uom_id = pick.uom_id
+                  FROM (
+                       SELECT DISTINCT ON (v.line_id) v.line_id, u.id AS uom_id
+                         FROM (VALUES {values}) AS v(line_id, uom_name)
+                         JOIN {table} l ON l.id = v.line_id
+                         JOIN product_product pp ON pp.id = l.product_id
+                         JOIN product_template_uom_uom_rel rel
+                              ON rel.product_template_id = pp.product_tmpl_id
+                         JOIN uom_uom u ON u.id = rel.uom_uom_id
+                        WHERE btrim(regexp_replace(
+                                  upper(coalesce(u.name->>'en_US', '')),
+                                  '\\s+', ' ', 'g')) = v.uom_name
+                        ORDER BY v.line_id, u.id
+                       ) pick
+                 WHERE line.id = pick.line_id
+                   AND line.carton_uom_id IS DISTINCT FROM pick.uom_id
+            """.format(table=table, values=values_sql), params)
+            updated += env.cr.rowcount
+        _logger.info(
+            "cadiffusion_base: conditionnements v15 repris sur %s — "
+            "%s ligne(s) mises à jour (%s écarts dans le CSV)",
+            table, updated, len(rows))
+    env.invalidate_all()
+
+    # Historique inventaire : sur les moves FAITS, l'upgrade a laissé
+    # packaging_uom_id = la pièce (les BL / réceptions ré-imprimés perdent
+    # leur colonne Conditionnement — la réparation .14 ne recalculait que
+    # les moves ouverts). En v15 le product_packaging_id du move était copié
+    # depuis la ligne de commande : maintenant que carton_uom_id porte le
+    # choix v15 exact, on le reprend depuis la ligne de vente / d'achat
+    # liée. SQL set-based (~270 000 moves) ; les moves sans ligne de
+    # commande (transferts internes, MRP) ne sont pas touchés.
+    for line_table, line_fk in (('sale_order_line', 'sale_line_id'),
+                                ('purchase_order_line', 'purchase_line_id')):
+        env.cr.execute("""
+            UPDATE stock_move move
+               SET packaging_uom_id = line.carton_uom_id
+              FROM {table} line
+             WHERE line.id = move.{fk}
+               AND move.state = 'done'
+               AND line.carton_uom_id IS NOT NULL
+               AND move.packaging_uom_id IS DISTINCT FROM line.carton_uom_id
+        """.format(table=line_table, fk=line_fk))
+        _logger.info(
+            "cadiffusion_base: conditionnement v15 repris sur %s moves faits "
+            "(via %s)", env.cr.rowcount, line_table)
+    # Quantité de conditionnement cohérente (même formule que le compute
+    # standard : product_uom_qty converti dans l'UDM de conditionnement).
+    env.cr.execute("""
+        UPDATE stock_move move
+           SET packaging_uom_qty = move.product_uom_qty * lu.factor / pu.factor
+          FROM uom_uom lu, uom_uom pu
+         WHERE lu.id = move.product_uom
+           AND pu.id = move.packaging_uom_id
+           AND move.state = 'done'
+           AND lu.factor IS NOT NULL
+           AND pu.factor IS NOT NULL AND pu.factor != 0
+           AND move.packaging_uom_qty IS DISTINCT FROM
+               move.product_uom_qty * lu.factor / pu.factor
+    """)
+    _logger.info(
+        "cadiffusion_base: quantité de conditionnement recalculée sur %s "
+        "moves faits", env.cr.rowcount)
+    env.invalidate_all()
+
+    # Le conditionnement des moves ouverts (packaging_uom_id, stocké) dépend
+    # du carton des lignes de vente/d'achat : recalcul ORM après reprise
+    # (couvre aussi le repli « UDM carton du produit »), la quantité
+    # (packaging_uom_qty) APRÈS le conditionnement.
+    moves = env['stock.move'].search([('state', 'not in', ('done', 'cancel'))])
+    env.add_to_compute(moves._fields['packaging_uom_id'], moves)
+    moves.flush_recordset(['packaging_uom_id'])
+    env.add_to_compute(moves._fields['packaging_uom_qty'], moves)
+    moves.flush_recordset(['packaging_uom_qty'])
+    _logger.info(
+        "cadiffusion_base: conditionnement recalculé sur %s moves ouverts "
+        "après reprise v15", len(moves))
 
 
 # ---------------------------------------------------------------------------
