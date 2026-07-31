@@ -10,15 +10,18 @@ class StockMove(models.Model):
     # En v15 le move portait product_packaging_id (le carton, hérité de la
     # ligne de commande) ; en v19 le champ natif packaging_uom_id retombe
     # sur l'UDM de la ligne (la pièce), d'où « Pièce(s) » partout. On le
-    # remplace par le colis choisi sur la ligne de vente (carton_uom_id),
-    # sinon par l'UDM carton du produit. La « Qté de conditionnement »
-    # (packaging_uom_qty, ex. 42 000 pièces → 42 cartons) suit d'elle-même.
+    # remplace par le colis choisi sur la ligne de vente ou d'achat
+    # (carton_uom_id), sinon par l'UDM carton du produit. La « Qté de
+    # conditionnement » (packaging_uom_qty, ex. 42 000 pièces → 42 cartons)
+    # suit d'elle-même.
     # ------------------------------------------------------------------
-    @api.depends('sale_line_id.carton_uom_id', 'product_id')
+    @api.depends('sale_line_id.carton_uom_id', 'purchase_line_id.carton_uom_id',
+                 'product_id')
     def _compute_packaging_uom_id(self):
         super()._compute_packaging_uom_id()
         for move in self:
-            carton = move.sale_line_id.carton_uom_id
+            carton = (move.sale_line_id.carton_uom_id
+                      or move.purchase_line_id.carton_uom_id)
             if not carton and move.product_id:
                 # ne remplace que le repli trivial du standard (UDM de base) ;
                 # un vrai conditionnement hérité des moves liés est conservé

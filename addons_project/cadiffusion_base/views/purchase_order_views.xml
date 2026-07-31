@@ -42,7 +42,6 @@
                 <field name="x_studio_embarquement" string="Embarquement"/>
             </xpath>
             <!-- Order line: add x_studio fields after name (optional, hidden by default) -->
-            <!-- Note: product_packaging_id removed from purchase.order.line in Odoo 19 -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='name']" position="after">
                 <field name="x_studio_ref_fournisseur" string="Ref Fournisseur" optional="hide"/>
                 <field name="x_studio_date_initiale" string="Date Initiale" optional="hide"/>
@@ -51,8 +50,20 @@
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='date_planned']" position="attributes">
                 <attribute name="widget">date</attribute>
             </xpath>
-            <!-- Move product_qty then product_uom_id after qty_received_method → order: qty → uom -->
+            <!-- Conditionnement / Nb Carton puis product_qty et product_uom_id après
+                 qty_received_method → ordre : conditionnement → nb carton → qté → udm.
+                 Conditionnement / Nb Carton sont les équivalents v19 de
+                 product_packaging_id / product_packaging_qty (supprimés en 19) : le
+                 conditionnement est choisi parmi les UDM du produit (pré-rempli avec
+                 le plus grand carton), saisir Nb Carton met à jour la quantité. -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='qty_received_method']" position="after">
+                <field name="allowed_uom_ids" column_invisible="1"/>
+                <field name="carton_uom_id" string="Conditionnement" optional="show"
+                       domain="[('id', 'in', allowed_uom_ids)]"
+                       options="{'no_create': True, 'no_open': True}"
+                       readonly="is_downpayment"/>
+                <field name="nb_carton" string="Nb Carton" optional="show"
+                       readonly="is_downpayment"/>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_qty']" position="move"/>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="move"/>
             </xpath>

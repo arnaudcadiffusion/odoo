@@ -7,8 +7,8 @@
         <field name="inherit_id" ref="stock.view_picking_form"/>
         <field name="arch" type="xml">
             <xpath expr="//button[@name='%(stock.action_report_delivery)d']" position="before">
-                <button name="send_label_print" string="Print Labels" type="object" invisible="state != 'done'" groups="stock.group_stock_user" data-hotkey="l"/>
-                <button name="send_transport" string="Transport" type="object" invisible="state != 'done'" groups="stock.group_stock_user" data-hotkey="t"/>
+                <button name="send_label_print" string="Print Labels" type="object" data-hotkey="l"/>
+                <button name="send_transport" string="Transport" type="object" data-hotkey="t"/>
             </xpath>
             <xpath expr="//group[@name='other_infos']" position="inside">
                 <field name="label_printed"/>
