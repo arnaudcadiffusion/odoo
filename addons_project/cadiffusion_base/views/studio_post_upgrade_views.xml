@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Reprise des personnalisations Studio faites SUR LA BASE DE TEST APRÈS
+l'upgrade v15 → v19 (créées du 23/06/2026 au 16/08/2026 par atoulemonde et
+par le compte technique). Elles ne vivent que dans cette base de test : la
+bascule production repart du dump v15, elles y seraient donc perdues et
+devraient être refaites à la main dans Studio.
+
+Les vues Studio correspondantes sont archivées par
+``cadiffusion_base._archive_post_upgrade_studio_views`` (migration
+19.0.1.0.18 + post_init_hook), pour éviter que les deux jeux se superposent
+sur les bases où elles existent déjà.
+
+Ne sont volontairement PAS reprises ici les vues Studio qui ne posaient que
+``options={"numeric": true}`` sur des champs date (6104 et 6108
+stock.picking, 6105 et 6106 tender.order, 6107 sale.order) : le module
+``ca_date_format``, désormais auto-installé, applique ce format à TOUS les
+champs date de l'instance, ce qui les rend redondantes.
+-->
+<odoo>
+
+    <!-- 6095 — account.move (form) : le bouton « Envoyer » ne doit
+         apparaître que sur les factures et avoirs CLIENTS comptabilisés
+         (il restait visible sur les factures fournisseurs et les brouillons). -->
+    <record id="view_account_move_form_studio_post_upgrade" model="ir.ui.view">
+        <field name="name">account.move.form.studio.post.upgrade</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/header/button[@name='action_invoice_sent']" position="attributes">
+                <attribute name="invisible">state != "posted" or move_type not in ["out_invoice", "out_refund"]</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 6102 — account.move (list) : bouton « Envoyer Chorus » directement
+         depuis la liste des factures clients, à côté de l'enregistrement de
+         paiement (évite d'ouvrir chaque facture pour la transmettre). -->
+    <record id="view_out_invoice_tree_studio_post_upgrade" model="ir.ui.view">
+        <field name="name">account.move.list.studio.post.upgrade</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_out_invoice_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="/list//button[@name='action_force_register_payment']" position="after">
+                <button string="Envoyer Chorus" type="action"
+                        name="%(l10n_fr_chorus_account.account_invoice_chorus_send_action)d"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 6096 — res.partner (form) : mode d'envoi de facture visible sur les
+         contacts enfants, à côté du code service Chorus. Les collectivités
+         déclarent l'un et l'autre par service destinataire. -->
+    <record id="view_partner_form_studio_post_upgrade" model="ir.ui.view">
+        <field name="name">res.partner.form.studio.post.upgrade</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/sheet/notebook/page[@name='contact_addresses']/field[@name='child_ids']/form//field[@name='fr_chorus_service_id']" position="after">
+                <field name="invoice_sending_method"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 6103 — res.partner (list) : ordre des colonnes retenu par les
+         utilisateurs (référence puis nom, ville puis pays). -->
+    <record id="view_partner_tree_studio_post_upgrade" model="ir.ui.view">
+        <field name="name">res.partner.list.studio.post.upgrade</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="/list//field[@name='ref']" position="after">
+                <xpath expr="/list//field[@name='display_name']" position="move"/>
+            </xpath>
+            <xpath expr="/list/field[@name='city']" position="after">
+                <xpath expr="/list//field[@name='country_id']" position="move"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 6099 — sale.order (form) : interdit la création d'articles à la volée
+         depuis les lignes de commande (les références produit sont gérées en
+         amont ; la saisie libre créait des doublons). -->
+    <record id="view_order_form_studio_post_upgrade" model="ir.ui.view">
+        <field name="name">sale.order.form.studio.post.upgrade</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/sheet/notebook/page[@name='order_lines']/field[@name='order_line']/form//field[@name='product_id']" position="attributes">
+                <attribute name="options">{"no_quick_create": true, "no_create_edit": true, "no_create": true}</attribute>
+            </xpath>
+            <xpath expr="/form/sheet/notebook/page[@name='order_lines']/field[@name='order_line']/list//field[@name='product_template_id']" position="attributes">
+                <attribute name="options">{"show_label_warning": true, "no_create": true}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- 6100 — product.product (form) : les dates de validité des règles de
+         prix s'affichent sans l'heure. ``ca_date_format`` fournit déjà le
+         format numérique, on ne garde donc que le masquage de l'heure. -->
+    <record id="product_normal_form_view_studio_post_upgrade" model="ir.ui.view">
+        <field name="name">product.product.form.studio.post.upgrade</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="product.product_normal_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/sheet[@name='product_form']/notebook/page[@name='sales_price']/field[@name='pricelist_rule_ids']/list//field[@name='date_start']" position="attributes">
+                <attribute name="options">{"show_time": false}</attribute>
+            </xpath>
+            <xpath expr="/form/sheet[@name='product_form']/notebook/page[@name='sales_price']/field[@name='pricelist_rule_ids']/list//field[@name='date_end']" position="attributes">
+                <attribute name="options">{"show_time": false}</attribute>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

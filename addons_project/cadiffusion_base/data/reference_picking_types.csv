@@ -1,0 +1,9 @@
+_key,barcode,active
+__export__.stock_picking_type_24_1fe02054,WHMANUF,True
+__export__.stock_picking_type_66_ebcf7273,ECHIN,True
+__export__.stock_picking_type_67_7a530013,ECHOUT,True
+__export__.stock_picking_type_73_437a8a01,ECHMANUF,True
+stock.picking_type_in,WHIN,True
+stock.picking_type_internal,WHINT,True
+stock.picking_type_out,WHOUT,True
+stock_dropshipping.picking_type_dropship,False,True
