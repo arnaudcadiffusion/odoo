@@ -35,6 +35,8 @@ def post_init_hook(env):
     _apply_v15_carton_choices(env)
     _repair_upgrade_data(env)
     _configure_unece_exo_taxes(env)
+    _archive_post_upgrade_studio_views(env)
+    _apply_manual_settings_from_test_base(env)
 
 
 # ---------------------------------------------------------------------------
@@ -242,6 +244,96 @@ def _configure_unece_exo_taxes(env):
     _logger.info(
         "cadiffusion_base: codes UNECE VAT/E configurés sur %s taxe(s) 0%% EXO %s",
         len(taxes), taxes.mapped('display_name'))
+
+
+# ---------------------------------------------------------------------------
+# Vues Studio créées SUR LA BASE DE TEST après l'upgrade v15 → v19 (du
+# 23/06/2026 au 16/08/2026). Leur contenu est repris en XML dans
+# views/studio_post_upgrade_views.xml (pour les 6 qui portent une vraie
+# personnalisation) ou couvert par le module ca_date_format (pour les 5 qui ne
+# faisaient que poser options={"numeric": true} sur des champs date).
+# On archive donc les originales pour que les deux jeux ne se superposent pas.
+#
+# Partagée entre le post_init_hook (install fresh : rebuilds Odoo.sh, bascule
+# production — où ces vues n'existent pas, la fonction est alors sans effet) et
+# migrations/19.0.1.0.18/post-migrate.py (bases déjà installées, dont Test).
+# Idempotent : ne touche que les vues encore actives.
+# ---------------------------------------------------------------------------
+_POST_UPGRADE_STUDIO_VIEWS = (
+    # reprises en XML dans views/studio_post_upgrade_views.xml
+    'odoo_studio_account__5ebc3022-8ee2-4f9a-b39f-6b561d1a87fc',  # account.move form
+    'odoo_studio_account__fe18d761-19ff-4d44-a51e-6a2dd54b2e3a',  # account.move list
+    'odoo_studio_res_part_fe80bac8-bda7-4e20-99af-b2fa5ab7bc9f',  # res.partner form
+    'odoo_studio_res_part_a506c976-31da-4edd-9769-32b5529c9ada',  # res.partner list
+    'odoo_studio_sale_ord_008e3e26-eabf-4641-a7cd-e38b161f7b04',  # sale.order form
+    'odoo_studio_product__b078226b-0ce9-4622-bf22-59d3d743640c',  # product.product form
+    # couvertes par ca_date_format (options numeric sur des champs date)
+    'odoo_studio_stock_pi_4d29c376-3963-40fd-bf93-e3680b8ee33d',  # stock.picking form
+    'odoo_studio_stock_pi_b072fb10-8cf8-412a-8ddf-bf2c6a5ad336',  # stock.picking list
+    'odoo_studio_tender_o_4544821c-46f5-4ad7-bbdc-538c59fb737d',  # tender.order form
+    'odoo_studio_tender_o_e9ccd7b2-8c58-460c-a42c-3eaa61d7a3e5',  # tender.order list
+    'odoo_studio_sale_ord_26ce5b94-ea86-4ea4-94d7-e85bdd57882b',  # sale.order list
+)
+
+
+def _archive_post_upgrade_studio_views(env):
+    env.cr.execute("""
+        UPDATE ir_ui_view
+           SET active = false
+         WHERE active = true
+           AND id IN (
+               SELECT res_id FROM ir_model_data
+                WHERE module = 'studio_customization'
+                  AND model  = 'ir.ui.view'
+                  AND name IN %s
+           )
+    """, (_POST_UPGRADE_STUDIO_VIEWS,))
+    _logger.info(
+        "cadiffusion_base: %s vue(s) Studio post-upgrade archivée(s) "
+        "(contenu repris en XML / couvert par ca_date_format)",
+        env.cr.rowcount)
+
+
+# ---------------------------------------------------------------------------
+# Réglages posés à la main sur la base de test et absents de la production.
+#
+# Identifiés en comparant la base de test de mai (build 35344202) avec
+# l'upgrade neuf du 19/08/2026 (build 36652311) : ces deux écritures ne
+# laissaient aucune trace exploitable en SQL (pas de tracking sur res.company
+# ni sur stock.picking.type), c'est le diff champ par champ qui les a révélées.
+#
+#  - barcode des types d'opération de l'entrepôt principal : l'upgrade les
+#    ramène aux valeurs par défaut d'Odoo (WH-RECEIPTS / WH-DELIVERY) alors que
+#    les douchettes et les étiquettes sont calées sur WHIN / WHOUT.
+#  - stock_move_email_validation sur CA DIFFUSION : confirmation par e-mail à
+#    la validation d'un mouvement de stock.
+#
+# Partagée entre le post_init_hook (install fresh : rebuilds Odoo.sh, bascule
+# production) et migrations/19.0.1.0.20/post-migrate.py (bases déjà installées).
+# Idempotent : écriture conditionnelle, sans effet si l'enregistrement est
+# absent ou déjà à la bonne valeur.
+# ---------------------------------------------------------------------------
+_PICKING_TYPE_BARCODES = (
+    ('stock.picking_type_in', 'WHIN'),
+    ('stock.picking_type_out', 'WHOUT'),
+)
+
+
+def _apply_manual_settings_from_test_base(env):
+    for xmlid, barcode in _PICKING_TYPE_BARCODES:
+        picking_type = env.ref(xmlid, raise_if_not_found=False)
+        if picking_type and picking_type.barcode != barcode:
+            picking_type.barcode = barcode
+            _logger.info(
+                "cadiffusion_base: code-barres du type d'opération %s remis à %s",
+                xmlid, barcode)
+
+    company = env.ref('base.main_company', raise_if_not_found=False)
+    if company and not company.stock_move_email_validation:
+        company.stock_move_email_validation = True
+        _logger.info(
+            "cadiffusion_base: confirmation par e-mail des mouvements de stock "
+            "réactivée sur %s", company.display_name)
 
 
 # ---------------------------------------------------------------------------

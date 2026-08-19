@@ -1,6 +1,6 @@
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.17',
+    'version': '19.0.1.0.20',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -36,6 +36,7 @@
         'security/security.xml',
         'security/ir.model.access.csv',
         'data/fix_stale_data.xml',
+        'data/core_view_activation.xml',
         'views/account_move_views.xml',
         'views/mrp_production_views.xml',
         'views/product_views.xml',
@@ -45,6 +46,7 @@
         'views/stock_views.xml',
         'views/tender_order_views.xml',
         'views/misc_views.xml',
+        'views/studio_post_upgrade_views.xml',
         'report/mrp_production_report.xml',
     ],
     'installable': True,

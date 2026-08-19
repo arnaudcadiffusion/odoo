@@ -11,6 +11,10 @@
         ],
     },
     "installable": True,
-    "auto_install": False,
+    # Sa seule dépendance est cadiffusion_base : auto_install le fait donc
+    # installer dès que celui-ci l'est, sans intervention après migration. Il
+    # remplace les options={"numeric": true} posées champ par champ dans Studio
+    # sur la base de test (cf. views/studio_post_upgrade_views.xml).
+    "auto_install": True,
     "license": "LGPL-3",
 }

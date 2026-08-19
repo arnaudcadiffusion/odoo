@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Vues du core volontairement réactivées.
+
+``stock_account.view_picking_form`` est livrée par Odoo avec
+``<field name="active" eval="False"/>`` ; son seul effet est de forcer
+``invisible="0"`` sur le bouton « Retour » du formulaire de transfert. Elle a
+été réactivée à la main sur la base de test le 31/07/2026 (par atoulemonde)
+pour rendre ce bouton toujours visible.
+
+Comme son ``ir_model_data.noupdate`` vaut ``false``, chaque mise à jour de
+``stock_account`` la remettrait à ``active = False`` et le bouton
+disparaîtrait à nouveau, sans que personne ne fasse le lien. On réaffirme donc
+l'activation ici : ``stock_account`` fait partie des dépendances transitives de
+``cadiffusion_base``, donc ce fichier se charge après lui, et mettre à jour
+``stock_account`` entraîne la mise à jour de ``cadiffusion_base`` (Odoo remonte
+la chaîne des dépendants).
+-->
+<odoo>
+
+    <record id="stock_account.view_picking_form" model="ir.ui.view">
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>
