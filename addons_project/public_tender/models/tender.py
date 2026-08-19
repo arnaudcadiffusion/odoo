@@ -65,8 +65,8 @@ class Tender(models.Model):
         if default is None:
             default = {}
         if 'name' not in default:
-            default['name'] = _("%s (copy)") % self.name
-        return super(Tender,self).copy(default=default)
+            default['name'] = _("%s (copy)", self.name)
+        return super().copy(default=default)
 
 
     def _create_product_pricelist(self):

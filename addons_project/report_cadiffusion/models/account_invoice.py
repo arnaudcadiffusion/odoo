@@ -1,7 +1,11 @@
 # Copyright 2018 Shine IT
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
 
+import logging
+
 from odoo import api, fields, models
+
+_logger = logging.getLogger(__name__)
 
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
@@ -38,18 +42,21 @@ class AccountMove(models.Model):
     def _report_sale_order_date(self):
         try:
             all_so = self._report_sale_order()
-            if all_so:
-                return all_so[0].date_order
         except Exception:
-            pass
-        return None
+            _logger.exception(
+                "Commande d'origine introuvable pour la facture %s (id=%s)",
+                self.name, self.id,
+            )
+            return None
+        return all_so[0].date_order if all_so else None
 
     def _report_sale_effective_date(self):
         try:
             all_so = self._report_sale_order()
-            if all_so:
-                val = all_so[0].effective_date
-                return val if val else None
         except Exception:
-            pass
-        return None
+            _logger.exception(
+                "Commande d'origine introuvable pour la facture %s (id=%s)",
+                self.name, self.id,
+            )
+            return None
+        return (all_so[0].effective_date or None) if all_so else None

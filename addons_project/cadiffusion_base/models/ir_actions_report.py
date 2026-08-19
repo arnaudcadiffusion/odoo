@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Hard-disable Factur-X XML embedding inside PDF invoices.
 

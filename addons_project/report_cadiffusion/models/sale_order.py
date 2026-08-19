@@ -1,6 +1,6 @@
 # Copyright 2018 Shine IT
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
-from odoo import api, fields, models
+from odoo import fields, models
 
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
