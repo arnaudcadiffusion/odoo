@@ -1,9 +1,34 @@
-# -*- coding: utf-8 -*-
 from odoo import api, fields, models
 
 
 class StockMove(models.Model):
     _inherit = 'stock.move'
+
+    x_studio_date_prvu = fields.Datetime(
+        string='Date prévue',
+        related='picking_id.scheduled_date',
+        store=True,
+        readonly=True,
+    )
+    x_studio_date_transfert = fields.Datetime(
+        string='Date transfert',
+        related='move_line_ids.date',
+        store=True,
+        readonly=True,
+    )
+    x_studio_partenaire = fields.Char(
+        string='Partenaire',
+        related='picking_id.partner_id.commercial_partner_id.name',
+        store=True,
+        readonly=True,
+    )
+    x_studio_prix_remise = fields.Float(
+        string='Prix Remise',
+        compute='_compute_x_studio_prix_remise',
+        store=True,
+    )
+    x_studio_char_field_U2Qbo = fields.Char(string='New Texte')
+    x_studio_field_x143A = fields.Date(string='New Date')
 
     # ------------------------------------------------------------------
     # Colonne « Conditionnement » des opérations de transfert.
@@ -31,6 +56,10 @@ class StockMove(models.Model):
             if carton:
                 move.packaging_uom_id = carton
 
+    @api.depends('sale_line_id.price_reduce_taxexcl')
+    def _compute_x_studio_prix_remise(self):
+        for rec in self:
+            rec.x_studio_prix_remise = rec.sale_line_id.price_reduce_taxexcl or 0.0
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
@@ -123,41 +152,6 @@ class StockPicking(models.Model):
         string='Préparateur',
     )
     x_studio_premium_xpo = fields.Boolean(string='Premium XPO', default=False)
-
-
-class StockMove(models.Model):
-    _inherit = 'stock.move'
-
-    x_studio_date_prvu = fields.Datetime(
-        string='Date prévue',
-        related='picking_id.scheduled_date',
-        store=True,
-        readonly=True,
-    )
-    x_studio_date_transfert = fields.Datetime(
-        string='Date transfert',
-        related='move_line_ids.date',
-        store=True,
-        readonly=True,
-    )
-    x_studio_partenaire = fields.Char(
-        string='Partenaire',
-        related='picking_id.partner_id.commercial_partner_id.name',
-        store=True,
-        readonly=True,
-    )
-    x_studio_prix_remise = fields.Float(
-        string='Prix Remise',
-        compute='_compute_x_studio_prix_remise',
-        store=True,
-    )
-
-    @api.depends('sale_line_id.price_reduce_taxexcl')
-    def _compute_x_studio_prix_remise(self):
-        for rec in self:
-            rec.x_studio_prix_remise = rec.sale_line_id.price_reduce_taxexcl or 0.0
-    x_studio_char_field_U2Qbo = fields.Char(string='New Texte')
-    x_studio_field_x143A = fields.Date(string='New Date')
 
 
 class StockMoveLine(models.Model):

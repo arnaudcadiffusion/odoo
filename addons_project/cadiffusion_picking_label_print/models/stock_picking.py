@@ -48,7 +48,7 @@ class StockPicking(models.Model):
             response_json = json.loads(response.content)
         except requests.exceptions.RequestException as e:
             logger.error(f'Error while printing label for picking {self.name}: {str(e)}')
-            raise UserError(_("Error while printing the label: " + str(e)))
+            raise UserError(_("Error while printing the label: %s", e))
         message = response_json.get("message")
         if message and "impression en cours" in message.lower():
             self.label_printed = True
@@ -86,8 +86,8 @@ class StockPicking(models.Model):
                 % (self.name, response.status_code, response.content)
             )
         except requests.exceptions.RequestException as e:
-            raise UserError(_("Error while transport: " + str(e)))
-        message = _("✅ Searching for the best carrier…")
+            raise UserError(_("Error while transport: %s", e))
+        message = _("Searching for the best carrier…")
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",

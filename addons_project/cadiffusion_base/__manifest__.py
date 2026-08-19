@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 {
     'name': 'CaDiffusion Base',
     'version': '19.0.1.0.17',

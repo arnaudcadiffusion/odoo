@@ -4,7 +4,7 @@ from datetime import date
 
 class TestPartner(common.TransactionCase):
     def setUp(self):
-        super(TestPartner, self).setUp()
+        super().setUp()
         print('aaaaa')
         self.partner = self.env['res.partner']
         self.tender = self.env['tender.order']

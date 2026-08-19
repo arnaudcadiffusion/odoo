@@ -5,6 +5,7 @@
     "version": "19.0.1.0.0",
     "summary": "Obsolete — use native Odoo 19 packaging",
     "author": "Cadiffusion",
+    "category": "Hidden",
     "license": "LGPL-3",
     "depends": ["base"],
     "installable": True,
