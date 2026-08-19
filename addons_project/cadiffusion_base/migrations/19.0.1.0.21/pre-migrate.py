@@ -22,6 +22,10 @@ volontairement (état 'to remove' / 'uninstallable' non touché).
 """
 import logging
 
+from odoo import SUPERUSER_ID, api
+
+from odoo.addons.cadiffusion_base import _apply_reference_state
+
 _logger = logging.getLogger(__name__)
 
 # Modules du dépôt à poser sur les bases existantes. Une ligne de plus suffit
@@ -43,3 +47,11 @@ def migrate(cr, version):
         _logger.info(
             "cadiffusion_base: %s marqué(s) « to install » — auto_install ne "
             "rattrape pas les bases existantes", forced)
+
+    # L'état des vues est aligné ICI, avant le chargement des fichiers data :
+    # une de nos vues peut cibler un champ apporté par la vue d'un autre module
+    # (invoice_sending_method à côté de fr_chorus_service_id, par exemple), et
+    # un xpath ne résout que si cette vue-là est active. Le faire en
+    # post-migrate est trop tard — le chargement a déjà échoué.
+    env = api.Environment(cr, SUPERUSER_ID, {})
+    _apply_reference_state(env, only=('views',))

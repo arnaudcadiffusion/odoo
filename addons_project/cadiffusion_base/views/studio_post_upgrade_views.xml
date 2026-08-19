@@ -54,9 +54,16 @@ champs date de l'instance, ce qui les rend redondantes.
     <record id="view_partner_form_studio_post_upgrade" model="ir.ui.view">
         <field name="name">res.partner.form.studio.post.upgrade</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="base.view_partner_form"/>
+        <!-- Hérite de la vue Chorus de l'OCA, et non de base.view_partner_form :
+             fr_chorus_service_id est apporté par cette vue-là. Ancré sur
+             base.view_partner_form, le xpath ne résout que si la vue Chorus est
+             ACTIVE — elle ne l'est pas sur une base fraîchement remigrée, et le
+             chargement du module échoue alors (build 36671450 du 19/08/2026).
+             Ancré ici, il résout contre l'arch propre de la vue parente, quel
+             que soit son état d'activation. -->
+        <field name="inherit_id" ref="l10n_fr_chorus_account.view_partner_form"/>
         <field name="arch" type="xml">
-            <xpath expr="/form/sheet/notebook/page[@name='contact_addresses']/field[@name='child_ids']/form//field[@name='fr_chorus_service_id']" position="after">
+            <xpath expr="//group[@name='fr_chorus_service']/field[@name='fr_chorus_service_id']" position="after">
                 <field name="invoice_sending_method"/>
             </xpath>
         </field>
