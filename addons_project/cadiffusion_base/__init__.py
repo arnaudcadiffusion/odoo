@@ -598,10 +598,19 @@ def _reference_diff(env, spec):
     return differences, missing, extra
 
 
-def _apply_reference_state(env):
-    """Réapplique les specs APPLY, signale les specs REPORT."""
+def _apply_reference_state(env, only=None):
+    """Réapplique les specs APPLY, signale les specs REPORT.
+
+    ``only`` restreint aux specs nommés. L'état des vues est aligné en
+    pre-migrate, avant le chargement des fichiers data : une de nos vues peut
+    cibler un champ apporté par la vue d'un autre module, et un xpath ne résout
+    que si cette vue-là est active. L'ordre du chargeur est pre-migrate →
+    import du module → data → post-migrate.
+    """
     for spec in _REFERENCE_SPECS:
         name, model, key, fields, mode = spec
+        if only and name not in only:
+            continue
         differences, missing, extra = _reference_diff(env, spec)
         if mode == _REPORT:
             if differences:

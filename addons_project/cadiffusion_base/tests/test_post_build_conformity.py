@@ -89,6 +89,16 @@ class TestPostBuildConformity(TransactionCase):
             'customer_invoice_transmit_method_code',
             fields[0].get('invisible', ''),
             "condition native d'Odoo 19 non remplacée par celle de l'OCA")
+        # Repris de Studio : le mode d'envoi de facture à côté du code service,
+        # sur les contacts enfants. La vue qui le pose doit hériter de la vue
+        # Chorus de l'OCA — ancrée sur base.view_partner_form, elle ne se
+        # charge que si la vue Chorus est active, et le module casse au
+        # chargement sur une base fraîchement remigrée.
+        self.assertTrue(
+            arch.xpath("//field[@name='child_ids']"
+                       "//group[@name='fr_chorus_service']"
+                       "/field[@name='invoice_sending_method']"),
+            "mode d'envoi absent du sous-formulaire contact")
 
     def test_unece_categ_for_tax_name(self):
         """E = exonéré, G = export hors UE, K = intracommunautaire. L'ordre des
