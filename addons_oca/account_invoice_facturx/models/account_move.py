@@ -46,8 +46,10 @@ try:
         )
     except ImportError:
         pass
-except ImportError:
-    logger.debug("Cannot import facturx")
+except Exception as e:
+    # Ne jamais faire echouer le chargement du registre si la lib facturx
+    # (ou une de ses dependances, ex. stdnum) est cassee dans l'environnement.
+    logger.warning("Cannot import facturx: %s", e)
 
 
 FACTURX_FILENAME = "factur-x.xml"
