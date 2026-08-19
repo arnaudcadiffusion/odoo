@@ -1,6 +1,6 @@
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.20',
+    'version': '19.0.1.0.21',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
