@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_picking_form" model="ir.ui.view">
+        <field name="name">stock.picking.form.send.label</field>
+        <field name="model">stock.picking</field>
+        <field name="active" eval="True"/>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='%(stock.action_report_delivery)d']" position="before">
+                <button name="send_label_print" string="Print Labels" type="object" data-hotkey="l"/>
+                <button name="send_transport" string="Transport" type="object" data-hotkey="t"/>
+            </xpath>
+            <xpath expr="//group[@name='other_infos']" position="inside">
+                <field name="label_printed"/>
+            </xpath>
+            <field name="origin" position="after">
+                <field name="client_order_ref" string="N# Commande"/>
+            </field>
+        </field>
+    </record>
+    
+    <record id="view_picking_tree" model="ir.ui.view">
+        <field name="name">stock.picking.list.view.client_order_ref</field>
+        <field name="model">stock.picking</field>
+        <field name="active" eval="True"/>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+            <field name="origin" position="after">
+                <field name="client_order_ref" string="N# Commande"/>
+            </field>
+        </field>
+    </record>
+</odoo>

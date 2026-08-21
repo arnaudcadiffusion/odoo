@@ -1,0 +1,107 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* margin
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 13.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-12-02 13:35+0000\n"
+"PO-Revision-Date: 2021-12-02 13:35+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: margin
+#: model:ir.model.fields,help:margin.field_product_product__list_price
+#: model:ir.model.fields,help:margin.field_product_template__list_price
+msgid ""
+"Base price to compute the customer price. Sometimes called the catalog "
+"price."
+msgstr ""
+"Prix de base pour calculer le prix client. Parfois appelé le catalogue "
+"le prix."
+
+#. module: margin
+#: model:ir.model.fields,field_description:margin.field_account_move_line__purchase_price
+msgid "Cost"
+msgstr "Coût"
+
+#. module: margin
+#: model:ir.model.fields,field_description:margin.field_product_template__standard_price
+msgid "Cost Price"
+msgstr "Prix de revient"
+
+#. module: margin
+#: model:ir.model.fields,help:margin.field_product_template__standard_price
+msgid ""
+"In Standard Price & AVCO: value of the product (automatically computed in AVCO).\n"
+"        In FIFO: value of the last unit that left the stock (automatically computed).\n"
+"        Used to value the product when the purchase cost is not known (e.g. inventory adjustment).\n"
+"        Used to compute margins on sale orders."
+msgstr ""
+"En Prix Standard & AVCO : valeur du produit (calculée automatiquement en AVCO).\n"
+"        En FIFO : valeur de la dernière unité sortie du stock (calculée automatiquement).\n"
+"        Utilisé pour valoriser le produit lorsque le coût d'achat n'est pas connu (par exemple, ajustement des stocks).\n"
+"        Utilisé pour calculer les marges sur les commandes de vente."
+
+#. module: margin
+#: model:ir.model,name:margin.model_account_invoice_report
+msgid "Invoices Statistics"
+msgstr "Statistiques de factures"
+
+#. module: margin
+#: model:ir.model,name:margin.model_account_move
+msgid "Journal Entries"
+msgstr "Écritures de journal"
+
+#. module: margin
+#: model:ir.model,name:margin.model_account_move_line
+msgid "Journal Item"
+msgstr "Article de journal"
+
+#. module: margin
+#: model:ir.model.fields,field_description:margin.field_account_invoice_report__margin_subtotal_signed
+#: model:ir.model.fields,field_description:margin.field_account_move__margin_calc
+#: model:ir.model.fields,field_description:margin.field_account_move_line__line_margin
+#: model:ir.model.fields,field_description:margin.field_sale_order__margin_calc
+#: model:ir.model.fields,field_description:margin.field_sale_order_line__line_margin
+msgid "Margin"
+msgstr "Marge"
+
+#. module: margin
+#: model:ir.model.fields,field_description:margin.field_account_move__margin_cust
+#: model:ir.model.fields,field_description:margin.field_product_product__margin
+#: model:ir.model.fields,field_description:margin.field_product_template__margin
+#: model:ir.model.fields,field_description:margin.field_sale_order__margin_cust
+msgid "Margin %"
+msgstr "Marge %"
+
+#. module: margin
+#: model:ir.model.fields,field_description:margin.field_account_move_line__margin_subtotal_signed
+msgid "Margin Signed"
+msgstr "Marge Signée"
+
+#. module: margin
+#: model:ir.model,name:margin.model_product_template
+msgid "Product Template"
+msgstr "Modèle de produit"
+
+#. module: margin
+#: model:ir.model.fields,field_description:margin.field_product_product__list_price
+#: model:ir.model.fields,field_description:margin.field_product_template__list_price
+msgid "Sale Price"
+msgstr "Prix de vente"
+
+#. module: margin
+#: model:ir.model,name:margin.model_sale_order
+msgid "Sales Order"
+msgstr "Bon de commande"
+
+#. module: margin
+#: model:ir.model,name:margin.model_sale_order_line
+msgid "Sales Order Line"
+msgstr "Ligne de commande client"

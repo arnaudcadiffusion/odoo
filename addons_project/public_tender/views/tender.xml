@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="tender_order_list_view">
+        <field name="name">Tender Order List</field>
+        <field name="model">tender.order</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" />
+                <field name="x_studio_coordinateur" readonly="1"/>
+                <field name="x_studio_dbut_de_march" options="{'numeric': True}"/>
+                <field name="end_of_the_tender" options="{'numeric': True}"/>
+                <field name="last_revision_date" options="{'numeric': True, 'show_time': False}"/>
+                <field name="next_revision_date" options="{'numeric': True, 'show_time': False}"/>
+                <field name="start_date" options="{'numeric': True}"/>
+                <field name="end_date" options="{'numeric': True}"/>
+                <field name="tender_pricelist_id" column_invisible="1"/>
+                <field name="state" />
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tender_order_form" model="ir.ui.view">
+        <field name="name">Tender Order Form</field>
+        <field name="model">tender.order</field>
+        <field name="arch" type="xml">
+            <form string="Tender Order">
+                <header>
+                    <button name="action_confirm" id="action_confirm" type="object"
+                        string="Validate" class="btn-primary"
+                        invisible="state == 'confirm'"/>
+                    <button name="action_reset" id="action_reset" type="object"
+                        string="Reset" class="btn-primary"
+                        groups="base.group_system"
+                        invisible="state == 'draft'"/>
+                    <button name="analyze_exist_product_pricelist"
+                        id="action_analyze_product_pricelist" type="object"
+                        string="Analyze" class="btn-primary"
+                        invisible="tender_price_lines"
+                        />
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirm" />
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="bg-danger" invisible="active == True"/>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Tender No ..." readonly="state == 'confirm'"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="start_date" options="{'numeric': True}" readonly="state == 'confirm'"/>
+                            <field name="end_date" options="{'numeric': True}" readonly="state == 'confirm'"/>
+                            <field name="x_studio_dbut_de_march" string="Début de Marché" options="{'numeric': True}" readonly="state == 'confirm'"/>
+                            <field name="end_of_the_tender" options="{'numeric': True}" readonly="state == 'confirm'"/>
+                            <field name="x_studio_coordinateur" string="Coordinateur" readonly="state == 'confirm'"/>
+                            <field name="x_studio_contact" string="Contact" readonly="state == 'confirm'"/>
+                            <field name="x_studio_tlphone" string="Téléphone" readonly="state == 'confirm'"/>
+                            <field name="x_studio_email" string="Email" readonly="state == 'confirm'"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="next_revision_date" options="{'numeric': True, 'show_time': False}" readonly="state == 'confirm'"/>
+                            <field name="last_revision_date" options="{'numeric': True, 'show_time': False}" readonly="state == 'confirm'"/>
+                            <field name="tender_pricelist_id" readonly="state == 'confirm'"/>
+                            <field name="note" />
+                            <field name="x_studio_notes_march" string="Notes Marché"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Price Lines">
+                            <field name="tender_price_lines" mode="list,form"
+                                readonly="state == 'confirm'">
+                                <list string="Tender Order Lines" editable="bottom">
+                                    <field name="product_id" />
+                                    <field name="min_quantity" />
+                                    <field name="revision_price" />
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Customer">
+                            <field name="partner_ids" mode="list,form"
+                                readonly="state == 'confirm'">
+                                <list string="Partners" editable="bottom">
+                                    <field name="name" />
+                                    <field name="property_product_pricelist" />
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id='view_tender_order_filter' model='ir.ui.view'>
+        <field name="name">tender.order.list.select</field>
+        <field name="model">tender.order</field>
+        <field name="priority" eval="15" />
+        <field name="arch" type="xml">
+            <search string="Search Tender Order">
+                <field name='name' string='Tender Order' filter_domain="[('name','ilike',self)]" />
+                <field name='tender_price_lines' string='Order Line'
+                    filter_domain="[('tender_price_lines.product_id','ilike',self)]" />
+                <field name='partner_ids' string='Client'/>
+                <field name='tender_pricelist_id' string='Liste de prix'/>
+                <filter name='draft' string='Draft' domain="[('state','=','draft')]" />
+                <filter name='confirm' string='Confirm' domain="[('state','=','confirm')]" />
+                <filter name='studio_filter_archived' string='Archivé' domain="[('active','=',False)]"/>
+                <filter name='studio_filter_end_date' string='End Date' date="end_date"/>
+                <filter name='studio_filter_end_of_tender' string='End Of The Tender' date="end_of_the_tender"/>
+                <separator/>
+                <filter context="{'group_by': 'state'}" name="groupby_state" string="Group By State"/>
+                <filter context="{'group_by': 'write_date'}" name="groupby_write_date" string="Group By Last Updated"/>
+                <filter context="{'group_by': 'write_uid'}" name="groupby_write_uid" string="Group By Last Updated by"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_tender_order" model="ir.actions.act_window">
+        <field name="name">Tender</field>
+        <field name="res_model">tender.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="target">current</field>
+    </record>
+
+    <menuitem id="menu_tender_root"
+        name="Tender Order"
+        action="action_tender_order"
+        parent="sale.sale_menu_root"
+        sequence="5" />
+
+
+</odoo>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Fix stale Odoo 15 context on stock/mrp product actions.
+        In Odoo 19:
+          - 'search_default_consumable' renamed to 'search_default_goods'
+          - 'default_type': 'product'   replaced by 'default_is_storable': true
+        Without this fix: TypeError on action load + ValueError on product create.
+    -->
+    <record id="stock.product_template_action_product" model="ir.actions.act_window">
+        <field name="context">{"search_default_goods": 1, "default_is_storable": true}</field>
+    </record>
+
+    <record id="mrp.product_template_action" model="ir.actions.act_window">
+        <field name="context">{"search_default_goods": 1, "default_is_storable": true}</field>
+    </record>
+
+    <!--
+        Force view_partner_property_form (account_invoice_transmit_method) toujours actif.
+        Raison : Odoo.sh restaure la prod où la vue peut être archivée,
+        et account_invoice_transmit_method n'est pas re-upgradé si non modifié.
+        Les vues Studio sont archivées globalement via post_init_hook / migration
+        (UPDATE ir_ui_view WHERE module = 'studio_customization') — plus robuste
+        que des <record> individuels qui échouent si l'XMLID est absent.
+    -->
+    <record id="account_invoice_transmit_method.view_partner_property_form" model="ir.ui.view">
+        <field name="active" eval="True"/>
+    </record>
+
+    <!--
+        Disable invoice number repetition in the PDF footer.
+        Odoo's l10n_fr_account sets this to True (legal requirement in France).
+        Cadiffusion has chosen to drop it for visual reasons; the invoice number
+        is already prominent at the top of the document.
+        Toggle back to '1' if you want to restore the French legal default.
+    -->
+    <!-- value="" (empty string) — Odoo's check is `if get_param(...)`, which
+         treats any non-empty string as truthy, even "0" or "False". Only the
+         empty string disables the footer. -->
+    <record id="l10n_fr_account.display_name_in_footer_param" model="ir.config_parameter">
+        <field name="value"></field>
+    </record>
+</odoo>

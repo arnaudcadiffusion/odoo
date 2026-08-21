@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ========================= -->
+    <!-- Invoice -->
+    <!-- ========================= -->
+
+    <!-- Écrase le rapport standard Odoo "Invoice PDF" → notre template avec paiements -->
+    <record id="account.account_invoices" model="ir.actions.report">
+        <field name="name">Facture</field>
+        <field name="report_name">report_cadiffusion.report_invoice_with_payments</field>
+        <field name="report_file">report_cadiffusion.report_invoice_with_payments</field>
+        <field name="attachment">(object.state in ('posted') and object.payment_state in ('in_payment','paid')) and ('INV' + (object.name or '').replace('/','') + '.pdf')</field>
+    </record>
+
+    <!-- Écrase le rapport standard "PDF without Payment" → notre template sans paiements -->
+    <record id="account.account_invoices_without_payment" model="ir.actions.report">
+        <field name="name">Facture (sans paiements)</field>
+        <field name="report_name">report_cadiffusion.report_invoice</field>
+        <field name="report_file">report_cadiffusion.report_invoice</field>
+    </record>
+
+    <!-- ========================= -->
+    <!-- Delivery Slip -->
+    <!-- ========================= -->
+    <record id="stock.action_report_delivery" model="ir.actions.report">
+        <field name="name">Delivery Slip</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">report_cadiffusion.report_deliveryslip</field>
+        <field name="report_file">report_cadiffusion.report_deliveryslip</field>
+        <field name="print_report_name">
+            'Delivery Slip - %s - %s' % (object.partner_id.name or '', object.name)
+        </field>
+    </record>
+
+    <!-- ========================= -->
+    <!-- Delivery Slip Reserved -->
+    <!-- ========================= -->
+    <record id="action_report_delivery_reserved" model="ir.actions.report">
+        <field name="name">Bon de livraison - Rupture</field>
+        <field name="model">stock.picking</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">report_cadiffusion.report_deliveryslip_reserved</field>
+        <field name="report_file">report_cadiffusion.report_deliveryslip_reserved</field>
+        <field name="print_report_name">
+            'Delivery Slip - %s - %s' % (object.partner_id.name or '', object.name)
+        </field>
+    </record>
+
+    <!-- ========================= -->
+    <!-- Purchase Order -->
+    <!-- ========================= -->
+    <record id="purchase.action_report_purchase_order" model="ir.actions.report">
+        <field name="name">Purchase Order</field>
+        <field name="model">purchase.order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">report_cadiffusion.report_purchaseorder</field>
+        <field name="report_file">report_cadiffusion.report_purchaseorder</field>
+        <field name="print_report_name">
+            (object.state in ('draft','sent')
+            and 'Request for Quotation - %s' % object.name
+            or 'Purchase Order - %s' % object.name)
+        </field>
+    </record>
+
+</odoo>
+

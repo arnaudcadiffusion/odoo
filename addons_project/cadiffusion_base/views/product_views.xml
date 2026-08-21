@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- product.template form view -->
+    <record id="view_product_template_form_studio" model="ir.ui.view">
+        <field name="name">product.template.form.studio</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <!-- Label Prix Public -->
+            <xpath expr="//form[@name='Product Template']/sheet[@name='product_form']/notebook[1]/page[@name='general_information']/group[1]/group[@name='group_standard_price']/label[1]" position="attributes">
+                <attribute name="string">Prix Public</attribute>
+            </xpath>
+            <!-- Hide buying_price -->
+            <xpath expr="//field[@name='buying_price']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- default_code required -->
+            <xpath expr="//field[@name='default_code']" position="attributes">
+                <attribute name="invisible">product_variant_count &gt; 1</attribute>
+                <attribute name="required">1</attribute>
+            </xpath>
+            <!-- Douane, taux de douane, marque after barcode -->
+            <xpath expr="//form[@name='Product Template']/sheet[@name='product_form']/notebook[1]/page[@name='general_information']/group[1]/group[@name='group_standard_price']/field[@name='barcode']" position="after">
+                <field name="x_studio_douane" string="Nomenclature douanière"/>
+                <field name="x_studio_taux_de_douane_" string="Taux de douane %"/>
+                <field name="x_studio_marque" string="Marque"/>
+            </xpath>
+            <!-- Vendor list customization -->
+            <xpath expr="//field[@name='seller_ids']" position="inside">
+                <list string="Vendor Information" multi_edit="1" editable="bottom">
+                    <field name="sequence" widget="handle"/>
+                    <field name="partner_id" readonly="0"/>
+                    <field name="product_id" readonly="0" optional="hide"
+                        invisible="context.get('product_template_invisible_variant', False)"
+                        groups="product.group_product_variant"
+                        domain="[('product_tmpl_id', '=?', context.get('default_product_tmpl_id', False))]"
+                        options="{'no_quick_create': True, 'no_create_edit' : True}"/>
+                    <field name="product_tmpl_id" string="Product" readonly="1"
+                        invisible="context.get('visible_product_tmpl_id', True)"/>
+                    <field name="product_name" optional="hide"/>
+                    <field name="product_code" optional="hide"/>
+                    <field name="currency_id" groups="base.group_multi_currency" column_invisible="1"/>
+                    <field name="date_start" optional="hide"/>
+                    <field name="date_end" optional="hide"/>
+                    <field name="company_id" readonly="0" groups="base.group_multi_company" optional="hide"/>
+                    <field name="min_qty" optional="show"/>
+                    <field optional="show" name="x_studio_franco" string="Franco"/>
+                    <field optional="show" name="x_studio_type" string="Type"/>
+                    <field name="product_uom_id" groups="uom.group_uom" column_invisible="1"/>
+                    <field name="price" string="Price"/>
+                    <field name="delay" optional="show"/>
+                    <field optional="show" name="x_studio_origine" string="Origine"/>
+                </list>
+            </xpath>
+            <!-- Carton dimensions + HS Code/Origin moved into Logistics group.
+                 In Odoo 19, hs_code is added by stock_delivery inside Traceability
+                 (groups="stock.group_production_lot") so hidden unless user has that group.
+                 We extract them and put them with the carton info, always visible. -->
+            <xpath expr="//page[@name='inventory']/group[@name='inventory']/group[@name='group_lots_and_weight']" position="inside">
+                <field name="x_studio_poids_carton" string="Poids Carton"/>
+                <field name="x_studio_longueur_carton" string="Longueur Carton"/>
+                <field name="x_studio_largeur_carton" string="Largeur Carton"/>
+                <field name="x_studio_hauteur_carton" string="Hauteur Carton"/>
+                <field name="x_studio_pieces_par_container" string="Pièces par Container"/>
+                <field name="x_studio_type_container" string="Type Container"/>
+            </xpath>
+            <!-- Palette info after inventory group -->
+            <xpath expr="//form[@name='Product Template']/sheet[@name='product_form']/notebook[1]/page[@name='inventory']/group[@name='inventory']" position="after">
+                <group name="studio_group_4kitO">
+                    <group name="studio_group_4kitO_left" string="Palette 1">
+                        <field name="x_studio_hauteur_p1" string="Hauteur P1"/>
+                        <field name="x_studio_nb_carton_p1" string="Nb Carton P1"/>
+                        <field name="x_studio_nb_piece_p1" string="Nb Piece P1"/>
+                    </group>
+                    <group name="studio_group_4kitO_right" string="Palette 2">
+                        <field name="x_studio_hauteur_p2" string="Hauteur P2"/>
+                        <field name="x_studio_nb_carton_p2" string="Nb Carton P2"/>
+                        <field name="x_studio_nb_piece_p2" string="Nb Piece P2"/>
+                    </group>
+                </group>
+            </xpath>
+            <!-- packaging_ids removed in Odoo 19 - packaging is now via UOM -->
+        </field>
+    </record>
+
+    <!-- product.template list view -->
+    <record id="view_product_template_list_studio" model="ir.ui.view">
+        <field name="name">product.template.list.studio</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <!-- Move default_code after is_favorite (priority renamed in Odoo 19) -->
+            <xpath expr="//field[@name='is_favorite']" position="after">
+                <xpath expr="//field[@name='default_code']" position="move"/>
+            </xpath>
+            <xpath expr="//field[@name='list_price']" position="attributes">
+                <attribute name="widget"/>
+            </xpath>
+            <xpath expr="//field[@name='standard_price']" position="attributes">
+                <attribute name="string">CMUP</attribute>
+                <attribute name="widget"/>
+            </xpath>
+            <xpath expr="//field[@name='categ_id']" position="after">
+                <field name="x_studio_marque_1" string="Marque" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='uom_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- product.template search view (stock) -->
+    <record id="view_product_template_search_stock_studio" model="ir.ui.view">
+        <field name="name">product.template.search.stock.studio</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="stock.product_template_search_form_view_stock"/>
+        <field name="arch" type="xml">
+            <!-- 'consumable' filter renamed to 'goods' in Odoo 19 -->
+            <xpath expr="//filter[@name='goods']" position="after">
+                <filter domain="[('is_storable', '=', True)]" name="studio_filter_storable" string="Produit Stockable"/>
+            </xpath>
+            <xpath expr="//filter[@name='activities_upcoming_all']" position="after">
+                <group name="studio_group_by">
+                    <filter context="{'group_by': 'write_date'}" name="studio_group_by_write_date" string="Last Updated on"/>
+                    <filter context="{'group_by': 'write_uid'}" name="studio_group_by_write_uid" string="Last Updated by"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- product.template search view (standard) -->
+    <record id="view_product_template_search_studio" model="ir.ui.view">
+        <field name="name">product.template.search.studio</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search[1]/field[@name='name']" position="after">
+                <field name="default_code"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- product.supplierinfo list view -->
+    <record id="view_product_supplierinfo_list_studio" model="ir.ui.view">
+        <field name="name">product.supplierinfo.list.studio</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="product.product_supplierinfo_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='currency_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='company_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='min_qty']" position="after">
+                <field name="x_studio_franco" optional="show"/>
+                <field name="x_studio_type" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='price']" position="after">
+                <field name="x_studio_origine" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- product.category list view -->
+    <record id="view_product_category_list_studio" model="ir.ui.view">
+        <field name="name">product.category.list.studio</field>
+        <field name="model">product.category</field>
+        <field name="inherit_id" ref="product.product_category_list_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='display_name']" position="after">
+                <field name="property_account_expense_categ_id"/>
+                <field name="property_account_income_categ_id"/>
+                <field name="property_cost_method"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- product.pricelist form view (1) - full customization -->
+    <record id="view_product_pricelist_form_studio_1" model="ir.ui.view">
+        <field name="name">product.pricelist.form.studio.1</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view"/>
+        <field name="arch" type="xml">
+            <!-- product_id removed from Odoo 19 pricelist item list; base_pricelist_id is added by view 2 -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='pricelist_rules']/field[@name='item_ids']/list[1]/field[@name='date_start']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='pricelist_rules']/field[@name='item_ids']/list[1]/field[@name='date_end']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <xpath expr="//field[@name='country_group_ids']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- product.pricelist form view (2) - base_pricelist_id optional -->
+    <record id="view_product_pricelist_form_studio_2" model="ir.ui.view">
+        <field name="name">product.pricelist.form.studio.2</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='pricelist_rules']/field[@name='item_ids']/list[1]/field[@name='name']" position="after">
+                <field name="base_pricelist_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- uom.uom list view (factor_inv/category_id removed in Odoo 19; adapted to factor) -->
+    <record id="view_uom_uom_list_studio" model="ir.ui.view">
+        <field name="name">uom.uom.list.studio</field>
+        <field name="model">uom.uom</field>
+        <field name="inherit_id" ref="uom.product_uom_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='relative_uom_id']" position="after">
+                <field name="factor" optional="show" string="Facteur Absolu"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- product.pricelist search view -->
+    <record id="view_product_pricelist_search_studio" model="ir.ui.view">
+        <field name="name">product.pricelist.search.studio</field>
+        <field name="model">product.pricelist</field>
+        <field name="inherit_id" ref="product.product_pricelist_view_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='currency_id']" position="after">
+                <field name="item_ids"/>
+            </xpath>
+            <xpath expr="//filter[@name='inactive']" position="after">
+                <group name="studio_group_by">
+                    <filter context="{'group_by': 'create_uid'}" name="studio_group_by_create_uid" string="Created by"/>
+                    <filter context="{'group_by': 'write_uid'}" name="studio_group_by_write_uid" string="Last Updated by"/>
+                    <filter context="{'group_by': 'create_date'}" name="studio_group_by_create_date" string="Created on"/>
+                    <filter context="{'group_by': 'write_date'}" name="studio_group_by_write_date" string="Last Updated on"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

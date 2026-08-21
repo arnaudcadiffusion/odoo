@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ADV Group -->
+    <record id="group_adv" model="res.groups">
+        <field name="name">ADV</field>
+    </record>
+
+</odoo>

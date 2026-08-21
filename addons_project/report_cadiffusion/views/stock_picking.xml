@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+        <record id="view_form_stock_picking_add_article_cmd" model="ir.ui.view">
+            <field name="name">stock picking tree view add article cmdé</field>
+            <field name="active" eval="True"/>
+            <field name="inherit_id" ref="stock.view_picking_form"/>
+            <field name="model">stock.picking</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+			    <!--move.line tree 视图中添加article cmdé信息-->
+                <xpath expr="//field[@name='move_ids']/list/field[@name='product_uom']" position="after">
+		    <field name="note_text" string="Notes"/>
+                    <field name="article_cmd"/>
+			    </xpath>
+			    <!--unlock权限给到stock.user-->
+			    <!-- <xpath expr="//button[@name='action_toggle_is_locked']" position="attributes">
+				    <attribute name="groups">stock.group_stock_user</attribute>
+			    </xpath>
+			    <xpath expr="//button[@name='action_toggle_is_locked'][last()]" position="attributes">
+				    <attribute name="groups">stock.group_stock_user</attribute>
+			    </xpath> -->
+                <!-- this attribution is comment because, there is not button of this action in view for v19, it changed by action srver -->
+            </field>
+        </record>
+        <record id="stock.action_toggle_is_locked" model="ir.actions.server">
+            <field name="group_ids" eval="[Command.link(ref('stock.group_stock_user'))]"/>
+        </record>
+</odoo>

@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- sale.order form view -->
+    <record id="view_sale_order_form_studio" model="ir.ui.view">
+        <field name="name">sale.order.form.studio</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_id']" position="before">
+                <field name="x_studio_n_client" string="N# Client" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='partner_id']" position="attributes">
+                <attribute name="string">Partenaire</attribute>
+                <attribute name="domain">[('is_company', '=', True)]</attribute>
+            </xpath>
+            <xpath expr="//field[@name='partner_shipping_id']" position="after">
+                <field name="x_studio_siret" string="SIRET"/>
+                <field name="x_studio_etiquettes" widget="many2many_tags" string="Etiquette"/>
+                <xpath expr="//field[@name='client_order_ref']" position="move"/>
+            </xpath>
+            <xpath expr="//field[@name='client_order_ref']" position="attributes">
+                <attribute name="string">N# Commande</attribute>
+                <attribute name="required">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='validity_date']" position="after">
+                <xpath expr="//field[@name='commitment_date']" position="move"/>
+            </xpath>
+            <xpath expr="//field[@name='payment_term_id']" position="after">
+                <field name="x_studio_code_service_chorus" string="Code Service Chorus" readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="x_studio_categorie_client" string="Categorie Client"/>
+            </xpath>
+            <!-- Order lines: reorder product_id after sequence -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='sequence']" position="after">
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='product_id']" position="move"/>
+            </xpath>
+            <!-- product_uom_id: readonly and required -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="attributes">
+                <attribute name="readonly">1</attribute>
+                <attribute name="required">display_type == False</attribute>
+            </xpath>
+            <!-- After product_uom_id: add product_qty and move price_unit -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='product_uom_id']" position="after">
+                <field name="product_qty" string="Qté totale" column_invisible="1"/>
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='price_unit']" position="move"/>
+            </xpath>
+            <!-- product_uom_id column_invisible -->
+            <xpath expr="//field[@name='order_line']/list//field[@name='product_uom_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <!-- purchase_price: label CMUP, readonly -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='purchase_price']" position="attributes">
+                <attribute name="string">CMUP</attribute>
+                <attribute name="readonly">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list//field[@name='purchase_price']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
+            <!-- tax_ids: column_invisible + groups (tax_id renamed to tax_ids in Odoo 19) -->
+            <xpath expr="//field[@name='order_line']/list//field[@name='tax_ids']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+                <attribute name="readonly">qty_invoiced &gt; 0</attribute>
+                <attribute name="groups">base.group_erp_manager</attribute>
+            </xpath>
+            <!-- After discount: add price_reduce_taxexcl (price_reduce removed in Odoo 19) -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='discount']" position="after">
+                <field name="price_reduce_taxexcl"/>
+            </xpath>
+            <!-- After price_subtotal: add marge and date_souhaite -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='price_subtotal']" position="after">
+                <field name="x_studio_marge" string="Marge" widget="percentage" readonly="1"/>
+                <field name="x_studio_date_souhaite" string="Date_souhaite" column_invisible="1"/>
+            </xpath>
+            <!-- Add availability in order_line list after name -->
+            <xpath expr="//field[@name='order_line']/list//field[@name='name']" position="after">
+                <field optional="show" name="x_studio_availability" string="Availability"/>
+                <!-- Colis / Nb Carton : équivalents v19 de product_packaging_id /
+                     product_packaging_qty (supprimés en 19). Le colis est
+                     choisi parmi les UDM du produit (pré-rempli avec le plus
+                     grand carton) ; saisir Nb Carton met à jour la quantité -->
+                <field name="allowed_uom_ids" column_invisible="1"/>
+                <field name="carton_uom_id" string="Colis" optional="show"
+                       domain="[('id', 'in', allowed_uom_ids)]"
+                       options="{'no_create': True, 'no_open': True}"
+                       readonly="is_downpayment"/>
+                <field name="nb_carton" string="Nb Carton" optional="show"
+                       readonly="is_downpayment"/>
+            </xpath>
+            <!-- Instructions Livraison group -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]" position="after">
+                <group name="studio_group_ITLU3">
+                    <group name="studio_group_ITLU3_left" string="Instructions Livraison">
+                        <field name="x_studio_livraison" string="Livraison"/>
+                    </group>
+                </group>
+                <group name="studio_group_A4nyl">
+                    <group name="studio_group_A4nyl_left" string="Instructions Commande">
+                        <field name="x_studio_notes_commande" string="Notes commande"/>
+                    </group>
+                </group>
+            </xpath>
+            <!-- Notes Client group after main group -->
+            <xpath expr="/form[1]/sheet[1]/group[1]" position="after">
+                <group name="studio_group_QcIex">
+                    <group name="studio_group_QcIex_left" string="Notes Client">
+                        <field name="x_studio_notes_internes" string="Notes internes"/>
+                    </group>
+                </group>
+            </xpath>
+            <!-- Assurance BC after field[8] in first left group -->
+            <xpath expr="/form[1]/sheet[1]/group[1]/group[1]/field[8]" position="after">
+                <field name="x_studio_assurance_bc"/>
+            </xpath>
+            <xpath expr="/form[1]/sheet[1]/group[1]/group[1]/field[9]" position="attributes">
+                <attribute name="string">Assurance</attribute>
+            </xpath>
+            <!-- Prospect after client_order_ref (not ancestor of field) -->
+            <xpath expr="//field[@name='client_order_ref'][not(ancestor::field)]" position="after">
+                <field name="x_studio_prospect" string="Prospect"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- sale.order list view (1) - orders -->
+    <record id="view_sale_order_list_studio_1" model="ir.ui.view">
+        <field name="name">sale.order.list.studio.1</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='expected_date']" position="replace">
+                <field name="x_studio_n_client"/>
+            </xpath>
+            <xpath expr="//list[1]/field[@name='name']" position="after">
+                <field name="client_order_ref"/>
+            </xpath>
+            <xpath expr="//field[@name='commitment_date']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <xpath expr="//field[@name='amount_total']" position="after">
+                <field name="margin_cust"/>
+                <field name="margin" sum="Margin"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- sale.order list view (2) - quotations -->
+    <record id="view_sale_order_list_studio_2" model="ir.ui.view">
+        <field name="name">sale.order.list.studio.2</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree_with_onboarding"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="after">
+                <field name="amount_untaxed"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- sale.order search view (1) - sale orders -->
+    <record id="view_sale_order_search_studio_1" model="ir.ui.view">
+        <field name="name">sale.order.search.studio.1</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_view_search_inherit_sale"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='order_date']" position="after">
+                <filter name="studio_filter_marche" string="Marché" domain="[['partner_id.tender_ids.name','ilike','GCS ACH CENTRE BLOIS 2020 AOP']]"/>
+            </xpath>
+            <xpath expr="//filter[@name='order_month']" position="after">
+                <filter context="{'group_by': 'create_uid'}" name="create_uid" string="Created by"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- sale.order search view (2) - quotations -->
+    <record id="view_sale_order_search_studio_2" model="ir.ui.view">
+        <field name="name">sale.order.search.studio.2</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.sale_order_view_search_inherit_quotation"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='filter_create_date']" position="after">
+                <filter domain="[['state','=', 'cancel']]" name="studio_filter_cancel" string="Annulé"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- sale.order.line list view -->
+    <record id="view_sale_order_line_list_studio" model="ir.ui.view">
+        <field name="name">sale.order.line.list.studio</field>
+        <field name="model">sale.order.line</field>
+        <field name="inherit_id" ref="sale.view_order_line_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='order_id']" position="before">
+                <field name="x_studio_date_livraison" string="Date Livraison" widget="date"/>
+                <field name="scheduled_date" optional="show"/>
+            </xpath>
+            <xpath expr="//field[@name='order_id']" position="after">
+                <field name="x_studio_n_commande" string="N# Commande"/>
+            </xpath>
+            <xpath expr="//field[@name='order_partner_id']" position="after">
+                <field name="x_studio_rfrence" string="Référence"/>
+                <field name="x_studio_article_cmd" optional="show"/>
+            </xpath>
+            <xpath expr="//list[1]/field[@name='name']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='salesman_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='qty_to_invoice']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='qty_to_invoice']" position="after">
+                <field name="price_reduce_taxexcl" string="Prix Unit"/>
+                <field name="x_studio_marge" widget="percentage"/>
+            </xpath>
+            <xpath expr="//field[@name='product_uom_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- sale.order.line search view -->
+    <record id="view_sale_order_line_search_studio" model="ir.ui.view">
+        <field name="name">sale.order.line.search.studio</field>
+        <field name="model">sale.order.line</field>
+        <!-- view_order_line_filter renamed to view_sales_order_line_filter in Odoo 19 -->
+        <field name="inherit_id" ref="sale.view_sales_order_line_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='to_invoice']" position="after">
+                <filter domain="[['order_partner_id.tender_ids.name','ilike','RESAH NORMANDIE']]" name="studio_filter_uniha" string="UNIHA"/>
+            </xpath>
+            <xpath expr="//filter[@name='my_sales_order_lines']" position="after">
+                <field name="x_studio_n_commande"/>
+            </xpath>
+            <xpath expr="//filter[@name='salesperson']" position="after">
+                <filter context="{'group_by': 'order_partner_id'}" name="studio_group_by_customer" string="Customer"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

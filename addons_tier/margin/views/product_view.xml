@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data>
+		<record id="product_bundle_product_form_view" model="ir.ui.view">
+			<field name="name">product_bundle.product_form_view</field>
+			<field name="model">product.template</field>
+			<field name="inherit_id" ref="product.product_template_only_form_view" />
+			<field name="type">form</field>
+			<field name="arch" type="xml">
+				<field name="type" position="after">
+
+					<field name="margin" />
+					<field name="product_margin_calc" widget='monetary' options="{'currency_field': 'currency_id'}" />
+				</field>
+			</field>
+		</record>
+
+	</data>
+</odoo>

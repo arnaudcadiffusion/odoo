@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- stock.picking form view -->
+    <record id="view_stock_picking_form_studio" model="ir.ui.view">
+        <field name="name">stock.picking.form.studio</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <!-- action_set_quantities_to_reservation, do_unreserve, button_scrap removed in Odoo 19 -->
+            <!-- Restrict cancel to ADV group -->
+            <xpath expr="//button[@name='action_cancel']" position="attributes">
+                <attribute name="groups">cadiffusion_base.group_adv</attribute>
+            </xpath>
+            <!-- N# Partenaire before main group -->
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/div[1]" position="before">
+                <field name="x_studio_n_partenaire" string="N# Partenaire"/>
+            </xpath>
+            <!-- Transport info after location_id -->
+            <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/field[@name='location_id']" position="after">
+                <field name="x_studio_transport" string="Transport"/>
+                <field name="weight" string="Poids"/>
+                <field name="x_studio_nb_palette" string="Nb Palette Total"/>
+                <field name="x_studio_nb_palette_euro" string="Dont Palette EURO"/>
+                <field name="x_studio_mode_livraison_xpo" string="Mode Livraison XPO"/>
+                <field name="x_studio_premium_xpo" string="Premium XPO"/>
+                <field name="x_studio_bl_groupe" string="BL groupe"/>
+                <field name="x_studio_dpd_nb_colis" string="Nb Etiquette DPD"/>
+            </xpath>
+            <!-- date_done: date widget -->
+            <xpath expr="//field[@name='date_done']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <!-- Préparateur after origin -->
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="x_studio_prparateur" string="Préparateur"/>
+            </xpath>
+            <!-- Transport details after origin (client_order_ref/packaging_qty removed in Odoo 19) -->
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="x_studio_cout_transport" string="Cout Transport"/>
+                <field name="x_studio_impression_bl" string="Impression BL"/>
+                <field name="x_studio_nb_bl_groupe" string="Nb BL groupe"/>
+                <field name="x_studio_id_bl_groupe" string="ID BL groupe"/>
+            </xpath>
+            <!-- move_ids: hide product_uom column (Odoo 19: move_ids replaces move_ids_without_package) -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='operations']/field[@name='move_ids']/list[1]/field[@name='product_uom']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- SAV page -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]" position="inside">
+                <page string="SAV" name="studio_page_O1pVl">
+                    <group name="studio_group_O1pVl">
+                        <group name="studio_group_O1pVl_left">
+                            <field name="x_studio_erreur_preparation" string="Erreur Preparation"/>
+                            <field name="x_studio_erreur_saisie" string="Erreur Saisie"/>
+                            <field name="x_studio_erreur_client" string="Erreur Client"/>
+                            <field name="x_studio_autres" string="Autres"/>
+                        </group>
+                        <group name="studio_group_O1pVl_right">
+                            <field name="x_studio_notes_erreur" string="Notes Erreur"/>
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+            <!-- Instructions Livraison group after notebook -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]" position="after">
+                <group name="studio_group_i2ErM">
+                    <group name="studio_group_i2ErM_left" string="Instructions Livraison">
+                        <field name="x_studio_livraison" string="Livraison" readonly="1"/>
+                        <field name="x_studio_notes_internes" string="Notes"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- stock.picking list view -->
+    <record id="view_stock_picking_list_studio" model="ir.ui.view">
+        <field name="name">stock.picking.list.studio</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='location_dest_id']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='scheduled_date']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <xpath expr="//field[@name='scheduled_date']" position="after">
+                <field name="date_done" widget="date"/>
+            </xpath>
+            <xpath expr="//field[@name='date_deadline']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <xpath expr="//field[@name='state']" position="after">
+                <field name="x_studio_transport"/>
+                <field name="weight"/>
+                <field name="create_date" widget="datetime"/>
+                <field name="x_studio_cre_par" string="Crée Par"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- stock.picking calendar view -->
+    <record id="view_stock_picking_calendar_studio" model="ir.ui.view">
+        <field name="name">stock.picking.calendar.studio</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.stock_picking_calendar"/>
+        <field name="arch" type="xml">
+            <xpath expr="//calendar[1]" position="attributes">
+                <attribute name="date_start">date_deadline</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- stock.picking search view -->
+    <record id="view_stock_picking_search_studio" model="ir.ui.view">
+        <field name="name">stock.picking.search.studio</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_internal_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='origin']" position="after">
+                <field name="date_done"/>
+            </xpath>
+            <xpath expr="//filter[@name='origin']" position="after">
+                <filter context="{'group_by': 'date_done'}" name="studio_group_by_date_done" string="Date of Transfer"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- stock.move list view -->
+    <record id="view_stock_move_list_studio" model="ir.ui.view">
+        <field name="name">stock.move.list.studio</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="stock.view_move_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <xpath expr="//field[@name='date']" position="after">
+                <field name="x_studio_date_prvu" optional="show" widget="date"/>
+                <field name="date_deadline" optional="show" widget="date"/>
+            </xpath>
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field optional="show" name="x_studio_partenaire" string="Partenaire"/>
+                <field name="price_unit"/>
+                <field optional="show" name="x_studio_prix_remise" string="Prix Remise"/>
+            </xpath>
+            <xpath expr="//field[@name='product_uom_qty']" position="after">
+                <field name="quantity" optional="show" string="Qté Réservée"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- stock.move form view -->
+    <record id="view_stock_move_form_studio" model="ir.ui.view">
+        <field name="name">stock.move.form.studio</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="stock.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date']" position="after">
+                <field name="price_unit"/>
+            </xpath>
+            <!-- Rendre le groupe Origin visible pour tous -->
+            <xpath expr="//group[@name='origin_grp']" position="attributes">
+                <attribute name="groups"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- stock.move search view -->
+    <record id="view_stock_move_search_studio" model="ir.ui.view">
+        <field name="name">stock.move.search.studio</field>
+        <field name="model">stock.move</field>
+        <field name="inherit_id" ref="stock.view_move_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='future']" position="after">
+                <filter domain="[['state','=','partially_available']]" name="studio_filter_partial" string="Partiellement Dispo"/>
+            </xpath>
+            <xpath expr="//filter[@name='incoming']" position="attributes">
+                <attribute name="string">Entrees</attribute>
+            </xpath>
+            <xpath expr="//filter[@name='outgoing']" position="attributes">
+                <attribute name="string">Sorties</attribute>
+            </xpath>
+            <xpath expr="//filter[@name='outgoing']" position="after">
+                <filter domain="[['location_id','ilike','Vendors']]" name="studio_filter_receptions" string="Receptions"/>
+                <filter domain="['|','|',['location_id','ilike','customer'],['location_dest_id','ilike','customer'],['location_dest_id','ilike','production']]" name="studio_filter_appro" string="Appro Fait"/>
+                <separator name="studio_separator_mVIM3"/>
+                <filter domain="[['state','=','cancel']]" name="studio_filter_cancel" string="Annulé"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- stock.move.line list view -->
+    <record id="view_stock_move_line_list_studio" model="ir.ui.view">
+        <field name="name">stock.move.line.list.studio</field>
+        <field name="model">stock.move.line</field>
+        <field name="inherit_id" ref="stock.view_move_line_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='date']" position="attributes">
+                <attribute name="widget">date</attribute>
+            </xpath>
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="x_studio_ref_article" string="Ref Article"/>
+                <field name="x_studio_substitution" string="Substitution"/>
+            </xpath>
+            <xpath expr="//field[@name='location_dest_id']" position="after">
+                <field name="quantity_product_uom"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

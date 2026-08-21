@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- Adresse destinataire à droite : la grille flex (col-5 ms-auto) de
+         web.address_layout n'est pas rendue par wkhtmltopdf, l'adresse
+         retombait à gauche. Même contournement float que le pied de page
+         ci-dessous ; s'applique à tous les rapports (PO, BL, factures...). -->
+    <record id="address_layout_float" model="ir.ui.view">
+        <field name="name">Cadiffusion address layout (float wkhtmltopdf)</field>
+        <field name="inherit_id" ref="web.address_layout"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@t-attf-class='address row mb-4']" position="attributes">
+                <attribute name="t-attf-class">address mb-4</attribute>
+                <attribute name="style">overflow:hidden;</attribute>
+            </xpath>
+            <xpath expr="//div[@name='information_block']" position="attributes">
+                <attribute name="class"/>
+                <attribute name="style">float:left; width:50%;</attribute>
+            </xpath>
+            <xpath expr="//div[@name='address']" position="attributes">
+                <attribute name="t-att-class"/>
+                <attribute name="style">float:right; width:42%;</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="report_external_layout_boxed" model="ir.ui.view">
+        <field name="name">Cadiffusion external layout boxed</field>
+        <field name="inherit_id" ref="web.external_layout_boxed"/>
+        <field name="arch" type="xml">
+            <!-- Replace Bootstrap grid/flex footer with float layout for wkhtmltopdf -->
+            <xpath expr="//div[hasclass('o_footer_content')]" position="replace">
+                <div class="o_footer_content border-top pt-2" style="overflow:hidden; font-size:8pt;">
+                    <div style="float:right; width:18%; text-align:right; white-space:nowrap;">
+                        <span t-if="report_type == 'pdf'" class="text-muted">Page <span class="page"/> / <span class="topage"/></span>
+                    </div>
+                    <div style="float:left; width:80%;">
+                        <span t-field="company.report_footer"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

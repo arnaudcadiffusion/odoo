@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================= -->
+    <!-- Demande de prix (RFQ) : rétablit les personnalisations v15         -->
+    <!--   - bloc d'instructions livraison (FR + EN) au-dessus du tableau   -->
+    <!--   - suffixe (DD/MM/YYYY) sur l'entête "Date prévue"                -->
+    <!-- ================================================================= -->
+    <template id="report_purchasequotation_document_cadiffusion"
+              inherit_id="purchase.report_purchasequotation_document">
+
+        <!-- Bloc d'instructions au-dessus du tableau -->
+        <xpath expr="//table[hasclass('table-borderless')]" position="before">
+            <div class="mb-3" name="cadiffusion_delivery_instructions">
+                <p><strong>Merci de respecter les instructions suivantes avant livraison :</strong></p>
+                <p><strong>&gt; Prise du RDV par le transporteur exclusivement par email à :</strong></p>
+                <p><strong>reception@cadiffusion.com/cc : achats@cadiffusion.com</strong></p>
+                <p><strong>&gt; Bons de livraisons à joindre impérativement à la demande</strong></p>
+                <p><strong>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;Sans ces conditions, aucun RDV ne pourra être pris.</strong></p>
+                <p><strong>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;——————————————————</strong></p>
+                <p><strong>Please pay attention to the following instructions before delivery :</strong></p>
+                <p><strong>&gt; Appointment booking only by the carrier by email to :</strong></p>
+                <p><strong>reception@cadiffusion.com/cc : achats@cadiffusion.com</strong></p>
+                <p><strong>&gt; Delivery notes must be attached to the request.</strong></p>
+                <p><strong>&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;No appointment scheduled without these conditions.</strong></p>
+            </div>
+        </xpath>
+
+        <!-- Suffixe (DD/MM/YYYY) sur l'entête "Date prévue" ; en noir
+             non gras comme en prod (le th est en couleur secondaire) -->
+        <xpath expr="//th[@name='th_expected_date']/strong" position="after">
+            <span style="color: black; font-weight: 400;"> (DD/MM/YYYY)</span>
+        </xpath>
+
+        <!-- Libellés v15 -->
+        <xpath expr="//th[@name='th_expected_date']/strong" position="replace">
+            <strong>Date prévue</strong>
+        </xpath>
+        <xpath expr="//th[@name='th_quantity']/strong" position="replace">
+            <strong>QTÉ</strong>
+        </xpath>
+
+        <!-- Numéro de document en couleur primaire société (rendu v15) -->
+        <xpath expr="//t[@t-set='layout_document_title']/span" position="replace">
+            <span>Request for Quotation <span t-field="o.name" t-attf-style="color: {{ o.company_id.primary_color or 'black' }};"/></span>
+        </xpath>
+
+        <!-- Style boxed v15 : grille sombre, entêtes majuscules en couleur
+             secondaire société, dernière colonne (QTÉ) grisée — le CSS boxed
+             v19 ne le fournit plus (voir report_purchase_order.xml) -->
+        <xpath expr="//table[hasclass('table-borderless')]" position="attributes">
+            <attribute name="class">table table-sm</attribute>
+            <attribute name="style">border: 1px solid #495057; color: #495057;</attribute>
+        </xpath>
+        <xpath expr="//th[@name='th_description']" position="attributes">
+            <attribute name="t-attf-style">border: 1px solid #495057; border-bottom: 2px solid #495057; text-transform: uppercase; color: {{ o.company_id.secondary_color or 'black' }};</attribute>
+        </xpath>
+        <xpath expr="//th[@name='th_expected_date']" position="attributes">
+            <attribute name="t-attf-style">border: 1px solid #495057; border-bottom: 2px solid #495057; text-transform: uppercase; color: {{ o.company_id.secondary_color or 'black' }};</attribute>
+        </xpath>
+        <xpath expr="//th[@name='th_quantity']" position="attributes">
+            <attribute name="t-attf-style">border: 1px solid #495057; border-bottom: 2px solid #495057; text-transform: uppercase; color: {{ o.company_id.secondary_color or 'black' }};</attribute>
+        </xpath>
+        <xpath expr="//td[@id='product']" position="attributes">
+            <attribute name="style">border: 1px solid #495057;</attribute>
+        </xpath>
+        <xpath expr="//tbody//td[hasclass('text-center')]" position="attributes">
+            <attribute name="style">border: 1px solid #495057;</attribute>
+        </xpath>
+        <xpath expr="//tbody//td[hasclass('text-end')]" position="attributes">
+            <attribute name="style">border: 1px solid #495057; background-color: #e9ecef;</attribute>
+        </xpath>
+        <xpath expr="//td[@id='section']" position="attributes">
+            <attribute name="style">border: 1px solid #495057;</attribute>
+        </xpath>
+    </template>
+</odoo>

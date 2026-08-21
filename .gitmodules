@@ -1,3 +1,0 @@
-[submodule "cadiffusion"]
-	path = cadiffusion
-	url = git@gitlab.com:shineit/cadiffusion.git
