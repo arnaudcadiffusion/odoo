@@ -1,6 +1,11 @@
+import csv
+
 from lxml import etree
 
+from odoo.exceptions import ValidationError
+from odoo.modules.module import get_manifest
 from odoo.tests import TransactionCase, tagged
+from odoo.tools import file_open
 
 from odoo.addons.cadiffusion_base import (
     _APPLY,
@@ -15,10 +20,10 @@ from odoo.addons.cadiffusion_base import (
 @tagged('post_install', '-at_install')
 class TestPostBuildConformity(TransactionCase):
     """Post-conditions de ce que cadiffusion_base réaffirme à l'install et à
-    l'upgrade (post_init_hook + migrations/).
+    l'upgrade (post_init_hook, migrations/, data/reference_state.xml).
 
-    Ces réglages ne sont écrits qu'AU MOMENT de l'install ou de l'upgrade :
-    entre deux builds, plus rien ne relit l'état. Ces tests verrouillent le
+    Ces réglages ne sont écrits qu'AU MOMENT de l'install ou d'un ``-u`` du
+    module : entre deux builds, plus rien ne relit l'état. Ces tests verrouillent le
     code ; l'état réel d'une base de staging ou de production se contrôle avec
     ``data/check_post_build.py`` (odoo shell, lecture seule), qui rejoue les
     mêmes attentes.
@@ -58,6 +63,72 @@ class TestPostBuildConformity(TransactionCase):
             self.assertFalse(
                 differences[:10],
                 "%s : %s écart(s) avec la recette" % (name, len(differences)))
+
+    def test_reference_state_replayed_on_update(self):
+        """data/reference_state.xml rejoue l'instantané à chaque ``-u``, pas
+        seulement au saut de version : une vue Studio revenue active (base
+        restaurée, plateforme d'upgrade — build 36768993 du 21/08/2026) est
+        re-archivée sans migration ni post_init_hook.
+
+        La vue simulée est INVALIDE en v19 (attribut ``modifiers`` de Studio
+        v15) : depuis la 19, write() revalide l'arch à l'archivage et refuse —
+        c'est ce qui avait laissé quatre vues actives sur ce build. Le rejeu
+        doit passer outre (reference_state._archive_view).
+        """
+        with file_open('cadiffusion_base/data/reference_views.csv') as csvfile:
+            xmlid = next(row['_key'] for row in csv.DictReader(csvfile)
+                         if row['_key'].startswith('studio_customization.')
+                         and row['active'] == 'False')
+        # Une vue de recherche : c'est le type de trois des cinq vues du build,
+        # et l'un de ceux qu'Odoo valide par schéma RNG (search, list, graph,
+        # calendar, pivot, activity) — le formulaire, lui, n'y passe pas.
+        view = self.env['ir.ui.view'].create({
+            'name': 'Vue Studio v15 de test',
+            'model': 'res.partner',
+            'type': 'search',
+            'arch': '<search><field name="name"/></search>',
+        })
+        # Arch invalide posée en SQL, telle que la plateforme d'upgrade la
+        # livre — l'ORM refuserait de la créer. Flush d'abord : create() laisse
+        # arch_db en attente d'écriture, et ce flush écraserait l'UPDATE.
+        self.env.flush_all()
+        self.env.cr.execute("""
+            UPDATE ir_ui_view
+               SET arch_db = jsonb_build_object('en_US', %s)
+             WHERE id = %s
+        """, ('<search><field name="name" modifiers="{}"/></search>', view.id))
+        module, name = xmlid.split('.', 1)
+        data = self.env['ir.model.data'].search(
+            [('module', '=', module), ('name', '=', name)])
+        if data:
+            # Base restaurée : le xmlid existe déjà, on le pointe sur la vue
+            # simulée (annulé avec la transaction du test).
+            data.write({'res_id': view.id})
+        else:
+            self.env['ir.model.data'].create({
+                'module': module, 'name': name,
+                'model': 'ir.ui.view', 'res_id': view.id,
+            })
+        self.env.registry.clear_cache()
+        view.invalidate_recordset()
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            # Prémisse du contournement SQL : si Odoo cesse de revalider à
+            # l'archivage, _archive_view n'a plus de raison d'être.
+            view.write({'active': False})
+        view.invalidate_recordset()
+        self.assertTrue(view.active)
+
+        self.env['cadiffusion.reference.state'].apply_reference_state()
+
+        self.assertFalse(view.active, "%s non re-archivée par le rejeu" % xmlid)
+
+    def test_reference_state_runs_before_views(self):
+        """Le rejeu doit précéder nos vues : un xpath ne résout que si la vue
+        qu'il cible est active (migrations/19.0.1.0.21/pre-migrate.py). Le
+        fichier reste donc le PREMIER du manifest."""
+        self.assertEqual(
+            get_manifest('cadiffusion_base')['data'][0],
+            'data/reference_state.xml')
 
     def test_studio_views_archived(self):
         """Le contenu Studio est repris en XML : les deux jeux ne doivent pas

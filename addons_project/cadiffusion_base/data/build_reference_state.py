@@ -10,10 +10,11 @@ fonctionnalité — fait référence. Un CSV par entrée de ``_REFERENCE_SPECS``
 d'opération, réglages des sociétés, modules installés, paramètres système,
 actions, filtres.
 
-Ces instantanés sont rejoués à chaque install et à chaque upgrade par
-``_apply_reference_state`` (__init__.py) et servent de base de comparaison à
-``data/check_post_build.py`` sur les autres bases — remigration à blanc du
-staging, bascule de production.
+Ces instantanés sont rejoués à chaque install et à chaque ``-u`` du module
+par ``_apply_reference_state`` (reference_state.py, appelée par
+``data/reference_state.xml`` puis par le post_init_hook) et servent de base de
+comparaison à ``data/check_post_build.py`` sur les autres bases — remigration
+à blanc du staging, bascule de production.
 
 C'est ce qui rend le contrôle générique : AUCUNE liste tenue à la main. Une
 migration qui livre une vue, en archive une, réaffecte un rapport ou change un
