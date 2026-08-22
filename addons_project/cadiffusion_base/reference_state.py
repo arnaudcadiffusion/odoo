@@ -79,6 +79,22 @@ _MASKED_PARAM_HINTS = ('token', 'key', 'secret', 'password', 'uuid', 'dbuuid')
 _MASKED_VALUE_PATTERN = re.compile(r'https?://\S*/[0-9A-Za-z_-]{16,}')
 _MASKED = '<masqué>'
 
+# Paramètres propres à chaque base par nature — jamais comparés ni pris dans
+# l'instantané : ils diffèrent entre la recette, un staging remigré et la
+# production sans que rien n'ait dérivé, et resignaleraient six « écarts » à
+# chaque build (publisher_warranty.cloc y déverse en plus un JSON entier).
+_VOLATILE_PARAMS = (
+    'calendar_sms.last_sms_cron',
+    'database.create_date',
+    'database.expiration_date',
+    'database.expiration_reason',
+    'database.is_neutralized',
+    'mail.catchall.domain',
+    'publisher_warranty.cloc',
+    'upgrade.start.time',
+    'web.base.url',
+)
+
 # Pendant sa propre migration, le module mis à jour et ses dépendants sont en
 # 'to upgrade' / 'to install'. Sans cette normalisation, chaque build signalerait
 # un écart de configuration qui n'en est pas un.
@@ -120,7 +136,10 @@ def _repo_modules(env):
     root = os.path.dirname(os.path.dirname(get_module_path('cadiffusion_base')))
     modules = {'studio_customization'}
     for module in env['ir.module.module'].search([('state', '=', 'installed')]):
-        path = get_module_path(module.name)
+        # Sans avertissement : studio_customization est un pseudo-module que
+        # web_studio inscrit dans ir_module_module sans code sur disque, et
+        # get_module_path logguerait « manifest not found » à chaque rejeu.
+        path = get_module_path(module.name, display_warning=False)
         if path and os.path.realpath(path).startswith(os.path.realpath(root)):
             modules.add(module.name)
     return modules
@@ -145,6 +164,10 @@ def _record_key(record, key):
     if isinstance(key, tuple):
         return '|'.join(_reference_value(record[field]) for field in key)
     return _reference_value(record[key])
+
+
+def _is_volatile(model, identifier):
+    return model == 'ir.config_parameter' and identifier in _VOLATILE_PARAMS
 
 
 def _reference_snapshot(env, model, key, fields):
@@ -178,6 +201,8 @@ def _reference_snapshot(env, model, key, fields):
             # « installé en recette, absent ici ».
             if values['state'] != 'installed':
                 continue
+        if _is_volatile(model, identifier):
+            continue
         if model == 'ir.config_parameter' and (
                 any(hint in identifier.lower() for hint in _MASKED_PARAM_HINTS)
                 or any(_MASKED_VALUE_PATTERN.search(value)
@@ -197,8 +222,10 @@ def _reference_diff(env, spec):
     if model not in env:
         return [], [], []
     with file_open(_reference_path(name)) as csvfile:
+        # Le filtre vaut aussi pour un CSV antérieur à _VOLATILE_PARAMS.
         reference = {row['_key']: {field: row[field] for field in fields}
-                     for row in csv.DictReader(csvfile)}
+                     for row in csv.DictReader(csvfile)
+                     if not _is_volatile(model, row['_key'])}
     current = _reference_snapshot(env, model, key, fields)
     differences = []
     for identifier, expected in reference.items():

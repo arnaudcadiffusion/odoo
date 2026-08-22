@@ -13,8 +13,10 @@ from odoo.addons.cadiffusion_base import (
     _REFERENCE_SPECS,
     _configure_unece_exo_taxes,
     _reference_diff,
+    _reference_snapshot,
     _unece_categ_for_tax_name,
 )
+from odoo.addons.cadiffusion_base.reference_state import _VOLATILE_PARAMS
 
 
 @tagged('post_install', '-at_install')
@@ -121,6 +123,21 @@ class TestPostBuildConformity(TransactionCase):
         self.env['cadiffusion.reference.state'].apply_reference_state()
 
         self.assertFalse(view.active, "%s non re-archivée par le rejeu" % xmlid)
+
+    def test_volatile_params_ignored(self):
+        """Les paramètres propres à chaque base (URL, domaine catchall,
+        expiration, cloc…) ne sont ni pris dans l'instantané ni comparés : ils
+        resignaleraient des écarts à chaque build sans que rien n'ait dérivé."""
+        spec = next(s for s in _REFERENCE_SPECS if s[1] == 'ir.config_parameter')
+        name, model, key, fields, __ = spec
+        self.assertFalse(
+            set(_reference_snapshot(self.env, model, key, fields))
+            & set(_VOLATILE_PARAMS))
+        self.env['ir.config_parameter'].sudo().set_param(
+            'web.base.url', 'http://ailleurs.example')
+        differences, missing, __ = _reference_diff(self.env, spec)
+        self.assertNotIn('web.base.url', [d[0] for d in differences])
+        self.assertNotIn('web.base.url', missing)
 
     def test_reference_state_runs_before_views(self):
         """Le rejeu doit précéder nos vues : un xpath ne résout que si la vue
