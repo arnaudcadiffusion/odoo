@@ -10,3 +10,4 @@ from . import res_partner
 from . import sale_order
 from . import stock
 from . import tender_order
+from . import reference_state

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Rejeu de l'instantané de référence (data/reference_*.csv) à CHAQUE install et
+à CHAQUE mise à jour du module — pas seulement au saut de version.
+
+Pourquoi ici et pas seulement dans migrations/ : un script de migration ne
+tourne que si la version du manifest augmente, et le post_init_hook qu'à
+l'install. Or Odoo.sh met le module à jour (-u) dès qu'un de ses fichiers
+change, sans que la version bouge, et une base restaurée peut déjà porter la
+dernière version : plus rien ne rejoue l'instantané. C'est ce qui s'est vu sur
+le build 36768993 du 21/08/2026 : les vues Studio étaient encore actives, et
+cinq d'entre elles — invalides en v19 (attribut « modifiers » de Studio v15,
+« quick_add » renommé « quick_create » sur le calendrier) — remontaient en
+« invalid custom view(s) » en fin de chargement. Odoo ne valide que les vues
+custom ACTIVES : archivées, elles sortent du radar, comme prévu.
+
+Un <function> hors noupdate s'exécute à chaque chargement des données, en
+install comme en update. Ce fichier est le PREMIER du manifest : l'état des
+vues doit être aligné avant nos propres vues, dont un xpath peut cibler un
+champ apporté par la vue d'un autre module (voir
+migrations/19.0.1.0.21/pre-migrate.py). Le post_init_hook rejoue encore
+l'instantané en fin d'install, en dernier mot, après ses corrections SQL.
+
+Reste hors de portée : un build où le module n'est pas mis à jour du tout.
+data/check_post_build.py (odoo shell, lecture seule) contrôle alors l'état.
+-->
+<odoo>
+    <function model="cadiffusion.reference.state" name="apply_reference_state"/>
+</odoo>
