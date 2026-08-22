@@ -1,6 +1,6 @@
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.21',
+    'version': '19.0.1.0.22',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -33,6 +33,9 @@
         'l10n_fr_facturx_chorus_pro',
     ],
     'data': [
+        # Rejeu de l'instantané de référence AVANT tout le reste : l'état
+        # des vues doit être aligné avant le chargement de nos vues.
+        'data/reference_state.xml',
         'security/security.xml',
         'security/ir.model.access.csv',
         'data/fix_stale_data.xml',

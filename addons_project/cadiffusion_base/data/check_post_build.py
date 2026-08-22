@@ -5,14 +5,14 @@ Outil de développement — PAS chargé par Odoo (absent du manifest et des
 imports), au même titre que build_carton_uom_v15.py.
 
 Rejoue EN LECTURE SEULE les post-conditions de tout ce que cadiffusion_base
-réaffirme à l'install ou à l'upgrade (post_init_hook, migrations/, data/
-fix_stale_data.xml et core_view_activation.xml) et signale ce qui a dérivé.
-Aucune écriture, aucun commit.
+réaffirme à l'install ou à l'upgrade (post_init_hook, migrations/,
+data/reference_state.xml, data/fix_stale_data.xml et core_view_activation.xml)
+et signale ce qui a dérivé. Aucune écriture, aucun commit.
 
 Raison d'être : ces réaffirmations ne s'exécutent qu'AU MOMENT de l'install ou
-de l'upgrade du module. Entre deux builds, plus rien ne relit l'état — un
-réglage remis à zéro par la plateforme d'upgrade, un `-u` qui n'a pas eu lieu
-ou une migration passée sans effet ne se voient nulle part. Ce script rend la
+d'un `-u` du module. Entre deux builds, plus rien ne relit l'état — un réglage
+remis à zéro par la plateforme d'upgrade, un `-u` qui n'a pas eu lieu ou une
+migration passée sans effet ne se voient nulle part. Ce script rend la
 vérification reproductible au lieu de la laisser à l'œil humain.
 
 Usage (odoo shell, script sur stdin) :
