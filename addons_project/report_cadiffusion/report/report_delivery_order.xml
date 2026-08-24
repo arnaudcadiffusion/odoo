@@ -331,7 +331,8 @@
                             <span t-field="o.x_studio_transport"/>
                         </p>
                         <p style="margin-bottom:2px;"><strong>Poids :</strong><br/>
-                            <span t-field="o.weight" t-options='{"widget": "float", "digits": [6,2]}'/> Kg
+                            <span t-if="o.shipping_weight" t-field="o.shipping_weight" t-options='{"widget": "float", "digits": [6,2]}'/>
+                            <span t-else="" t-field="o.weight" t-options='{"widget": "float", "digits": [6,2]}'/> Kg
                         </p>
                     </div>
 
