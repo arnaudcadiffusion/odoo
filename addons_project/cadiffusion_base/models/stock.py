@@ -144,6 +144,7 @@ class StockPicking(models.Model):
             ('MANUEL', 'MANUEL'),
             ('ZAHIA', 'ZAHIA'),
             ('SABINE', 'SABINE'),
+            ('DAVID', 'DAVID'),
             ('FLORIAN', 'FLORIAN'),
             ('INTERIM', 'INTERIM'),
             ('PASCAL', 'PASCAL'),
