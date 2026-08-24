@@ -51,6 +51,7 @@ def post_init_hook(env):
     _repair_upgrade_data(env)
     _configure_unece_exo_taxes(env)
     _archive_post_upgrade_studio_views(env)
+    _delete_views_with_unknown_type(env)
     _apply_manual_settings_from_test_base(env)
     _apply_reference_state(env)
 
@@ -414,6 +415,48 @@ def _apply_manual_settings_from_test_base(env):
         _logger.info(
             "cadiffusion_base: confirmation par e-mail des mouvements de stock "
             "réactivée sur %s", company.display_name)
+
+
+# ---------------------------------------------------------------------------
+# Vues dont le type n'existe plus dans Odoo 19.
+#
+# La plateforme d'upgrade laisse passer deux vues Studio de type « dashboard »
+# (v15, web_dashboard) : le type a disparu de la sélection de ir.ui.view.type,
+# mais la valeur reste en base. Le nettoyage automatique d'Odoo — ondelete
+# « set null » sur les valeurs de sélection retirées — ne joue que pour le
+# module qui déclarait la valeur ; ici plus aucun module ne la déclare, donc
+# personne ne nettoie.
+#
+# Côté client, le champ « Type » de Paramètres → Technique → Vues cherche le
+# libellé de la valeur, ne le trouve pas et lit `undefined[1]` : la liste ne
+# s'affiche plus (« An error occured in the owl lifecycle », remonté en
+# production le 24/08/2026). Archiver ne suffit pas — la liste replante dès
+# qu'on coche « Archivé », et le formulaire de la vue aussi.
+#
+# La suppression est sans regret : aucun moteur de rendu ne connaît plus ce
+# type, et rien ne les référence (héritage, action, vue de recherche). Le
+# périmètre est DÉRIVÉ de la sélection courante du champ, pas listé : un type
+# retiré par une version ultérieure sera couvert sans que personne y pense.
+#
+# Idempotent : la recherche ne renvoie rien une fois le ménage fait.
+# ---------------------------------------------------------------------------
+def _delete_views_with_unknown_type(env):
+    View = env['ir.ui.view']
+    known_types = View._fields['type'].get_values(env)
+    views = View.with_context(
+        active_test=False,
+        # cascade sur les vues héritées, comme le fait la désinstallation d'un
+        # module : une vue fille d'un type mort ne survivrait à rien.
+        _force_unlink=True,
+    ).search([('type', 'not in', known_types)])
+    if not views:
+        return
+    _logger.info(
+        "cadiffusion_base: %s vue(s) d'un type inconnu en v19 supprimée(s) : %s",
+        len(views),
+        ', '.join('%s (%s, %s)' % (view.name, view.model, view.type)
+                  for view in views))
+    views.unlink()
 
 
 # ---------------------------------------------------------------------------
