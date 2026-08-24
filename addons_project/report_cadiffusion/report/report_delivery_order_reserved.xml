@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
-    <!-- Bon de livraison - Rupture : toutes les lignes de la demande, mais
+    <!-- Bon de livraison - Rupture : uniquement les lignes RÉSERVÉES (une
+         ligne non réservée ne sort que dans le tableau reliquat), quantité et
          COLIS = cartons entiers (arrondi supérieur) calculés depuis la quantité
-         RÉSERVÉE (une ligne non réservée sort sans colis) et Total Colis = somme
-         des colis affichés. Conditionnement : uniquement l'UDM d'emballage
-         du move (packaging_uom_id, héritée de la ligne de vente/achat = le
-         « Colis » du backoffice) ; si le move n'en porte pas (UDM pièce),
-         colonnes vides. -->
+         réservée, Total Colis = somme des colis affichés. Conditionnement :
+         uniquement l'UDM d'emballage du move (packaging_uom_id, héritée de la
+         ligne de vente/achat = le « Colis » du backoffice) ; si le move n'en
+         porte pas (UDM pièce), colonnes vides. -->
     <template id="report_delivery_document_reserved">
         <t t-call="web.html_container">
             <t t-call="web.external_layout">
@@ -117,7 +117,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <t t-foreach="o.move_ids.filtered(lambda m: m.product_uom_qty)" t-as="move">
+                            <t t-foreach="o.move_ids.filtered(lambda m: m.product_uom_qty and round(m.quantity, 6) > 0)" t-as="move">
                                 <tr t-if="move.note_text">
                                     <td t-att-colspan="5 if article_cmd_flag else 4" t-att-style="cad_border">
                                         <span t-field="move.note_text"/>
@@ -146,7 +146,7 @@
                                     </td>
                                     <td t-att-style="cad_border"><span t-out="carton_uom.name or ''"/></td>
                                     <td t-att-style="cad_border + ('' if article_cmd_flag else ' background-color: #e9ecef;')">
-                                        <span t-field="move.product_uom_qty"/>
+                                        <span t-field="move.quantity"/>
                                         <span t-field="move.product_uom"/>
                                     </td>
                                     <td t-if="article_cmd_flag" t-att-style="cad_border + ' background-color: #e9ecef;'">
@@ -331,7 +331,8 @@
                             <span t-field="o.x_studio_transport"/>
                         </p>
                         <p style="margin-bottom:2px;"><strong>Poids :</strong><br/>
-                            <span t-field="o.weight" t-options='{"widget": "float", "digits": [6,2]}'/> Kg
+                            <span t-if="o.shipping_weight" t-field="o.shipping_weight" t-options='{"widget": "float", "digits": [6,2]}'/>
+                            <span t-else="" t-field="o.weight" t-options='{"widget": "float", "digits": [6,2]}'/> Kg
                         </p>
                     </div>
 

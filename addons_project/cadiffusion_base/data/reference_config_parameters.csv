@@ -8,7 +8,6 @@ account_edi_ubl_cii.disable_pdf_in_xml,False
 account_online_synchronization.proxy_mode,production
 account_online_synchronization.request_timeout,60
 account_payment.enable_portal_payment,True
-account_peppol.edi.mode,demo
 analytic.project_plan,3
 barcode.max_time_between_keys_in_ms,<masqué>
 base.default_max_email_size,10
@@ -27,12 +26,10 @@ digest.default_digest_emails,True
 digest.default_digest_id,1
 enable_recaptcha,True
 hr_expense.use_mailgateway,True
-iap_vies.endpoint,https://vies.test.odoo.com
 ir_attachment.location,file
 mail.activity.gc.delete_overdue_years,3
 mail.default.from_filter,ca-diffusion.odoo.com
 mail.restrict.template.rendering,True
-origin.database.uuid,<masqué>
 product.product_pricelist_setting,advanced
 product.volume_in_cubic_feet,0
 product.weight_in_lbs,0

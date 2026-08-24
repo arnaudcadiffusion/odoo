@@ -139,6 +139,16 @@ class TestPostBuildConformity(TransactionCase):
         self.assertNotIn('web.base.url', [d[0] for d in differences])
         self.assertNotIn('web.base.url', missing)
 
+    def test_boolean_params_spellings_equivalent(self):
+        """« True » (res.config.settings) et « 1 » (scripts d'upgrade d'Odoo)
+        sont le même réglage pour get_param() : pas un écart."""
+        spec = next(s for s in _REFERENCE_SPECS if s[1] == 'ir.config_parameter')
+        self.env['ir.config_parameter'].sudo().set_param(
+            'mail.restrict.template.rendering', '1')
+        differences, __, __ = _reference_diff(self.env, spec)
+        self.assertNotIn('mail.restrict.template.rendering',
+                         [d[0] for d in differences])
+
     def test_reference_state_runs_before_views(self):
         """Le rejeu doit précéder nos vues : un xpath ne résout que si la vue
         qu'il cible est active (migrations/19.0.1.0.21/pre-migrate.py). Le

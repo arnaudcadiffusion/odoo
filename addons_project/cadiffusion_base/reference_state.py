@@ -93,6 +93,13 @@ _VOLATILE_PARAMS = (
     'publisher_warranty.cloc',
     'upgrade.start.time',
     'web.base.url',
+    # Posés par la neutralisation Odoo.sh des bases hors production
+    # (account_peppol/data/neutralize.sql, base_vat/data/neutralize.sql) et par
+    # la duplication : présents en recette, absents en production par
+    # construction — le build master du 22/08/2026 les signalait « absents ».
+    'account_peppol.edi.mode',
+    'iap_vies.endpoint',
+    'origin.database.uuid',
 )
 
 # Pendant sa propre migration, le module mis à jour et ses dépendants sont en
@@ -170,6 +177,19 @@ def _is_volatile(model, identifier):
     return model == 'ir.config_parameter' and identifier in _VOLATILE_PARAMS
 
 
+# Un même booléen s'écrit « True » par res.config.settings et « 1 » par les
+# scripts d'upgrade d'Odoo : mail.restrict.template.rendering ressortait en
+# écart à chaque build (True ≠ 1) alors que get_param() lit les deux pareil.
+# Appliquée aux deux côtés de la comparaison, la forme canonique ne peut
+# confondre qu'un « 1 » numérique avec un « True » — jamais écrit pour un
+# nombre.
+_BOOLEAN_FORMS = {'1': 'True', 'true': 'True', '0': 'False', 'false': 'False'}
+
+
+def _canonical_param_value(value):
+    return _BOOLEAN_FORMS.get(value, value)
+
+
 def _reference_snapshot(env, model, key, fields):
     """{clé: {champ: texte}} de la base courante, pour un spec donné."""
     records = env[model].with_context(active_test=False).search([])
@@ -208,6 +228,9 @@ def _reference_snapshot(env, model, key, fields):
                 or any(_MASKED_VALUE_PATTERN.search(value)
                        for value in values.values())):
             values = dict.fromkeys(values, _MASKED)
+        elif model == 'ir.config_parameter':
+            values = {field: _canonical_param_value(value)
+                      for field, value in values.items()}
         snapshot[identifier] = values
     return snapshot
 
@@ -226,6 +249,10 @@ def _reference_diff(env, spec):
         reference = {row['_key']: {field: row[field] for field in fields}
                      for row in csv.DictReader(csvfile)
                      if not _is_volatile(model, row['_key'])}
+    if model == 'ir.config_parameter':
+        reference = {identifier: {field: _canonical_param_value(value)
+                                  for field, value in values.items()}
+                     for identifier, values in reference.items()}
     current = _reference_snapshot(env, model, key, fields)
     differences = []
     for identifier, expected in reference.items():
