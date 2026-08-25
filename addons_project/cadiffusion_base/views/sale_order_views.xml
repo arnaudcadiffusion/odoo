@@ -64,7 +64,8 @@
                 <attribute name="readonly">qty_invoiced &gt; 0</attribute>
                 <attribute name="groups">base.group_erp_manager</attribute>
             </xpath>
-            <!-- After discount: add price_reduce_taxexcl (price_reduce removed in Odoo 19) -->
+            <!-- After discount: discounted unit price with 4 decimals
+                 (price_reduce_taxexcl is currency-rounded) -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='discount']" position="after">
                 <field name="price_reduce_taxexcl"/>
             </xpath>
