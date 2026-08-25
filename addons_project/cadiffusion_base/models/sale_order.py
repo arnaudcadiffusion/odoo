@@ -100,6 +100,21 @@ class SaleOrderLine(models.Model):
         compute='_compute_x_studio_marge',
         store=True,
     )
+    # « Remise hors taxes » affichée avec la précision « Product Price »
+    # (4 décimales) : le champ standard price_reduce_taxexcl est un Monetary
+    # (subtotal / qté) arrondi à la devise, ce qui écrase les prix
+    # sub-centime (0,0161 → 0,02).
+    price_reduce_taxexcl_precise = fields.Float(
+        string='Remise hors taxes',
+        compute='_compute_price_reduce_taxexcl_precise',
+        digits='Product Price',
+    )
+
+    @api.depends('price_unit', 'discount')
+    def _compute_price_reduce_taxexcl_precise(self):
+        for line in self:
+            line.price_reduce_taxexcl_precise = (
+                line.price_unit * (1.0 - (line.discount or 0.0) / 100.0))
     # Équivalents v19 des colonnes v15 « Colis » (product_packaging_id) et
     # « Nb Carton » (product_packaging_qty), supprimées avec product.packaging.
     # Le colis est choisi par l'utilisateur parmi les conditionnements du
