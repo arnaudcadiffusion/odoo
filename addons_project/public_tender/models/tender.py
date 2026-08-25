@@ -72,8 +72,12 @@ class Tender(models.Model):
     def _create_product_pricelist(self):
         item_obj = self.env['product.pricelist.item']
         if not self.tender_pricelist_id:
+            # Shared pricelist: since Odoo 19 the company defaults to the
+            # current one, which would clash with the company-less customer
+            # pricelists referencing it through base_pricelist_id.
             product_pricelist = self.env['product.pricelist'].create({
                 'name':'{}--{}'.format('Tender Pricelist', self.name),
+                'company_id': False,
                 'item_ids':
                 None
             })
@@ -191,6 +195,7 @@ class Tender(models.Model):
             if partner.property_product_pricelist.id == 1:
                 partner.property_product_pricelist = self.env['product.pricelist'].create({
                     'name': '{}---{}'.format('Customer Pricelist',partner.name),
+                    'company_id': False,
                     'item_ids': None
                 })
             partner_pricelists |= partner.property_product_pricelist
