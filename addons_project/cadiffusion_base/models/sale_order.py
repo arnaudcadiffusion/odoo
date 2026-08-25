@@ -100,6 +100,16 @@ class SaleOrderLine(models.Model):
         compute='_compute_x_studio_marge',
         store=True,
     )
+    # Same standard computation (price_subtotal / product_uom_qty), but
+    # stored with the "Product Price" precision (4 decimals) instead of the
+    # currency rounding of the standard Monetary field, which flattened
+    # sub-cent unit prices (0.0161 -> 0.02).
+    price_reduce_taxexcl = fields.Float(
+        compute='_compute_price_reduce_taxexcl',
+        digits='Product Price',
+        store=True,
+        precompute=True,
+    )
     # Équivalents v19 des colonnes v15 « Colis » (product_packaging_id) et
     # « Nb Carton » (product_packaging_qty), supprimées avec product.packaging.
     # Le colis est choisi par l'utilisateur parmi les conditionnements du
