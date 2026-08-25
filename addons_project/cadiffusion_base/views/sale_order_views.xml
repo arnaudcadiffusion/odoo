@@ -64,9 +64,10 @@
                 <attribute name="readonly">qty_invoiced &gt; 0</attribute>
                 <attribute name="groups">base.group_erp_manager</attribute>
             </xpath>
-            <!-- After discount: add price_reduce_taxexcl (price_reduce removed in Odoo 19) -->
+            <!-- After discount: discounted unit price with 4 decimals
+                 (price_reduce_taxexcl is currency-rounded) -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='discount']" position="after">
-                <field name="price_reduce_taxexcl"/>
+                <field name="price_reduce_taxexcl_precise"/>
             </xpath>
             <!-- After price_subtotal: add marge and date_souhaite -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='price_subtotal']" position="after">
@@ -211,7 +212,7 @@
                 <attribute name="column_invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='qty_to_invoice']" position="after">
-                <field name="price_reduce_taxexcl" string="Prix Unit"/>
+                <field name="price_reduce_taxexcl_precise" string="Prix Unit"/>
                 <field name="x_studio_marge" widget="percentage"/>
             </xpath>
             <xpath expr="//field[@name='product_uom_id']" position="attributes">
