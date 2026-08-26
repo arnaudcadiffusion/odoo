@@ -13,6 +13,22 @@ from .reference_state import (  # noqa: F401
     _reference_diff,
     _reference_snapshot,
 )
+# Outillage de renommage des champs Studio (x_studio_* → ca_diff_*). Rien ne
+# l'appelle : il attend un pre-migrate côté aller, un odoo shell côté retour.
+from .field_rename import (  # noqa: F401
+    _apply_field_rename,
+    _field_rename_status,
+    _load_field_rename_map,
+    _rollback_field_rename,
+)
+# Séquelles Studio / v15 laissées en base par la bascule : inventaire et
+# quarantaine réversible. Dormant lui aussi, appelé à la main.
+from .studio_debris import (  # noqa: F401
+    _quarantine_studio_debris,
+    _restore_studio_debris,
+    _studio_debris,
+    _studio_debris_status,
+)
 from . import models
 
 _logger = logging.getLogger(__name__)
