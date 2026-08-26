@@ -1,7 +1,7 @@
 import * as many2OneField from "@web/views/fields/many2one/many2one_field";
 import * as many2one from "@web/views/fields/many2one/many2one";
 import {FormController} from "@web/views/form/form_controller";
-import {Many2One} from "@web/views/fields/many2one/many2one";
+import {KanbanMany2One, Many2One} from "@web/views/fields/many2one/many2one";
 import {Many2OneReferenceField} from "@web/views/fields/many2one_reference/many2one_reference_field";
 import {Many2XAutocomplete} from "@web/views/fields/relational_utils";
 import {evaluateBooleanExpr} from "@web/core/py_js/py";
@@ -17,9 +17,19 @@ Many2XAutocomplete.props = {
     ...fieldColorProps,
 };
 
+const searchLimitProp = {searchLimit: {type: Number, optional: true}};
+
 Many2One.props = {
     ...Many2One.props,
-    searchLimit: {type: Number, optional: true},
+    ...searchLimitProp,
+};
+
+// KanbanMany2One copies Many2One.props at module evaluation, i.e. before the
+// line above runs, so it must be extended separately or OWL rejects the
+// `searchLimit` prop injected by computeM2OProps (kanban avatar widgets).
+KanbanMany2One.props = {
+    ...KanbanMany2One.props,
+    ...searchLimitProp,
 };
 
 function evaluateSystemParameterDefaultTrue(option) {
