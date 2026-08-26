@@ -115,6 +115,19 @@ TRANSPORT_BATCH = (
     'x_studio_impression_mo',
 )
 
+# Les six champs de tender.order déclarés par public_tender. Ce module se
+# charge AVANT cadiffusion_base (qui en dépend) : ces champs doivent être
+# renommés par un pre-migrate de public_tender, sinon son _auto_init crée des
+# colonnes ca_diff_* vides avant que le script de cadiffusion_base ne passe.
+TENDER_BATCH = (
+    'x_studio_dbut_de_march',
+    'x_studio_coordinateur',
+    'x_studio_contact',
+    'x_studio_tlphone',
+    'x_studio_email',
+    'x_studio_notes_march',
+)
+
 _MAP_FILE = 'cadiffusion_base/data/field_rename_map.csv'
 
 # ``data/rename_source_fields.py`` s'exécute hors conteneur, sans Odoo dans le

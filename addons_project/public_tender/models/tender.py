@@ -49,12 +49,12 @@ class Tender(models.Model):
         copy=False)
 
     # Champs Studio (migrés depuis la customisation Studio v15)
-    x_studio_dbut_de_march = fields.Date(string='Début de Marché')
-    x_studio_coordinateur = fields.Char(string='Coordinateur')
-    x_studio_contact = fields.Char(string='Contact')
-    x_studio_tlphone = fields.Char(string='Téléphone')
-    x_studio_email = fields.Char(string='Email')
-    x_studio_notes_march = fields.Text(string='Notes Marché')
+    ca_diff_dbut_de_march = fields.Date(string='Début de Marché')
+    ca_diff_coordinateur = fields.Char(string='Coordinateur')
+    ca_diff_contact = fields.Char(string='Contact')
+    ca_diff_tlphone = fields.Char(string='Téléphone')
+    ca_diff_email = fields.Char(string='Email')
+    ca_diff_notes_march = fields.Text(string='Notes Marché')
 
     _name_uniq = models.Constraint('unique(name)', "Name Must Be Unique")
 

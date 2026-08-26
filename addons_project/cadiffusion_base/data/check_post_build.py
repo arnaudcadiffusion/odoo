@@ -138,19 +138,19 @@ def _check_filters(env):
 
 
 def _check_article_cmd(env):
-    """.7 — copie x_studio_article_cmd → article_cmd."""
+    """.7 — copie ca_diff_article_cmd → article_cmd."""
     if not scalar(env, """
         SELECT 1 FROM information_schema.columns
          WHERE table_name = 'sale_order_line'
-           AND column_name = 'x_studio_article_cmd'
+           AND column_name = 'ca_diff_article_cmd'
     """):
-        return add('OK', "reprise de x_studio_article_cmd", 'sans objet',
+        return add('OK', "reprise de ca_diff_article_cmd", 'sans objet',
                    'colonne Studio absente')
     check("lignes de vente sans article_cmd repris", 0, scalar(env, """
         SELECT count(*) FROM sale_order_line
          WHERE (article_cmd IS NULL OR article_cmd = '')
-           AND x_studio_article_cmd IS NOT NULL
-           AND x_studio_article_cmd != ''
+           AND ca_diff_article_cmd IS NOT NULL
+           AND ca_diff_article_cmd != ''
     """))
 
 

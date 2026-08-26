@@ -13,7 +13,7 @@
             </xpath>
             <!-- Conditionnement in left column after bom_div (bom_id wrapped in div in Odoo 19) -->
             <xpath expr="//div[@name='bom_div']" position="after">
-                <field name="x_studio_conditionnement" string="Conditionnement" readonly="1"/>
+                <field name="ca_diff_conditionnement" string="Conditionnement" readonly="1"/>
             </xpath>
             <!-- company_id, Preparateur_Kit and Impression MO in right column after user_id -->
             <xpath expr="//group[@name='group_extra_info']/field[@name='user_id']" position="after">
@@ -27,7 +27,7 @@
             </xpath>
             <!-- Notes in miscellaneous page -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='miscellaneous']/group[1]/group[2]/field[@name='origin']" position="after">
-                <field name="x_studio_notes" string="Notes"/>
+                <field name="ca_diff_notes" string="Notes"/>
             </xpath>
         </field>
     </record>

@@ -63,7 +63,7 @@
                     <div style="margin-top:8px; margin-bottom:8px; overflow:hidden;">
                         <div style="float:left; width:20%;">
                             <strong>N# Partenaire:</strong><br/>
-                            <span t-field="o.x_studio_n_partenaire"/>
+                            <span t-field="o.ca_diff_n_partenaire"/>
                         </div>
                         <div style="float:left; width:20%;">
                             <strong>Date commande:</strong><br/>
@@ -75,7 +75,7 @@
                         </div>
                         <div style="float:left; width:20%;">
                             <strong>Votre reference:</strong><br/>
-                            <span t-field="o.x_studio_n_commande"/>
+                            <span t-field="o.ca_diff_n_commande"/>
                         </div>
                         <div style="float:left; width:20%;">
                             <strong>Bon Commande:</strong><br/>
@@ -322,10 +322,10 @@
                     <!-- Pied : Instruction Livraison, Notes Internes, Transport, Poids -->
                     <div class="mt-3">
                         <p style="margin-bottom:2px;"><strong>Instruction Livraison :</strong><br/>
-                            <span t-field="o.x_studio_livraison"/>
+                            <span t-field="o.ca_diff_livraison"/>
                         </p>
                         <p style="margin-bottom:2px;"><strong>Notes Internes :</strong><br/>
-                            <span t-field="o.x_studio_notes_internes"/>
+                            <span t-field="o.ca_diff_notes_internes"/>
                         </p>
                         <p style="margin-bottom:2px;"><strong>Transport :</strong><br/>
                             <span t-field="o.ca_diff_transport"/>
