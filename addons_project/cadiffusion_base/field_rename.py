@@ -90,6 +90,31 @@ NEW_PREFIX = 'ca_diff_'
 
 JOURNAL_TABLE = 'cadiffusion_field_rename'
 
+# Le renommage se fait par lots plutôt qu'en une fois : un lot se relit, se
+# vérifie et se défait ; 129 champs d'un coup, non. Chaque fonction accepte un
+# ``only`` — un ensemble d'anciens noms — qui restreint aussi bien la réécriture
+# des sources que celle de la base. Sans ``only``, tout le CSV est traité.
+#
+# Premier lot : les champs de transport et de préparation des BL et des OF,
+# ceux qui viennent de recevoir copy=False (task#17998). Ils forment un groupe
+# fonctionnel cohérent et ne sont cités par aucun script de migrations/.
+TRANSPORT_BATCH = (
+    'x_studio_transport',
+    'x_studio_nb_palette',
+    'x_studio_nb_palette_euro',
+    'x_studio_premium_xpo',
+    'x_studio_bl_groupe',
+    'x_studio_id_bl_groupe',
+    'x_studio_nb_bl_groupe',
+    'x_studio_dpd_nb_colis',
+    'x_studio_cout_transport',
+    'x_studio_erreur_preparation',
+    'x_studio_preparateur_kit',
+    'x_studio_prparateur',
+    'x_studio_impression_bl',
+    'x_studio_impression_mo',
+)
+
 _MAP_FILE = 'cadiffusion_base/data/field_rename_map.csv'
 
 # ``data/rename_source_fields.py`` s'exécute hors conteneur, sans Odoo dans le
@@ -111,14 +136,26 @@ def _open_map():
     return open(path, encoding='utf-8')
 
 
-def _load_field_rename_map():
-    """[(model, old_name, new_name, ttype), ...] — l'ordre du CSV fait foi."""
+def _load_field_rename_map(only=None):
+    """[(model, old_name, new_name, ttype), ...] — l'ordre du CSV fait foi.
+
+    ``only`` restreint aux anciens noms donnés (voir TRANSPORT_BATCH). Un nom
+    inconnu du CSV est une erreur : il ne serait silencieusement pas renommé.
+    """
     with _open_map() as handle:
-        return [(row['model'], row['old_name'], row['new_name'], row['ttype'])
-                for row in csv.DictReader(handle)]
+        entries = [(row['model'], row['old_name'], row['new_name'], row['ttype'])
+                   for row in csv.DictReader(handle)]
+    if only is None:
+        return entries
+    only = set(only)
+    unknown = only - {old for _model, old, _new, _ttype in entries}
+    if unknown:
+        raise ValueError('absents de la table de correspondance : %s'
+                         % sorted(unknown))
+    return [entry for entry in entries if entry[1] in only]
 
 
-def _name_pairs(reverse=False):
+def _name_pairs(reverse=False, only=None):
     """Noms distincts à substituer dans du texte, sans le modèle.
 
     Un même nom peut vivre sur plusieurs modèles (``x_studio_etiquettes_clients``
@@ -127,7 +164,7 @@ def _name_pairs(reverse=False):
     domaine, et la correspondance est la même partout.
     """
     seen = {}
-    for _model, old, new, _ttype in _load_field_rename_map():
+    for _model, old, new, _ttype in _load_field_rename_map(only):
         seen[new if reverse else old] = old if reverse else new
     # Les plus longs d'abord : une alternation regex est « leftmost-first », et
     # sans ce tri ``x_studio_transport`` pourrait être essayé avant
@@ -144,24 +181,29 @@ _CONTEXT_PREFIXES = ('searchpanel_default_', 'search_default_', 'default_')
 _TEXT_RE = {}
 
 
-def _text_regex(reverse=False):
-    if reverse not in _TEXT_RE:
-        pairs = _name_pairs(reverse)
-        _TEXT_RE[reverse] = (
+def _cache_key(reverse, only):
+    return (reverse, None if only is None else frozenset(only))
+
+
+def _text_regex(reverse=False, only=None):
+    key = _cache_key(reverse, only)
+    if key not in _TEXT_RE:
+        pairs = _name_pairs(reverse, only)
+        _TEXT_RE[key] = (
             re.compile(r'\b(%s)?(%s)\b'
                        % ('|'.join(_CONTEXT_PREFIXES),
                           '|'.join(re.escape(old) for old, _new in pairs))),
             dict(pairs),
         )
-    return _TEXT_RE[reverse]
+    return _TEXT_RE[key]
 
 
-def _rename_fields_in_text(text, reverse=False):
+def _rename_fields_in_text(text, reverse=False, only=None):
     """Substitue les noms de champs dans du texte quelconque (source, domaine,
     arch de vue, code d'action serveur), sur frontière de mot uniquement."""
     if not text:
         return text
-    pattern, mapping = _text_regex(reverse)
+    pattern, mapping = _text_regex(reverse, only)
     return pattern.sub(
         lambda match: (match.group(1) or '') + mapping[match.group(2)], text)
 
@@ -172,17 +214,29 @@ def _rename_fields_in_text(text, reverse=False):
 # champs — ils ne peuvent donc apparaître qu'en source, jamais en base. Les
 # renommer en même temps évite de laisser la moitié du préfixe derrière soi.
 _HELPER_PREFIXES = ('_compute', '_inverse', '_search', '_onchange', '_default')
-_HELPER_RE = {
-    False: re.compile(r'\b(%s)_%s(\w+)\b'
-                      % ('|'.join(_HELPER_PREFIXES), OLD_PREFIX)),
-    True: re.compile(r'\b(%s)_%s(\w+)\b'
-                     % ('|'.join(_HELPER_PREFIXES), NEW_PREFIX)),
-}
+_HELPER_RE = {}
 
 
-def _rename_helpers_in_text(text, reverse=False):
+def _helper_regex(reverse=False, only=None):
+    key = _cache_key(reverse, only)
+    if key not in _HELPER_RE:
+        source = NEW_PREFIX if reverse else OLD_PREFIX
+        if only is None:
+            tail = r'\w+'
+        else:
+            # Restreint aux suffixes du lot : sans ça, un lot renommerait les
+            # méthodes de champs qu'il ne touche pas.
+            tail = '|'.join(
+                re.escape(old[len(OLD_PREFIX):])
+                for _m, old, _n, _t in _load_field_rename_map(only))
+        _HELPER_RE[key] = re.compile(
+            r'\b(%s)_%s(%s)\b' % ('|'.join(_HELPER_PREFIXES), source, tail))
+    return _HELPER_RE[key]
+
+
+def _rename_helpers_in_text(text, reverse=False, only=None):
     target = OLD_PREFIX if reverse else NEW_PREFIX
-    return _HELPER_RE[reverse].sub(
+    return _helper_regex(reverse, only).sub(
         lambda match: '%s_%s%s' % (match.group(1), target, match.group(2)), text)
 
 
@@ -209,7 +263,7 @@ _SOURCE_SKIP_FILES = (
 )
 
 
-def _rewrite_sources(root, reverse=False, dry_run=False):
+def _rewrite_sources(root, reverse=False, dry_run=False, only=None):
     """Réécrit les sources sous ``root``. Retourne [(chemin, occurrences), ...]."""
     touched = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -225,15 +279,15 @@ def _rewrite_sources(root, reverse=False, dry_run=False):
             # normaliserait les fins de ligne et le diff deviendrait illisible.
             with open(path, encoding='utf-8', newline='') as handle:
                 before = handle.read()
-            after = _rename_fields_in_text(before, reverse)
+            after = _rename_fields_in_text(before, reverse, only)
             if filename.endswith('.py'):
-                after = _rename_helpers_in_text(after, reverse)
+                after = _rename_helpers_in_text(after, reverse, only)
             if after == before:
                 continue
-            pattern, _mapping = _text_regex(reverse)
+            pattern, _mapping = _text_regex(reverse, only)
             occurrences = len(pattern.findall(before))
             if filename.endswith('.py'):
-                occurrences += len(_HELPER_RE[reverse].findall(before))
+                occurrences += len(_helper_regex(reverse, only).findall(before))
             touched.append((path, occurrences))
             if not dry_run:
                 with open(path, 'w', encoding='utf-8', newline='') as handle:
@@ -289,7 +343,7 @@ def _model_table(cr, model):
     return table if _table_exists(cr, table) else None
 
 
-def _rewrite_column(cr, table, column, reverse, jsonb=False):
+def _rewrite_column(cr, table, column, reverse, jsonb=False, only=None):
     """Réécrit une colonne ligne à ligne. Retourne le nombre de lignes modifiées.
 
     Le filtre ``LIKE`` évite de relire des tables entières : seules les lignes
@@ -305,7 +359,7 @@ def _rewrite_column(cr, table, column, reverse, jsonb=False):
     rows = cr.fetchall()
     changed = 0
     for row_id, value in rows:
-        new_value = _rename_fields_in_text(value, reverse)
+        new_value = _rename_fields_in_text(value, reverse, only)
         if new_value == value:
             continue
         cast = '%s::jsonb' if jsonb else '%s'
@@ -315,7 +369,7 @@ def _rewrite_column(cr, table, column, reverse, jsonb=False):
     return changed
 
 
-def _rewrite_text_targets(cr, reverse=False):
+def _rewrite_text_targets(cr, reverse=False, only=None):
     """Passe textuelle globale. Retourne {"table.colonne": lignes modifiées}."""
     details = {}
     for table, columns, jsonb_columns in _TEXT_TARGETS:
@@ -325,7 +379,7 @@ def _rewrite_text_targets(cr, reverse=False):
             if not _column_exists(cr, table, column):
                 continue
             changed = _rewrite_column(cr, table, column, reverse,
-                                      jsonb=column in jsonb_columns)
+                                      jsonb=column in jsonb_columns, only=only)
             if changed:
                 details['%s.%s' % (table, column)] = changed
     return details
@@ -441,6 +495,12 @@ def _delegated_targets(cr, entries):
     champs fantômes — visibles dans les listes de champs de l'interface —
     jusqu'à ce que l'ORM finisse par les nettoyer. On les renomme avec les
     autres, et le journal les rend réversibles de la même façon.
+
+    Ça ne déborde pas du périmètre « champs déclarés dans les sources » : un
+    miroir n'est pas un champ de plus, c'est le même champ vu depuis le modèle
+    enfant, et seuls les noms présents dans ``entries`` sont cherchés. Un champ
+    que la base porte sans qu'aucun code ne le déclare n'est jamais touché —
+    c'est le domaine de ``studio_debris.py``.
     """
     known = {(model, old) for model, old, _new, _ttype in entries}
     targets = []
@@ -451,23 +511,23 @@ def _delegated_targets(cr, entries):
     return targets
 
 
-def _apply_field_rename(cr):
+def _apply_field_rename(cr, only=None):
     """Renomme x_studio_* en ca_diff_* en base et journalise le lot.
 
-    Idempotent à deux niveaux : le journal court-circuite un lot déjà appliqué,
-    et un champ déjà renommé est de toute façon absent de ``ir_model_fields``
-    sous son ancien nom, donc ignoré. Appelable depuis un ``pre-migrate.py``
-    (voir l'en-tête du module). Le retour arrière passe par
-    ``_rollback_field_rename`` — il n'y a volontairement qu'un seul chemin.
+    ``only`` restreint l'opération à un sous-ensemble d'anciens noms — voir
+    TRANSPORT_BATCH. Seuls les champs DÉCLARÉS dans les sources sont concernés :
+    la table de correspondance est produite à partir de ``addons_project``, rien
+    n'est renommé sur la foi de ce que porte la base.
+
+    Idempotent : un champ déjà renommé est absent de ``ir_model_fields`` sous
+    son ancien nom, donc ignoré, et un lot entièrement rejoué ne journalise
+    rien. Appelable depuis un ``pre-migrate.py`` (voir l'en-tête du module). Le
+    retour arrière passe par ``_rollback_field_rename`` — il n'y a
+    volontairement qu'un seul chemin.
     """
     _ensure_journal(cr)
-    applied = _pending_batch(cr)
-    if applied:
-        _logger.info('renommage déjà appliqué (lot %s) — rien à faire', applied)
-        return None
-
     batch = _next_batch(cr)
-    entries = _load_field_rename_map()
+    entries = _load_field_rename_map(only)
     targets = [(model, old, new) for model, old, new, _ttype in entries]
     targets += _delegated_targets(cr, entries)
     renamed = 0
@@ -478,7 +538,11 @@ def _apply_field_rename(cr):
         _journal(cr, batch=batch, direction='forward', scope='field', **entry)
         renamed += 1
 
-    details = _rewrite_text_targets(cr, reverse=False)
+    if not renamed:
+        _logger.info('renommage : aucun champ à renommer (déjà fait ?)')
+        return None
+
+    details = _rewrite_text_targets(cr, reverse=False, only=only)
     _journal(cr, batch=batch, direction='forward', scope='text',
              details=json.dumps(details))
     _logger.info('renommage du lot %s : %d champs, %s',
@@ -510,7 +574,10 @@ def _rollback_field_rename(cr, batch=None):
     for model, current, previous in entries:
         _rename_one_field(cr, model, current, previous)
 
-    details = _rewrite_text_targets(cr, reverse=True)
+    # La passe textuelle se limite aux champs que CE lot a renommés : un autre
+    # lot déjà appliqué ne doit pas être défait au passage.
+    details = _rewrite_text_targets(
+        cr, reverse=True, only={previous for _m, _c, previous in entries} or None)
     cr.execute('UPDATE %s SET reverted_on = now() WHERE batch = %%s' % JOURNAL_TABLE,
                (batch,))
     _journal(cr, batch=batch, direction='backward', scope='text',
@@ -518,6 +585,41 @@ def _rollback_field_rename(cr, batch=None):
     _logger.info('rollback du lot %s : %d champs, %s',
                  batch, len(entries), details or 'aucune référence textuelle')
     return batch
+
+
+def _repair_field_rename_after_fresh_install(cr):
+    """Rapatrie les données laissées en x_studio_* par une install fraîche.
+
+    Sur un rebuild Odoo.sh par la plateforme d'upgrade, le module est INSTALLÉ
+    neuf sur un dump de production : les scripts de migrations/ ne tournent
+    pas, et l'ORM a déjà créé les colonnes ca_diff_* vides à côté des
+    x_studio_* pleines. Ce n'est PAS un renommage (les colonnes neuves
+    existent déjà) : on recopie la donnée, colonne par colonne, uniquement là
+    où la cible est entièrement NULL — puis on laisse l'ancienne colonne en
+    place, inerte, comme trace ; studio_debris.py saura la recenser.
+
+    Appelé par le post_init_hook. Sans effet sur une base déjà migrée par le
+    pre-migrate (l'ancienne colonne n'existe plus) et sur une base pas encore
+    renommée (la nouvelle n'existe pas).
+    """
+    repaired = 0
+    for model, old, new, _ttype in _load_field_rename_map():
+        table = _model_table(cr, model)
+        if not (table and _column_exists(cr, table, old)
+                and _column_exists(cr, table, new)):
+            continue
+        cr.execute('SELECT count("%s") FROM "%s"' % (new, table))
+        if cr.fetchone()[0]:
+            continue  # la cible porte déjà des données : ne rien écraser
+        cr.execute('UPDATE "%s" SET "%s" = "%s" WHERE "%s" IS NOT NULL'
+                   % (table, new, old, old))
+        if cr.rowcount:
+            repaired += 1
+            _logger.warning(
+                "install fraîche : %s.%s recopié vers %s (%d lignes) — "
+                "l'ancienne colonne reste en place, à écarter via "
+                "studio_debris", table, old, new, cr.rowcount)
+    return repaired
 
 
 def _field_rename_status(cr):

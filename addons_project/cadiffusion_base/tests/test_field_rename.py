@@ -55,15 +55,19 @@ class TestFieldRename(TransactionCase):
 
     def test_map_is_bijective(self):
         """Deux anciens noms ne peuvent pas tomber sur le même nouveau nom, et
-        les nouveaux noms sont des identifiants Python valides."""
+        les nouveaux noms sont des identifiants Python valides.
+
+        Pas de contrainte sur la casse : Studio a produit des noms comme
+        ``x_studio_field_rHWR6``, que le renommage conserve tels quels.
+        """
         entries = _load_field_rename_map()
         self.assertTrue(entries, 'table de correspondance vide')
         forward = {}
         for model, old, new, _ttype in entries:
             self.assertTrue(old.startswith(OLD_PREFIX), old)
             self.assertTrue(new.startswith(NEW_PREFIX), new)
-            self.assertRegex(new, r'^[a-z][a-z0-9_]*[A-Za-z0-9]$|^[a-z][a-z0-9_]*$')
             self.assertTrue(new.isidentifier(), new)
+            self.assertTrue(new.isascii(), new)
             self.assertNotIn((model, new), forward,
                              'collision sur %s.%s' % (model, new))
             forward[(model, new)] = old

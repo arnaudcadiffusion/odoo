@@ -25,7 +25,10 @@ MODULE_DIR = os.path.dirname(HERE)
 ADDONS_DIR = os.path.dirname(MODULE_DIR)
 
 sys.path.insert(0, MODULE_DIR)
-from field_rename import _rewrite_sources  # noqa: E402
+from field_rename import TRANSPORT_BATCH, _rewrite_sources  # noqa: E402
+
+# Lots nommés : renommer par groupes fonctionnels plutôt qu'en une fois.
+BATCHES = {'transport': TRANSPORT_BATCH}
 
 
 def main():
@@ -36,17 +39,26 @@ def main():
                         help='affiche les fichiers concernés sans les écrire')
     parser.add_argument('--root', default=ADDONS_DIR,
                         help='racine à réécrire (défaut : %(default)s)')
+    parser.add_argument('--batch', choices=sorted(BATCHES),
+                        help='ne renommer que ce lot (défaut : tous les champs)')
+    parser.add_argument('--only',
+                        help='ne renommer que ces anciens noms, séparés par des virgules')
     options = parser.parse_args()
 
+    only = BATCHES[options.batch] if options.batch else None
+    if options.only:
+        only = tuple(name.strip() for name in options.only.split(',') if name.strip())
+
     touched = _rewrite_sources(options.root, reverse=options.rollback,
-                               dry_run=options.dry_run)
+                               dry_run=options.dry_run, only=only)
     total = sum(count for _path, count in touched)
     for path, count in touched:
         print('%4d  %s' % (count, os.path.relpath(path, options.root)))
-    print('%s%d occurrences dans %d fichiers (%s)'
+    print('%s%d occurrences dans %d fichiers (%s, %s)'
           % ('[dry-run] ' if options.dry_run else '',
              total, len(touched),
-             'ca_diff_ → x_studio_' if options.rollback else 'x_studio_ → ca_diff_'))
+             'ca_diff_ → x_studio_' if options.rollback else 'x_studio_ → ca_diff_',
+             'lot de %d champs' % len(only) if only else 'tous les champs'))
 
 
 if __name__ == '__main__':

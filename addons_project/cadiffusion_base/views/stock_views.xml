@@ -18,14 +18,14 @@
             </xpath>
             <!-- Transport info after location_id -->
             <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/field[@name='location_id']" position="after">
-                <field name="x_studio_transport" string="Transport"/>
+                <field name="ca_diff_transport" string="Transport"/>
                 <field name="weight" string="Poids"/>
-                <field name="x_studio_nb_palette" string="Nb Palette Total"/>
-                <field name="x_studio_nb_palette_euro" string="Dont Palette EURO"/>
+                <field name="ca_diff_nb_palette" string="Nb Palette Total"/>
+                <field name="ca_diff_nb_palette_euro" string="Dont Palette EURO"/>
                 <field name="x_studio_mode_livraison_xpo" string="Mode Livraison XPO"/>
-                <field name="x_studio_premium_xpo" string="Premium XPO"/>
-                <field name="x_studio_bl_groupe" string="BL groupe"/>
-                <field name="x_studio_dpd_nb_colis" string="Nb Etiquette DPD"/>
+                <field name="ca_diff_premium_xpo" string="Premium XPO"/>
+                <field name="ca_diff_bl_groupe" string="BL groupe"/>
+                <field name="ca_diff_dpd_nb_colis" string="Nb Etiquette DPD"/>
             </xpath>
             <!-- date_done: date widget -->
             <xpath expr="//field[@name='date_done']" position="attributes">
@@ -33,14 +33,14 @@
             </xpath>
             <!-- Préparateur after origin -->
             <xpath expr="//field[@name='origin']" position="after">
-                <field name="x_studio_prparateur" string="Préparateur"/>
+                <field name="ca_diff_prparateur" string="Préparateur"/>
             </xpath>
             <!-- Transport details after origin (client_order_ref/packaging_qty removed in Odoo 19) -->
             <xpath expr="//field[@name='origin']" position="after">
-                <field name="x_studio_cout_transport" string="Cout Transport"/>
-                <field name="x_studio_impression_bl" string="Impression BL"/>
-                <field name="x_studio_nb_bl_groupe" string="Nb BL groupe"/>
-                <field name="x_studio_id_bl_groupe" string="ID BL groupe"/>
+                <field name="ca_diff_cout_transport" string="Cout Transport"/>
+                <field name="ca_diff_impression_bl" string="Impression BL"/>
+                <field name="ca_diff_nb_bl_groupe" string="Nb BL groupe"/>
+                <field name="ca_diff_id_bl_groupe" string="ID BL groupe"/>
             </xpath>
             <!-- move_ids: hide product_uom column (Odoo 19: move_ids replaces move_ids_without_package) -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='operations']/field[@name='move_ids']/list[1]/field[@name='product_uom']" position="attributes">
@@ -51,7 +51,7 @@
                 <page string="SAV" name="studio_page_O1pVl">
                     <group name="studio_group_O1pVl">
                         <group name="studio_group_O1pVl_left">
-                            <field name="x_studio_erreur_preparation" string="Erreur Preparation"/>
+                            <field name="ca_diff_erreur_preparation" string="Erreur Preparation"/>
                             <field name="x_studio_erreur_saisie" string="Erreur Saisie"/>
                             <field name="x_studio_erreur_client" string="Erreur Client"/>
                             <field name="x_studio_autres" string="Autres"/>
@@ -93,7 +93,7 @@
                 <attribute name="widget">date</attribute>
             </xpath>
             <xpath expr="//field[@name='state']" position="after">
-                <field name="x_studio_transport"/>
+                <field name="ca_diff_transport"/>
                 <field name="weight"/>
                 <field name="create_date" widget="datetime"/>
                 <field name="x_studio_cre_par" string="Crée Par"/>

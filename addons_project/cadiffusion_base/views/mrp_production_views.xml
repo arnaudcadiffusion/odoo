@@ -18,8 +18,8 @@
             <!-- company_id, Preparateur_Kit and Impression MO in right column after user_id -->
             <xpath expr="//group[@name='group_extra_info']/field[@name='user_id']" position="after">
                 <field name="company_id" readonly="state != 'draft'" force_save="1" options="{'no_create': True}"/>
-                <field name="x_studio_preparateur_kit" string="Preparateur_Kit"/>
-                <field name="x_studio_impression_mo" string="Impression MO"/>
+                <field name="ca_diff_preparateur_kit" string="Preparateur_Kit"/>
+                <field name="ca_diff_impression_mo" string="Impression MO"/>
             </xpath>
             <!-- Hide company_id from Miscellaneous tab (shown in main form instead) -->
             <xpath expr="//page[@name='miscellaneous']//field[@name='company_id']" position="attributes">

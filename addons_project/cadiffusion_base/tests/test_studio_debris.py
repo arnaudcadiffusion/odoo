@@ -71,9 +71,14 @@ class TestStudioDebris(TransactionCase):
             self.assertNotIn(dead['table'], live)
 
     def test_nothing_happens_without_a_category(self):
-        """Sans catégorie explicite, la quarantaine est un no-op."""
+        """Sans catégorie explicite, la quarantaine est un no-op.
+
+        On compare l'état avant/après plutôt que d'exiger l'absence de
+        quarantaine : la base peut légitimement en porter une déjà appliquée.
+        """
+        before = _studio_debris_status(self.env.cr)
         self.assertIsNone(_quarantine_studio_debris(self.env.cr))
-        self.assertFalse(_studio_debris_status(self.env.cr)['quarantined'])
+        self.assertEqual(_studio_debris_status(self.env.cr), before)
 
     def test_ghost_quarantine_round_trip(self):
         """Écarter puis restaurer les champs fantômes rend la base à l'identique.
@@ -88,6 +93,9 @@ class TestStudioDebris(TransactionCase):
             self.skipTest('aucun champ fantôme sur cette base')
         cr.execute('SELECT count(*) FROM ir_model_fields')
         before = cr.fetchone()[0]
+        # La base peut déjà porter une quarantaine appliquée : on repart de son
+        # état, pas de l'hypothèse qu'il n'y en a aucune.
+        status_before = _studio_debris_status(cr)
 
         batch = _quarantine_studio_debris(cr, ghost_fields=True)
         self.assertTrue(batch)
@@ -102,7 +110,7 @@ class TestStudioDebris(TransactionCase):
             {(ghost['model'], ghost['name'])
              for ghost in _studio_debris(cr)['ghost_fields']},
             {(ghost['model'], ghost['name']) for ghost in ghosts})
-        self.assertFalse(_studio_debris_status(cr)['quarantined'])
+        self.assertEqual(_studio_debris_status(cr), status_before)
 
     def test_quarantine_name_refuses_truncation(self):
         """Un identifiant que PostgreSQL tronquerait est refusé, pas tronqué —
