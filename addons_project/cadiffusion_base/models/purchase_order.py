@@ -172,6 +172,14 @@ class PurchaseOrderLine(models.Model):
                 qty = pieces
             line.product_qty = qty
 
+    @api.onchange('nb_carton')
+    def _onchange_nb_carton(self):
+        """Same as sale.order.line: the web client's ``onchange`` never runs
+        inverse methods, and inside ``create()`` the precomputed amounts are
+        protected, so a new line entered in cartons kept a subtotal computed
+        on the default quantity."""
+        self._inverse_nb_carton()
+
     @staticmethod
     def _cadiffusion_format_qty(value):
         """Formatage compact d'un nombre : entier sans décimale, sinon 2 max."""
