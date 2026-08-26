@@ -17,6 +17,7 @@ from .reference_state import (  # noqa: F401
 # l'appelle : il attend un pre-migrate côté aller, un odoo shell côté retour.
 from .field_rename import (  # noqa: F401
     _apply_field_rename,
+    _assert_field_rename_integrity,
     _field_rename_status,
     _load_field_rename_map,
     _repair_field_rename_after_fresh_install,
@@ -59,6 +60,7 @@ def post_init_hook(env):
     # les données x_studio_* AVANT tout le reste — les réparations ci-dessous
     # sont écrites avec les nouveaux noms et doivent trouver les données.
     _repair_field_rename_after_fresh_install(cr)
+    _assert_field_rename_integrity(cr)
     _migrate_19_0_1_0_1(cr)
     _migrate_19_0_1_0_2(cr)
     _migrate_19_0_1_0_3(cr)
