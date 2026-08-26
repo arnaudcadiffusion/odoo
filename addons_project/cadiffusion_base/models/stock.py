@@ -81,17 +81,23 @@ class StockPicking(models.Model):
             ('GEFCO', 'GEFCO'),
         ],
         string='Transport',
+        copy=False,
     )
-    x_studio_nb_palette = fields.Integer(string='Nb Palette', default=0)
-    x_studio_nb_palette_euro = fields.Integer(string='Nb Palette EURO', default=0)
-    x_studio_dpd_nb_colis = fields.Integer(string='Nb Etiquette DPD', default=0)
-    x_studio_cout_transport = fields.Float(string='Cout Transport')
-    x_studio_nb_bl_groupe = fields.Integer(string='Nb BL groupe', default=0)
-    x_studio_bl_groupe = fields.Boolean(string='BL groupe', default=False)
-    x_studio_id_bl_groupe = fields.Text(string='ID BL groupe')
-    x_studio_impression_bl = fields.Boolean(string='Impression BL', default=False)
+    x_studio_nb_palette = fields.Integer(string='Nb Palette', default=0, copy=False)
+    x_studio_nb_palette_euro = fields.Integer(string='Nb Palette EURO', default=0, copy=False)
+    x_studio_dpd_nb_colis = fields.Integer(string='Nb Etiquette DPD', default=0, copy=False)
+    x_studio_cout_transport = fields.Float(string='Cout Transport', copy=False)
+    x_studio_nb_bl_groupe = fields.Integer(string='Nb BL groupe', default=0, copy=False)
+    x_studio_bl_groupe = fields.Boolean(string='BL groupe', default=False, copy=False)
+    x_studio_id_bl_groupe = fields.Text(string='ID BL groupe', copy=False)
+    x_studio_impression_bl = fields.Boolean(
+        string='Impression BL',
+        default=False,
+        copy=False,
+        tracking=True,
+    )
     x_studio_erreur_client = fields.Boolean(string='Erreur Client', default=False)
-    x_studio_erreur_preparation = fields.Boolean(string='Erreur Preparation', default=False)
+    x_studio_erreur_preparation = fields.Boolean(string='Erreur Preparation', default=False, copy=False)
     x_studio_erreur_saisie = fields.Boolean(string='Erreur Saisie', default=False)
     x_studio_autres = fields.Boolean(string='Autres', default=False)
     x_studio_notes_erreur = fields.Text(string='Notes Erreur')
@@ -151,8 +157,9 @@ class StockPicking(models.Model):
             ('ANCIEN SALARIE', 'ANCIEN SALARIE'),
         ],
         string='Préparateur',
+        copy=False,
     )
-    x_studio_premium_xpo = fields.Boolean(string='Premium XPO', default=False)
+    x_studio_premium_xpo = fields.Boolean(string='Premium XPO', default=False, copy=False)
 
 
 class StockMoveLine(models.Model):
