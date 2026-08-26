@@ -14,7 +14,7 @@
             </xpath>
             <!-- N# Partenaire before main group -->
             <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/div[1]" position="before">
-                <field name="x_studio_n_partenaire" string="N# Partenaire"/>
+                <field name="ca_diff_n_partenaire" string="N# Partenaire"/>
             </xpath>
             <!-- Transport info after location_id -->
             <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/field[@name='location_id']" position="after">
@@ -22,7 +22,7 @@
                 <field name="weight" string="Poids"/>
                 <field name="ca_diff_nb_palette" string="Nb Palette Total"/>
                 <field name="ca_diff_nb_palette_euro" string="Dont Palette EURO"/>
-                <field name="x_studio_mode_livraison_xpo" string="Mode Livraison XPO"/>
+                <field name="ca_diff_mode_livraison_xpo" string="Mode Livraison XPO"/>
                 <field name="ca_diff_premium_xpo" string="Premium XPO"/>
                 <field name="ca_diff_bl_groupe" string="BL groupe"/>
                 <field name="ca_diff_dpd_nb_colis" string="Nb Etiquette DPD"/>
@@ -52,12 +52,12 @@
                     <group name="studio_group_O1pVl">
                         <group name="studio_group_O1pVl_left">
                             <field name="ca_diff_erreur_preparation" string="Erreur Preparation"/>
-                            <field name="x_studio_erreur_saisie" string="Erreur Saisie"/>
-                            <field name="x_studio_erreur_client" string="Erreur Client"/>
-                            <field name="x_studio_autres" string="Autres"/>
+                            <field name="ca_diff_erreur_saisie" string="Erreur Saisie"/>
+                            <field name="ca_diff_erreur_client" string="Erreur Client"/>
+                            <field name="ca_diff_autres" string="Autres"/>
                         </group>
                         <group name="studio_group_O1pVl_right">
-                            <field name="x_studio_notes_erreur" string="Notes Erreur"/>
+                            <field name="ca_diff_notes_erreur" string="Notes Erreur"/>
                         </group>
                     </group>
                 </page>
@@ -66,8 +66,8 @@
             <xpath expr="//form[1]/sheet[1]/notebook[1]" position="after">
                 <group name="studio_group_i2ErM">
                     <group name="studio_group_i2ErM_left" string="Instructions Livraison">
-                        <field name="x_studio_livraison" string="Livraison" readonly="1"/>
-                        <field name="x_studio_notes_internes" string="Notes"/>
+                        <field name="ca_diff_livraison" string="Livraison" readonly="1"/>
+                        <field name="ca_diff_notes_internes" string="Notes"/>
                     </group>
                 </group>
             </xpath>
@@ -96,7 +96,7 @@
                 <field name="ca_diff_transport"/>
                 <field name="weight"/>
                 <field name="create_date" widget="datetime"/>
-                <field name="x_studio_cre_par" string="Crée Par"/>
+                <field name="ca_diff_cre_par" string="Crée Par"/>
             </xpath>
         </field>
     </record>
@@ -138,13 +138,13 @@
                 <attribute name="widget">date</attribute>
             </xpath>
             <xpath expr="//field[@name='date']" position="after">
-                <field name="x_studio_date_prvu" optional="show" widget="date"/>
+                <field name="ca_diff_date_prvu" optional="show" widget="date"/>
                 <field name="date_deadline" optional="show" widget="date"/>
             </xpath>
             <xpath expr="//field[@name='product_id']" position="after">
-                <field optional="show" name="x_studio_partenaire" string="Partenaire"/>
+                <field optional="show" name="ca_diff_partenaire" string="Partenaire"/>
                 <field name="price_unit"/>
-                <field optional="show" name="x_studio_prix_remise" string="Prix Remise"/>
+                <field optional="show" name="ca_diff_prix_remise" string="Prix Remise"/>
             </xpath>
             <xpath expr="//field[@name='product_uom_qty']" position="after">
                 <field name="quantity" optional="show" string="Qté Réservée"/>
@@ -202,8 +202,8 @@
                 <attribute name="widget">date</attribute>
             </xpath>
             <xpath expr="//field[@name='product_id']" position="after">
-                <field name="x_studio_ref_article" string="Ref Article"/>
-                <field name="x_studio_substitution" string="Substitution"/>
+                <field name="ca_diff_ref_article" string="Ref Article"/>
+                <field name="ca_diff_substitution" string="Substitution"/>
             </xpath>
             <xpath expr="//field[@name='location_dest_id']" position="after">
                 <field name="quantity_product_uom"/>

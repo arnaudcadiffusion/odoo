@@ -41,7 +41,7 @@
                 <div style="float:left; width:25%;">
                     <strong>Date availibilty reqested: (jj/mm/aaaa)</strong>
                     <br/>
-                    <span t-field="o.x_studio_date_prvue_initiale"/>
+                    <span t-field="o.ca_diff_date_prvue_initiale"/>
                 </div>
                 <div style="float:left; width:25%;">
                     <strong>Delivery date: (jj/mm/aaaa)</strong>
@@ -51,7 +51,7 @@
                 <div style="float:left; width:25%;">
                     <strong>Forwarder:</strong>
                     <br/>
-                    <span t-field="o.x_studio_transitaire"/>
+                    <span t-field="o.ca_diff_transitaire"/>
                 </div>
             </div>
 

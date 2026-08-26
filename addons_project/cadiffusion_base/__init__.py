@@ -54,6 +54,11 @@ def post_init_hook(env):
     (WHERE active = true, NOT ILIKE, IS NULL, etc.).
     """
     cr = env.cr
+    # En tout premier : sur une install fraîche d'un dump non renommé (rebuild
+    # Odoo.sh), l'ORM vient de créer les colonnes ca_diff_* vides. On y recopie
+    # les données x_studio_* AVANT tout le reste — les réparations ci-dessous
+    # sont écrites avec les nouveaux noms et doivent trouver les données.
+    _repair_field_rename_after_fresh_install(cr)
     _migrate_19_0_1_0_1(cr)
     _migrate_19_0_1_0_2(cr)
     _migrate_19_0_1_0_3(cr)
@@ -65,10 +70,6 @@ def post_init_hook(env):
     _migrate_19_0_1_0_9(cr)
     _migrate_19_0_1_0_10(cr)
     _apply_v15_carton_choices(env)
-    # Install fraîche sur un dump non renommé (rebuild Odoo.sh) : l'ORM vient
-    # de créer les colonnes ca_diff_* vides, les données sont restées dans les
-    # x_studio_*. Recopie sans renommage ; no-op partout ailleurs.
-    _repair_field_rename_after_fresh_install(cr)
     _repair_upgrade_data(env)
     _configure_unece_exo_taxes(env)
     _archive_post_upgrade_studio_views(env)
@@ -622,26 +623,26 @@ def _migrate_19_0_1_0_6(cr):
 
 
 # ---------------------------------------------------------------------------
-# 19.0.1.0.7 — Copie x_studio_article_cmd → article_cmd
+# 19.0.1.0.7 — Copie ca_diff_article_cmd → article_cmd
 # ---------------------------------------------------------------------------
 def _migrate_19_0_1_0_7(cr):
-    # Le champ x_studio_article_cmd n'existe que si Studio l'a créé en v15/v16.
+    # Le champ ca_diff_article_cmd n'existe que si Studio l'a créé en v15/v16.
     # Sur une base fresh sans Studio, la colonne n'existe pas -> NOOP.
     cr.execute("""
         SELECT 1
         FROM information_schema.columns
         WHERE table_name = 'sale_order_line'
-          AND column_name = 'x_studio_article_cmd'
+          AND column_name = 'ca_diff_article_cmd'
     """)
     if not cr.fetchone():
         return
 
     cr.execute("""
         UPDATE sale_order_line
-        SET article_cmd = x_studio_article_cmd
+        SET article_cmd = ca_diff_article_cmd
         WHERE (article_cmd IS NULL OR article_cmd = '')
-          AND x_studio_article_cmd IS NOT NULL
-          AND x_studio_article_cmd != ''
+          AND ca_diff_article_cmd IS NOT NULL
+          AND ca_diff_article_cmd != ''
     """)
 
 
