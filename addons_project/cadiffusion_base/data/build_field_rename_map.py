@@ -14,6 +14,11 @@ de Studio (``x_studio_field_GzsJK`` → ``ca_diff_field_GzsJK``). Rien ici ne
 touche à la base ni aux sources : c'est le CSV produit qui fait autorité pour
 les deux opérations réversibles.
 
+Les deux préfixes sont reconnus, et le CSV liste toujours la paire complète.
+C'est ce qui rend le renommage praticable par lots : une fois un champ passé en
+``ca_diff_`` dans les sources, il reste décrit ici avec son ancien nom, donc le
+retour arrière et le contrôle de dérive continuent de fonctionner sur lui.
+
 Usage (depuis la racine du module) :
 
     python3 data/build_field_rename_map.py
@@ -27,6 +32,7 @@ import os
 
 OLD_PREFIX = 'x_studio_'
 NEW_PREFIX = 'ca_diff_'
+PREFIXES = (OLD_PREFIX, NEW_PREFIX)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODULE_DIR = os.path.dirname(HERE)
@@ -91,7 +97,7 @@ def collect():
     for path in sorted(_sources()):
         with open(path, encoding='utf-8') as handle:
             source = handle.read()
-        if OLD_PREFIX not in source:
+        if not any(prefix in source for prefix in PREFIXES):
             continue
         tree = ast.parse(source, filename=path)
         for node in ast.walk(tree):
@@ -107,15 +113,20 @@ def collect():
                 if not ttype:
                     continue
                 for target in stmt.targets:
-                    if (isinstance(target, ast.Name)
-                            and target.id.startswith(OLD_PREFIX)):
-                        rows.append({
-                            'model': model,
-                            'old_name': target.id,
-                            'new_name': NEW_PREFIX + target.id[len(OLD_PREFIX):],
-                            'ttype': ttype,
-                            'source': os.path.relpath(path, ADDONS_DIR),
-                        })
+                    if not isinstance(target, ast.Name):
+                        continue
+                    prefix = next(
+                        (p for p in PREFIXES if target.id.startswith(p)), None)
+                    if not prefix:
+                        continue
+                    suffix = target.id[len(prefix):]
+                    rows.append({
+                        'model': model,
+                        'old_name': OLD_PREFIX + suffix,
+                        'new_name': NEW_PREFIX + suffix,
+                        'ttype': ttype,
+                        'source': os.path.relpath(path, ADDONS_DIR),
+                    })
     # Un même champ peut être déclaré par deux modules — les six champs de
     # tender.order le sont à la fois par public_tender et par
     # cadiffusion_base/models/tender_order.py. Une seule ligne par (modèle,

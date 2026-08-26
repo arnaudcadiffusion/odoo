@@ -19,6 +19,7 @@ from .field_rename import (  # noqa: F401
     _apply_field_rename,
     _field_rename_status,
     _load_field_rename_map,
+    _repair_field_rename_after_fresh_install,
     _rollback_field_rename,
 )
 # Séquelles Studio / v15 laissées en base par la bascule : inventaire et
@@ -64,6 +65,10 @@ def post_init_hook(env):
     _migrate_19_0_1_0_9(cr)
     _migrate_19_0_1_0_10(cr)
     _apply_v15_carton_choices(env)
+    # Install fraîche sur un dump non renommé (rebuild Odoo.sh) : l'ORM vient
+    # de créer les colonnes ca_diff_* vides, les données sont restées dans les
+    # x_studio_*. Recopie sans renommage ; no-op partout ailleurs.
+    _repair_field_rename_after_fresh_install(cr)
     _repair_upgrade_data(env)
     _configure_unece_exo_taxes(env)
     _archive_post_upgrade_studio_views(env)
