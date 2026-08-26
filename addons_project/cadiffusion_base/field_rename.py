@@ -1,0 +1,533 @@
+"""Renommage réversible des champs Studio : ``x_studio_*`` → ``ca_diff_*``.
+
+Le préfixe ``x_studio_`` est un vestige : ces champs ne sont plus des champs
+Studio, ils sont déclarés en Python dans ``addons_project/``. Les renommer est
+purement cosmétique et touche 129 champs sur 18 modèles — donc autant de
+colonnes SQL, plus tout ce qui désigne un champ **par son nom** ailleurs qu'en
+Python : filtres favoris, exports Excel enregistrés, domaines d'actions,
+arch des vues, code des actions serveur, feuilles de calcul.
+
+D'où ce module : **une seule table de correspondance** (``data/field_rename_map.csv``,
+produite par ``data/build_field_rename_map.py``) rejouée dans les deux sens, et
+un **journal en base** (``cadiffusion_field_rename``) écrit pendant l'opération
+pour que le retour arrière inverse exactement ce qui a été fait — y compris
+après un renommage partiel ou interrompu.
+
+Rien ici n'est appelé automatiquement : ni le manifest, ni ``__init__.py``, ni
+un script de ``migrations/`` ne déclenche le renommage. Tant qu'aucune
+migration ne l'appelle, ce fichier est de l'outillage dormant.
+
+--------------------------------------------------------------------------
+Aller — dans cet ordre, jamais l'inverse
+--------------------------------------------------------------------------
+
+1. Sources (poste de dev, sur une branche dédiée) ::
+
+       python3 data/rename_source_fields.py            # x_studio_ → ca_diff_
+       git diff                                        # relecture
+       git commit
+
+2. Base, via un script de migration ``pre-migrate.py`` de la version qui
+   embarque le commit ci-dessus ::
+
+       from odoo.addons.cadiffusion_base import _apply_field_rename
+
+       def migrate(cr, version):
+           _apply_field_rename(cr)
+
+   Le pre-migrate est obligatoire : à l'``-u``, l'ORM voit des champs
+   ``ca_diff_*`` inconnus de la base et crée des colonnes VIDES à côté des
+   ``x_studio_*``, sans jamais recopier les données. Le renommage doit être
+   fait AVANT que le registre ne se recharge.
+
+--------------------------------------------------------------------------
+Retour — dans cet ordre, jamais l'inverse
+--------------------------------------------------------------------------
+
+1. Base d'abord, avec le code encore en ``ca_diff_*`` ::
+
+       odoo shell -d LA_BASE
+       >>> from odoo.addons.cadiffusion_base import _rollback_field_rename
+       >>> _rollback_field_rename(env.cr)
+       >>> env.cr.commit()
+
+2. Sources ensuite ::
+
+       python3 data/rename_source_fields.py --rollback
+       git revert <commit>     # ou, si le commit n'est pas encore poussé
+
+3. ``-u cadiffusion_base`` pour recharger le registre sur les anciens noms.
+
+Le rollback lit le journal, pas la table de correspondance : il ne défait que
+ce qui a réellement été appliqué, et il est sans effet (silencieux) si rien
+n'a été renommé. Il reste possible tant que la table de journal existe, donc
+indéfiniment — contrairement à une restauration de dump, il ne perd aucune
+donnée saisie depuis le renommage.
+
+--------------------------------------------------------------------------
+Ce que le renommage NE couvre pas
+--------------------------------------------------------------------------
+
+* Les intégrations extérieures qui appellent Odoo par XML-RPC / JSON-RPC avec
+  les noms techniques, et les modèles d'import Excel dont les en-têtes portent
+  ces noms. Rien en base ne les liste : à recenser à la main avant la bascule.
+* Les valeurs de suivi déjà écrites (``mail_tracking_value``) pointent le champ
+  par sa clé étrangère : elles suivent le renommage sans intervention.
+* Un champ resté ``state = 'manual'`` en base (relique Studio non reprise par
+  le code) est signalé et renommé, mais Odoo interdit à un champ manuel de ne
+  pas commencer par ``x_`` : le journal le marque pour que ce soit visible.
+"""
+import csv
+import json
+import logging
+import os
+import re
+
+_logger = logging.getLogger(__name__)
+
+OLD_PREFIX = 'x_studio_'
+NEW_PREFIX = 'ca_diff_'
+
+JOURNAL_TABLE = 'cadiffusion_field_rename'
+
+_MAP_FILE = 'cadiffusion_base/data/field_rename_map.csv'
+
+# ``data/rename_source_fields.py`` s'exécute hors conteneur, sans Odoo dans le
+# PYTHONPATH ; le repli relatif lui suffit puisqu'il ne touche qu'aux fichiers.
+try:
+    from odoo.tools import file_open
+except ImportError:  # pragma: no cover - hors Odoo
+    file_open = None
+
+
+# ---------------------------------------------------------------------------
+# Table de correspondance
+# ---------------------------------------------------------------------------
+def _open_map():
+    if file_open is not None:
+        return file_open(_MAP_FILE, 'r')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        'data', 'field_rename_map.csv')
+    return open(path, encoding='utf-8')
+
+
+def _load_field_rename_map():
+    """[(model, old_name, new_name, ttype), ...] — l'ordre du CSV fait foi."""
+    with _open_map() as handle:
+        return [(row['model'], row['old_name'], row['new_name'], row['ttype'])
+                for row in csv.DictReader(handle)]
+
+
+def _name_pairs(reverse=False):
+    """Noms distincts à substituer dans du texte, sans le modèle.
+
+    Un même nom peut vivre sur plusieurs modèles (``x_studio_etiquettes_clients``
+    est sur account.move, account.payment et account.bank.statement.line) : une
+    substitution textuelle ne sait de toute façon pas de quel modèle parle un
+    domaine, et la correspondance est la même partout.
+    """
+    seen = {}
+    for _model, old, new, _ttype in _load_field_rename_map():
+        seen[new if reverse else old] = old if reverse else new
+    # Les plus longs d'abord : une alternation regex est « leftmost-first », et
+    # sans ce tri ``x_studio_transport`` pourrait être essayé avant
+    # ``x_studio_transport_po``. (\b protège déjà, la ceinture est bon marché.)
+    return sorted(seen.items(), key=lambda pair: len(pair[0]), reverse=True)
+
+
+# Un contexte d'action ou de filtre colle le nom du champ derrière une clé :
+# ``{'search_default_x_studio_transport': 1}``. Sans ces préfixes, la frontière
+# de mot fait rater la substitution et le filtre par défaut tombe en silence.
+# Les plus longs d'abord — « search_default_ » contient « default_ ».
+_CONTEXT_PREFIXES = ('searchpanel_default_', 'search_default_', 'default_')
+
+_TEXT_RE = {}
+
+
+def _text_regex(reverse=False):
+    if reverse not in _TEXT_RE:
+        pairs = _name_pairs(reverse)
+        _TEXT_RE[reverse] = (
+            re.compile(r'\b(%s)?(%s)\b'
+                       % ('|'.join(_CONTEXT_PREFIXES),
+                          '|'.join(re.escape(old) for old, _new in pairs))),
+            dict(pairs),
+        )
+    return _TEXT_RE[reverse]
+
+
+def _rename_fields_in_text(text, reverse=False):
+    """Substitue les noms de champs dans du texte quelconque (source, domaine,
+    arch de vue, code d'action serveur), sur frontière de mot uniquement."""
+    if not text:
+        return text
+    pattern, mapping = _text_regex(reverse)
+    return pattern.sub(
+        lambda match: (match.group(1) or '') + mapping[match.group(2)], text)
+
+
+# Les méthodes qui portent le nom du champ : ``_compute_x_studio_marge``. La
+# frontière de mot les protège de la substitution des champs (le ``_`` qui
+# précède est un caractère de mot), et ce sont des noms Python, pas des noms de
+# champs — ils ne peuvent donc apparaître qu'en source, jamais en base. Les
+# renommer en même temps évite de laisser la moitié du préfixe derrière soi.
+_HELPER_PREFIXES = ('_compute', '_inverse', '_search', '_onchange', '_default')
+_HELPER_RE = {
+    False: re.compile(r'\b(%s)_%s(\w+)\b'
+                      % ('|'.join(_HELPER_PREFIXES), OLD_PREFIX)),
+    True: re.compile(r'\b(%s)_%s(\w+)\b'
+                     % ('|'.join(_HELPER_PREFIXES), NEW_PREFIX)),
+}
+
+
+def _rename_helpers_in_text(text, reverse=False):
+    target = OLD_PREFIX if reverse else NEW_PREFIX
+    return _HELPER_RE[reverse].sub(
+        lambda match: '%s_%s%s' % (match.group(1), target, match.group(2)), text)
+
+
+# ---------------------------------------------------------------------------
+# Côté sources
+# ---------------------------------------------------------------------------
+_SOURCE_SUFFIXES = ('.py', '.xml', '.js', '.csv')
+_SOURCE_SKIP_DIRS = ('__pycache__', '.git', 'node_modules')
+# Les fichiers de l'outillage lui-même : la table de correspondance est écrite
+# en anciens noms des deux côtés (la réécrire ferait perdre la clé du retour
+# arrière), et les trois autres ne citent des noms de champs que pour
+# documenter ou tester le renommage.
+_SOURCE_SKIP_FILES = (
+    'field_rename_map.csv',
+    'field_rename.py',
+    'build_field_rename_map.py',
+    'test_field_rename.py',
+    # studio_debris.py et ses satellites citent les séquelles laissées en base
+    # par la bascule v15 : ces objets-là ne sont jamais renommés, leur nom dans
+    # la documentation doit rester celui qu'ils portent en base.
+    'studio_debris.py',
+    'check_studio_debris.py',
+    'test_studio_debris.py',
+)
+
+
+def _rewrite_sources(root, reverse=False, dry_run=False):
+    """Réécrit les sources sous ``root``. Retourne [(chemin, occurrences), ...]."""
+    touched = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [name for name in dirnames if name not in _SOURCE_SKIP_DIRS]
+        for filename in sorted(filenames):
+            if not filename.endswith(_SOURCE_SUFFIXES):
+                continue
+            if filename in _SOURCE_SKIP_FILES:
+                continue
+            path = os.path.join(dirpath, filename)
+            # newline='' des deux côtés : une partie du dépôt est en CRLF
+            # (public_tender, report_cadiffusion). Sans ça la réécriture
+            # normaliserait les fins de ligne et le diff deviendrait illisible.
+            with open(path, encoding='utf-8', newline='') as handle:
+                before = handle.read()
+            after = _rename_fields_in_text(before, reverse)
+            if filename.endswith('.py'):
+                after = _rename_helpers_in_text(after, reverse)
+            if after == before:
+                continue
+            pattern, _mapping = _text_regex(reverse)
+            occurrences = len(pattern.findall(before))
+            if filename.endswith('.py'):
+                occurrences += len(_HELPER_RE[reverse].findall(before))
+            touched.append((path, occurrences))
+            if not dry_run:
+                with open(path, 'w', encoding='utf-8', newline='') as handle:
+                    handle.write(after)
+    return touched
+
+
+# ---------------------------------------------------------------------------
+# Côté base — inventaire de ce qui désigne un champ par son nom
+# ---------------------------------------------------------------------------
+# (table, colonnes texte, colonnes jsonb). Chaque table et chaque colonne est
+# vérifiée dans information_schema avant d'être touchée : la liste couvre des
+# modules qui ne sont pas tous installés (documents, spreadsheet) et des
+# colonnes qui bougent d'une version d'Odoo à l'autre.
+_TEXT_TARGETS = (
+    ('ir_filters', ('domain', 'context', 'sort'), ()),
+    ('ir_exports_line', ('name',), ()),
+    ('ir_ui_view', (), ('arch_db',)),
+    ('ir_ui_view_custom', ('arch',), ()),
+    ('ir_act_window', ('domain', 'context'), ()),
+    ('ir_act_server', ('code', 'value', 'update_path'), ()),
+    ('ir_server_object_lines', ('value',), ()),
+    ('ir_rule', ('domain_force',), ()),
+    ('ir_model_fields', ('related', 'depends', 'compute', 'domain'), ()),
+    ('base_automation', ('filter_domain', 'filter_pre_domain'), ()),
+    ('mail_activity_plan_template', ('note',), ()),
+    ('documents_document', ('spreadsheet_data',), ()),
+    ('spreadsheet_dashboard', ('spreadsheet_data',), ()),
+)
+
+
+def _table_exists(cr, table):
+    cr.execute("SELECT 1 FROM information_schema.tables WHERE table_name = %s",
+               (table,))
+    return bool(cr.fetchone())
+
+
+def _column_exists(cr, table, column):
+    cr.execute("""SELECT 1 FROM information_schema.columns
+                   WHERE table_name = %s AND column_name = %s""", (table, column))
+    return bool(cr.fetchone())
+
+
+def _model_table(cr, model):
+    """Table SQL d'un modèle, lue en base plutôt que déduite du nom.
+
+    Le renommage tourne en pre-migrate, avant que le registre ne soit à jour :
+    on ne peut pas passer par ``env[model]._table``. ``ir_model`` ne stocke pas
+    la table, mais la convention Odoo (points → underscores) est fiable pour
+    les 18 modèles concernés ; on vérifie tout de même son existence.
+    """
+    table = model.replace('.', '_')
+    return table if _table_exists(cr, table) else None
+
+
+def _rewrite_column(cr, table, column, reverse, jsonb=False):
+    """Réécrit une colonne ligne à ligne. Retourne le nombre de lignes modifiées.
+
+    Le filtre ``LIKE`` évite de relire des tables entières : seules les lignes
+    qui portent réellement un des deux préfixes sont chargées.
+    """
+    # strpos plutôt que LIKE : dans un motif LIKE, « _ » est un joker, et
+    # '%x_studio_%' ramènerait bien plus de lignes que voulu.
+    needle = NEW_PREFIX if reverse else OLD_PREFIX
+    expression = '%s::text' % column if jsonb else column
+    cr.execute(
+        'SELECT id, %s FROM %s WHERE strpos(%s, %%s) > 0'
+        % (expression, table, expression), (needle,))
+    rows = cr.fetchall()
+    changed = 0
+    for row_id, value in rows:
+        new_value = _rename_fields_in_text(value, reverse)
+        if new_value == value:
+            continue
+        cast = '%s::jsonb' if jsonb else '%s'
+        cr.execute('UPDATE %s SET %s = %s WHERE id = %%s'
+                   % (table, column, cast), (new_value, row_id))
+        changed += 1
+    return changed
+
+
+def _rewrite_text_targets(cr, reverse=False):
+    """Passe textuelle globale. Retourne {"table.colonne": lignes modifiées}."""
+    details = {}
+    for table, columns, jsonb_columns in _TEXT_TARGETS:
+        if not _table_exists(cr, table):
+            continue
+        for column in columns + jsonb_columns:
+            if not _column_exists(cr, table, column):
+                continue
+            changed = _rewrite_column(cr, table, column, reverse,
+                                      jsonb=column in jsonb_columns)
+            if changed:
+                details['%s.%s' % (table, column)] = changed
+    return details
+
+
+# ---------------------------------------------------------------------------
+# Journal
+# ---------------------------------------------------------------------------
+def _ensure_journal(cr):
+    cr.execute("""
+        CREATE TABLE IF NOT EXISTS %s (
+            id serial PRIMARY KEY,
+            batch varchar NOT NULL,
+            direction varchar NOT NULL,
+            scope varchar NOT NULL,
+            model varchar,
+            old_name varchar,
+            new_name varchar,
+            table_name varchar,
+            column_renamed boolean DEFAULT false,
+            manual_field boolean DEFAULT false,
+            details jsonb,
+            applied_on timestamp NOT NULL DEFAULT now(),
+            reverted_on timestamp
+        )""" % JOURNAL_TABLE)
+
+
+def _next_batch(cr):
+    cr.execute('SELECT coalesce(max(batch::int), 0) + 1 FROM %s' % JOURNAL_TABLE)
+    return str(cr.fetchone()[0])
+
+
+def _journal(cr, **values):
+    columns = sorted(values)
+    cr.execute(
+        'INSERT INTO %s (%s) VALUES (%s)'
+        % (JOURNAL_TABLE, ', '.join(columns), ', '.join(['%s'] * len(columns))),
+        [values[column] for column in columns])
+
+
+def _pending_batch(cr):
+    """Dernier lot appliqué et pas encore défait, ou None."""
+    if not _table_exists(cr, JOURNAL_TABLE):
+        return None
+    cr.execute("""SELECT batch FROM %s
+                   WHERE direction = 'forward' AND reverted_on IS NULL
+                   ORDER BY id DESC LIMIT 1""" % JOURNAL_TABLE)
+    row = cr.fetchone()
+    return row[0] if row else None
+
+
+# ---------------------------------------------------------------------------
+# Renommage d'un champ
+# ---------------------------------------------------------------------------
+def _rename_one_field(cr, model, old, new):
+    """Renomme un champ en base : colonne, ir_model_fields, xmlid.
+
+    Retourne le dict à journaliser, ou None si le champ est introuvable — cas
+    normal quand un module n'est pas installé sur cette base.
+    """
+    cr.execute("""SELECT f.id, f.store, f.state
+                    FROM ir_model_fields f
+                   WHERE f.model = %s AND f.name = %s""", (model, old))
+    row = cr.fetchone()
+    if not row:
+        _logger.info('%s.%s absent de ir_model_fields — ignoré', model, old)
+        return None
+    field_id, stored, state = row
+
+    table = _model_table(cr, model)
+    column_renamed = False
+    if table and stored and _column_exists(cr, table, old):
+        if _column_exists(cr, table, new):
+            raise ValueError(
+                "%s.%s existe déjà : renommage impossible sans perte. "
+                "Vérifier qu'un -u n'a pas déjà créé la colonne vide." % (table, new))
+        cr.execute('ALTER TABLE "%s" RENAME COLUMN "%s" TO "%s"' % (table, old, new))
+        column_renamed = True
+
+    cr.execute('UPDATE ir_model_fields SET name = %s WHERE id = %s', (new, field_id))
+    # xmlid du champ : field_<table>__<nom>. Sans cette mise à jour, le prochain
+    # chargement du module recrée un enregistrement de champ en double.
+    if table:
+        cr.execute("""UPDATE ir_model_data SET name = %s
+                       WHERE model = 'ir.model.fields' AND res_id = %s""",
+                   ('field_%s__%s' % (table, new), field_id))
+
+    if state == 'manual':
+        _logger.warning(
+            "%s.%s est encore un champ manuel (Studio) : Odoo impose le préfixe "
+            "x_ aux champs manuels, l'édition par l'interface le refusera.",
+            model, old)
+    return {
+        'model': model,
+        'old_name': old,
+        'new_name': new,
+        'table_name': table,
+        'column_renamed': column_renamed,
+        'manual_field': state == 'manual',
+    }
+
+
+# ---------------------------------------------------------------------------
+# Points d'entrée
+# ---------------------------------------------------------------------------
+def _delegated_targets(cr, entries):
+    """Modèles qui portent un champ renommé sans figurer dans la table.
+
+    Les modèles délégués (``_inherits``) reçoivent de l'ORM un miroir de chaque
+    champ du parent : product.product mirrorise product.template, res.users
+    mirrorise res.partner. Ces lignes de ``ir_model_fields`` ne sont écrites
+    par aucun code, mais si on les laisse sous l'ancien nom la base garde des
+    champs fantômes — visibles dans les listes de champs de l'interface —
+    jusqu'à ce que l'ORM finisse par les nettoyer. On les renomme avec les
+    autres, et le journal les rend réversibles de la même façon.
+    """
+    known = {(model, old) for model, old, _new, _ttype in entries}
+    targets = []
+    for old, new in {old: new for _m, old, new, _t in entries}.items():
+        cr.execute('SELECT model FROM ir_model_fields WHERE name = %s', (old,))
+        targets += [(model, old, new) for (model,) in cr.fetchall()
+                    if (model, old) not in known]
+    return targets
+
+
+def _apply_field_rename(cr):
+    """Renomme x_studio_* en ca_diff_* en base et journalise le lot.
+
+    Idempotent à deux niveaux : le journal court-circuite un lot déjà appliqué,
+    et un champ déjà renommé est de toute façon absent de ``ir_model_fields``
+    sous son ancien nom, donc ignoré. Appelable depuis un ``pre-migrate.py``
+    (voir l'en-tête du module). Le retour arrière passe par
+    ``_rollback_field_rename`` — il n'y a volontairement qu'un seul chemin.
+    """
+    _ensure_journal(cr)
+    applied = _pending_batch(cr)
+    if applied:
+        _logger.info('renommage déjà appliqué (lot %s) — rien à faire', applied)
+        return None
+
+    batch = _next_batch(cr)
+    entries = _load_field_rename_map()
+    targets = [(model, old, new) for model, old, new, _ttype in entries]
+    targets += _delegated_targets(cr, entries)
+    renamed = 0
+    for model, old, new in targets:
+        entry = _rename_one_field(cr, model, old, new)
+        if entry is None:
+            continue
+        _journal(cr, batch=batch, direction='forward', scope='field', **entry)
+        renamed += 1
+
+    details = _rewrite_text_targets(cr, reverse=False)
+    _journal(cr, batch=batch, direction='forward', scope='text',
+             details=json.dumps(details))
+    _logger.info('renommage du lot %s : %d champs, %s',
+                 batch, renamed, details or 'aucune référence textuelle')
+    return batch
+
+
+def _rollback_field_rename(cr, batch=None):
+    """Défait un lot de renommage à partir du journal.
+
+    Sans ``batch``, défait le dernier lot appliqué et non encore défait. Ne
+    rejoue PAS la table de correspondance : seules les lignes réellement
+    journalisées sont inversées, ce qui rend le retour arrière correct même
+    après un renommage partiel ou interrompu.
+    """
+    if not _table_exists(cr, JOURNAL_TABLE):
+        _logger.info('aucun journal de renommage — rien à défaire')
+        return None
+    batch = batch or _pending_batch(cr)
+    if not batch:
+        _logger.info('aucun lot de renommage à défaire')
+        return None
+
+    cr.execute("""SELECT model, new_name, old_name FROM %s
+                   WHERE batch = %%s AND direction = 'forward' AND scope = 'field'
+                     AND reverted_on IS NULL
+                   ORDER BY id DESC""" % JOURNAL_TABLE, (batch,))
+    entries = cr.fetchall()
+    for model, current, previous in entries:
+        _rename_one_field(cr, model, current, previous)
+
+    details = _rewrite_text_targets(cr, reverse=True)
+    cr.execute('UPDATE %s SET reverted_on = now() WHERE batch = %%s' % JOURNAL_TABLE,
+               (batch,))
+    _journal(cr, batch=batch, direction='backward', scope='text',
+             details=json.dumps(details))
+    _logger.info('rollback du lot %s : %d champs, %s',
+                 batch, len(entries), details or 'aucune référence textuelle')
+    return batch
+
+
+def _field_rename_status(cr):
+    """État lisible du renommage, pour un contrôle en lecture seule."""
+    if not _table_exists(cr, JOURNAL_TABLE):
+        return {'applied': False, 'batch': None, 'fields': 0}
+    batch = _pending_batch(cr)
+    if not batch:
+        return {'applied': False, 'batch': None, 'fields': 0}
+    cr.execute("""SELECT count(*) FROM %s
+                   WHERE batch = %%s AND scope = 'field' AND reverted_on IS NULL"""
+               % JOURNAL_TABLE, (batch,))
+    return {'applied': True, 'batch': batch, 'fields': cr.fetchone()[0]}

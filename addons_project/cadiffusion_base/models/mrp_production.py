@@ -31,6 +31,8 @@ class MrpProduction(models.Model):
     x_studio_impression_mo = fields.Boolean(
         string='Impression MO',
         default=False,
+        copy=False,
+        tracking=True,
     )
     x_studio_notes = fields.Text(
         string='Notes',
@@ -44,6 +46,7 @@ class MrpProduction(models.Model):
             ('AUTRE', 'AUTRE'),
         ],
         string='Preparateur_Kit',
+        copy=False,
     )
 
     def action_open_project(self):
