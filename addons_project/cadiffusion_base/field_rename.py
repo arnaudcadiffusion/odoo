@@ -621,9 +621,17 @@ def _repair_field_rename_after_fresh_install(cr):
         if not (table and _column_exists(cr, table, old)
                 and _column_exists(cr, table, new)):
             continue
-        cr.execute('SELECT count("%s") FROM "%s"' % (new, table))
-        if cr.fetchone()[0]:
-            continue  # la cible porte déjà des données : ne rien écraser
+        cr.execute('SELECT count("%s"), count("%s") FROM "%s"' % (new, old, table))
+        new_count, old_count = cr.fetchone()
+        if new_count:
+            # La cible porte déjà des données : ne rien écraser. Si l'ancienne
+            # en a davantage, _assert_field_rename_integrity le signalera.
+            if new_count < old_count:
+                _logger.error(
+                    '%s : %s porte %d valeurs et %s seulement %d — recopie '
+                    'refusée pour ne rien écraser, à arbitrer à la main',
+                    table, old, old_count, new, new_count)
+            continue
         cr.execute('UPDATE "%s" SET "%s" = "%s" WHERE "%s" IS NOT NULL'
                    % (table, new, old, old))
         if cr.rowcount:
@@ -633,6 +641,51 @@ def _repair_field_rename_after_fresh_install(cr):
                 "l'ancienne colonne reste en place, à écarter via "
                 "studio_debris", table, old, new, cr.rowcount)
     return repaired
+
+
+def _verify_field_rename(cr):
+    """Contrôle d'intégrité après renommage : aucune donnée ne doit manquer.
+
+    Pour chaque champ stocké de la table de correspondance, trois états sont
+    sains :
+
+    * ancienne colonne seule  — pas encore renommé (état d'origine) ;
+    * nouvelle colonne seule  — renommé par ALTER TABLE (le contenu a suivi) ;
+    * les deux                — install fraîche réparée : la nouvelle doit
+      porter AU MOINS autant de valeurs non nulles que l'ancienne.
+
+    Tout autre cas est une anomalie. Retourne la liste des anomalies ;
+    l'appelant décide d'en faire une erreur (les post-migrate et le
+    post_init_hook la lèvent : mieux vaut un build rouge qu'une perte muette).
+    """
+    anomalies = []
+    for model, old, new, _ttype in _load_field_rename_map():
+        table = _model_table(cr, model)
+        if not table:
+            continue
+        if not _column_exists(cr, table, old):
+            continue  # renommée (ou jamais stockée ici) : rien à perdre
+        if not _column_exists(cr, table, new):
+            continue  # pas encore renommée : état d'origine, rien à perdre
+        cr.execute('SELECT count("%s"), count("%s") FROM "%s"' % (old, new, table))
+        old_count, new_count = cr.fetchone()
+        if new_count < old_count:
+            anomalies.append(
+                '%s : %d valeurs dans %s mais %d dans %s (recopie incomplète)'
+                % (table, old_count, old, new_count, new))
+    return anomalies
+
+
+def _assert_field_rename_integrity(cr):
+    """Lève si des données du renommage manquent. À appeler après chaque étape
+    qui touche aux colonnes (post-migrate, post_init_hook) : l'exception
+    annule la transaction d'upgrade, rien n'est commité en l'état."""
+    anomalies = _verify_field_rename(cr)
+    if anomalies:
+        raise ValueError(
+            'renommage x_studio_/ca_diff_ : donnees manquantes, upgrade '
+            'interrompu avant commit : ' + ' ; '.join(anomalies))
+    _logger.info('renommage : integrite des donnees verifiee, aucune anomalie')
 
 
 def _field_rename_status(cr):
