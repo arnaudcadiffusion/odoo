@@ -8,19 +8,19 @@
         <field name="inherit_id" ref="purchase.purchase_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='partner_id']" position="before">
-                <field name="ca_diff_n_fournisseur" string="N# Fournisseur" readonly="1"/>
+                <field name="x_studio_n_fournisseur" string="N# Fournisseur" readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='partner_id']" position="attributes">
                 <attribute name="string">Fournisseur</attribute>
             </xpath>
             <xpath expr="//form[1]/sheet[1]/group[1]/group[1]/field[@name='currency_id']" position="after">
-                <field name="ca_diff_pod_1" string="POL"/>
-                <field name="ca_diff_type" string="Type"/>
-                <field name="ca_diff_taux_eur_usd" string="Taux €/$"/>
-                <field name="ca_diff_fret" string="Fret"/>
-                <field name="ca_diff_transport_achat" string="Douane"/>
-                <field name="ca_diff_transport_po" string="Transport PO"/>
-                <field name="ca_diff_transitaire" string="Transitaire"/>
+                <field name="x_studio_pod_1" string="POL"/>
+                <field name="x_studio_type" string="Type"/>
+                <field name="x_studio_taux_eur_usd" string="Taux €/$"/>
+                <field name="x_studio_fret" string="Fret"/>
+                <field name="x_studio_transport_achat" string="Douane"/>
+                <field name="x_studio_transport_po" string="Transport PO"/>
+                <field name="x_studio_transitaire" string="Transitaire"/>
             </xpath>
             <xpath expr="//field[@name='date_order']" position="before">
                 <field name="create_date" string="Date Creation" widget="date"/>
@@ -35,16 +35,16 @@
                 <attribute name="widget">date</attribute>
             </xpath>
             <xpath expr="//div[@name='reminder']" position="after">
-                <field name="ca_diff_date_prvue_initiale" string="Dispo initiale"/>
-                <field name="ca_diff_dispo_confirmee" string="Dispo confirmée"/>
-                <field name="ca_diff_date_depart" string="ETD"/>
+                <field name="x_studio_date_prvue_initiale" string="Dispo initiale"/>
+                <field name="x_studio_dispo_confirmee" string="Dispo confirmée"/>
+                <field name="x_studio_date_depart" string="ETD"/>
                 <xpath expr="//field[@name='effective_date']" position="move"/>
-                <field name="ca_diff_embarquement" string="Embarquement"/>
+                <field name="x_studio_embarquement" string="Embarquement"/>
             </xpath>
             <!-- Order line: add x_studio fields after name (optional, hidden by default) -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='name']" position="after">
-                <field name="ca_diff_ref_fournisseur" string="Ref Fournisseur" optional="hide"/>
-                <field name="ca_diff_date_initiale" string="Date Initiale" optional="hide"/>
+                <field name="x_studio_ref_fournisseur" string="Ref Fournisseur" optional="hide"/>
+                <field name="x_studio_date_initiale" string="Date Initiale" optional="hide"/>
             </xpath>
             <!-- date_planned: date widget -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/list[1]/field[@name='date_planned']" position="attributes">
@@ -95,7 +95,7 @@
                 <attribute name="widget">date</attribute>
             </xpath>
             <xpath expr="//field[@name='state']" position="after">
-                <field name="ca_diff_etat_facture" string="Etat Facture"/>
+                <field name="x_studio_etat_facture" string="Etat Facture"/>
             </xpath>
         </field>
     </record>
@@ -130,7 +130,7 @@
                 <field name="date_planned" column_invisible="context.get('quotation_only', False)" optional="show" widget="date"/>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
-                <field name="ca_diff_type" optional="show"/>
+                <field name="x_studio_type" optional="show"/>
             </xpath>
         </field>
     </record>
@@ -143,7 +143,7 @@
         <field name="arch" type="xml">
             <!-- quick_add removed in Odoo 19 -->
             <xpath expr="//calendar[1]" position="attributes">
-                <attribute name="date_start">ca_diff_date_prvue_initiale</attribute>
+                <attribute name="date_start">x_studio_date_prvue_initiale</attribute>
             </xpath>
         </field>
     </record>
@@ -155,9 +155,9 @@
         <field name="inherit_id" ref="purchase.purchase_order_view_search"/>
         <field name="arch" type="xml">
             <xpath expr="//search[1]/group[1]/filter[@name='order_date']" position="after">
-                <filter name="studio_group_by_pol" string="POL" context="{'group_by': 'ca_diff_pod_1'}"/>
-                <filter name="studio_group_by_etd" string="ETD" context="{'group_by': 'ca_diff_date_depart'}"/>
-                <filter name="studio_group_by_embarquement" string="Embarquement" context="{'group_by': 'ca_diff_embarquement'}"/>
+                <filter name="studio_group_by_pol" string="POL" context="{'group_by': 'x_studio_pod_1'}"/>
+                <filter name="studio_group_by_etd" string="ETD" context="{'group_by': 'x_studio_date_depart'}"/>
+                <filter name="studio_group_by_embarquement" string="Embarquement" context="{'group_by': 'x_studio_embarquement'}"/>
             </xpath>
         </field>
     </record>

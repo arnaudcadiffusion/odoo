@@ -6,8 +6,8 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name" />
-                <field name="ca_diff_coordinateur" readonly="1"/>
-                <field name="ca_diff_dbut_de_march" options="{'numeric': True}"/>
+                <field name="x_studio_coordinateur" readonly="1"/>
+                <field name="x_studio_dbut_de_march" options="{'numeric': True}"/>
                 <field name="end_of_the_tender" options="{'numeric': True}"/>
                 <field name="last_revision_date" options="{'numeric': True, 'show_time': False}"/>
                 <field name="next_revision_date" options="{'numeric': True, 'show_time': False}"/>
@@ -51,12 +51,12 @@
                         <group>
                             <field name="start_date" options="{'numeric': True}" readonly="state == 'confirm'"/>
                             <field name="end_date" options="{'numeric': True}" readonly="state == 'confirm'"/>
-                            <field name="ca_diff_dbut_de_march" string="Début de Marché" options="{'numeric': True}" readonly="state == 'confirm'"/>
+                            <field name="x_studio_dbut_de_march" string="Début de Marché" options="{'numeric': True}" readonly="state == 'confirm'"/>
                             <field name="end_of_the_tender" options="{'numeric': True}" readonly="state == 'confirm'"/>
-                            <field name="ca_diff_coordinateur" string="Coordinateur" readonly="state == 'confirm'"/>
-                            <field name="ca_diff_contact" string="Contact" readonly="state == 'confirm'"/>
-                            <field name="ca_diff_tlphone" string="Téléphone" readonly="state == 'confirm'"/>
-                            <field name="ca_diff_email" string="Email" readonly="state == 'confirm'"/>
+                            <field name="x_studio_coordinateur" string="Coordinateur" readonly="state == 'confirm'"/>
+                            <field name="x_studio_contact" string="Contact" readonly="state == 'confirm'"/>
+                            <field name="x_studio_tlphone" string="Téléphone" readonly="state == 'confirm'"/>
+                            <field name="x_studio_email" string="Email" readonly="state == 'confirm'"/>
                             <field name="active" invisible="1"/>
                         </group>
                         <group>
@@ -64,7 +64,7 @@
                             <field name="last_revision_date" options="{'numeric': True, 'show_time': False}" readonly="state == 'confirm'"/>
                             <field name="tender_pricelist_id" readonly="state == 'confirm'"/>
                             <field name="note" />
-                            <field name="ca_diff_notes_march" string="Notes Marché"/>
+                            <field name="x_studio_notes_march" string="Notes Marché"/>
                         </group>
                     </group>
 
