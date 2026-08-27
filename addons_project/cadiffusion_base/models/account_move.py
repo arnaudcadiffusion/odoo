@@ -1,4 +1,5 @@
 import logging
+import math
 from io import BytesIO
 
 from odoo import api, fields, models
@@ -297,10 +298,9 @@ class AccountMoveLine(models.Model):
         string='Colis',
         compute='_compute_carton_uom_id',
     )
-    nb_carton = fields.Float(
+    nb_carton = fields.Integer(
         string='Nb Carton',
         compute='_compute_nb_carton',
-        digits='Product Unit of Measure',
     )
 
     def _cadiffusion_carton_uom(self):
@@ -350,12 +350,14 @@ class AccountMoveLine(models.Model):
         for line in self:
             carton_uom = line._cadiffusion_carton_uom()
             if not carton_uom:
-                line.nb_carton = 0.0
+                line.nb_carton = 0
                 continue
             per_carton = carton_uom._compute_quantity(
                 1.0, line.product_id.uom_id, raise_if_failure=False)
-            line.nb_carton = (
-                line._cadiffusion_pieces() / per_carton if per_carton else 0.0)
+            qty = line._cadiffusion_pieces() / per_carton if per_carton else 0.0
+            # Un carton entamé compte pour un carton entier (même convention
+            # que la colonne COLIS du BL) : le nombre affiché reste rond.
+            line.nb_carton = int(math.ceil(round(qty, 2)))
 
     def _cadiffusion_price_per_piece(self):
         """Return ``price_unit_reduced`` converted to the product's base UOM

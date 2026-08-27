@@ -87,7 +87,7 @@
             <td name="td_cad_carton" class="text-end">
                 <span t-if="cad_carton_uom" class="text-nowrap"
                       t-out="line.nb_carton"
-                      t-options='{"widget": "float", "precision": 1}'/>
+                      t-options='{"widget": "integer"}'/>
             </td>
             <td name="td_cad_carton_uom" class="text-center">
                 <span t-if="cad_carton_uom" t-out="cad_carton_uom.display_name"/>
