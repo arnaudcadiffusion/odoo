@@ -13,9 +13,20 @@ un **journal en base** (``cadiffusion_field_rename``) écrit pendant l'opératio
 pour que le retour arrière inverse exactement ce qui a été fait — y compris
 après un renommage partiel ou interrompu.
 
-Rien ici n'est appelé automatiquement : ni le manifest, ni ``__init__.py``, ni
-un script de ``migrations/`` ne déclenche le renommage. Tant qu'aucune
-migration ne l'appelle, ce fichier est de l'outillage dormant.
+--------------------------------------------------------------------------
+Où en est-on
+--------------------------------------------------------------------------
+
+Le renommage a été appliqué en production par les pre-migrates 19.0.1.0.27
+(lot transport) et 19.0.1.0.28 (le reste), plus la 19.0.1.0.1 de
+public_tender (les six champs de ``tender.order``) — puis **défait** par la
+19.0.1.0.29, qui rejoue le journal à l'envers. Les sources sont revenues aux
+noms ``x_studio_*`` ; ``SOURCE_PREFIX`` en tient le compte et donne son sens à
+la réparation des bases restaurées d'un dump renommé.
+
+L'outillage reste en place, dans les deux sens, pour le jour où la décision
+sera reprise. Aucun renommage ne se déclenche tout seul : il faut un
+pre-migrate qui appelle ``_apply_field_rename``, et il n'en existe plus.
 
 --------------------------------------------------------------------------
 Aller — dans cet ordre, jamais l'inverse
@@ -40,29 +51,40 @@ Aller — dans cet ordre, jamais l'inverse
    ``x_studio_*``, sans jamais recopier les données. Le renommage doit être
    fait AVANT que le registre ne se recharge.
 
+3. Retourner ``SOURCE_PREFIX`` / ``STALE_PREFIX``, sans quoi la réparation
+   d'install fraîche rapatrierait la donnée dans la colonne abandonnée.
+
 --------------------------------------------------------------------------
-Retour — dans cet ordre, jamais l'inverse
+Retour — un seul déploiement, pas deux
 --------------------------------------------------------------------------
 
-1. Base d'abord, avec le code encore en ``ca_diff_*`` ::
+Le retour a la même contrainte que l'aller, en miroir : la base doit être
+défaite AVANT que le registre ne se recharge sur les anciens noms. Défaire la
+base à la main puis pousser le revert laisserait la production tourner entre
+les deux avec un code et une base désaccordés — c'est pourquoi le rollback
+voyage DANS le commit de revert, en pre-migrate (19.0.1.0.29) ::
 
-       odoo shell -d LA_BASE
-       >>> from odoo.addons.cadiffusion_base import _rollback_field_rename
-       >>> _rollback_field_rename(env.cr)
-       >>> env.cr.commit()
+       from odoo.addons.cadiffusion_base.field_rename import (
+           _rollback_field_rename_batches)
 
-2. Sources ensuite ::
+       def migrate(cr, version):
+           _rollback_field_rename_batches(cr)
 
-       python3 data/rename_source_fields.py --rollback
-       git revert <commit>     # ou, si le commit n'est pas encore poussé
-
-3. ``-u cadiffusion_base`` pour recharger le registre sur les anciens noms.
+Un module qui déclare des champs renommés et se charge AVANT celui-ci a besoin
+de son propre pre-migrate, ciblé sur ses champs : sinon son ``_auto_init``
+recrée les colonnes vides avant que le rollback ne passe. C'est le cas de
+public_tender (19.0.1.0.2, ``only=TENDER_BATCH``).
 
 Le rollback lit le journal, pas la table de correspondance : il ne défait que
 ce qui a réellement été appliqué, et il est sans effet (silencieux) si rien
 n'a été renommé. Il reste possible tant que la table de journal existe, donc
 indéfiniment — contrairement à une restauration de dump, il ne perd aucune
 donnée saisie depuis le renommage.
+
+Sur une base sans journal (rebuild Odoo.sh : le module y est installé neuf,
+les migrations ne tournent pas), il n'y a rien à défaire et c'est
+``_repair_orphan_field_rename_data`` qui rapatrie la donnée du dump renommé
+vers les colonnes que l'ORM vient de créer.
 
 --------------------------------------------------------------------------
 Ce que le renommage NE couvre pas
@@ -87,6 +109,19 @@ _logger = logging.getLogger(__name__)
 
 OLD_PREFIX = 'x_studio_'
 NEW_PREFIX = 'ca_diff_'
+
+# Préfixe sous lequel les SOURCES déclarent aujourd'hui les champs, et celui
+# qui ne peut plus subsister qu'en base. Le renommage est parti en production
+# (19.0.1.0.27 et .28) puis a été défait (19.0.1.0.29) : les sources sont
+# revenues aux noms x_studio_*, et ce sont les colonnes ca_diff_* qui ne sont
+# plus qu'un vestige sur les bases restaurées d'un dump renommé.
+#
+# C'est le SEUL endroit à retourner si le renommage repart un jour : la
+# réparation d'install fraîche et le contrôle d'intégrité en dérivent le sens
+# de la recopie, et rapatrieraient la donnée dans la mauvaise colonne si on les
+# laissait à l'envers.
+SOURCE_PREFIX = OLD_PREFIX
+STALE_PREFIX = NEW_PREFIX
 
 JOURNAL_TABLE = 'cadiffusion_field_rename'
 
@@ -600,79 +635,150 @@ def _rollback_field_rename(cr, batch=None):
     return batch
 
 
-def _repair_field_rename_after_fresh_install(cr):
-    """Rapatrie les données laissées en x_studio_* par une install fraîche.
+def _applied_batches(cr, only=None):
+    """Lots encore appliqués, du plus récent au plus ancien.
 
-    Sur un rebuild Odoo.sh par la plateforme d'upgrade, le module est INSTALLÉ
-    neuf sur un dump de production : les scripts de migrations/ ne tournent
-    pas, et l'ORM a déjà créé les colonnes ca_diff_* vides à côté des
-    x_studio_* pleines. Ce n'est PAS un renommage (les colonnes neuves
-    existent déjà) : on recopie la donnée, colonne par colonne, uniquement là
-    où la cible est entièrement NULL — puis on laisse l'ancienne colonne en
-    place, inerte, comme trace ; studio_debris.py saura la recenser.
+    ``only`` restreint aux lots qui ont renommé un des champs donnés. C'est ce
+    qui permet à public_tender de défaire SES champs depuis son propre
+    pre-migrate, sans connaître le numéro du lot : il varie d'une base à
+    l'autre selon l'ordre dans lequel les upgrades s'y sont succédé.
+    """
+    if not _table_exists(cr, JOURNAL_TABLE):
+        return []
+    query = ("SELECT DISTINCT batch FROM %s WHERE direction = 'forward'"
+             " AND scope = 'field' AND reverted_on IS NULL" % JOURNAL_TABLE)
+    params = []
+    if only is not None:
+        query += ' AND old_name IN %s'
+        params.append(tuple(only))
+    # Le tri se fait en Python : PostgreSQL refuse un ORDER BY sur une
+    # expression absente de la liste d'un SELECT DISTINCT, et un batch::int en
+    # SQL casserait de toute façon sur une valeur non numérique.
+    cr.execute(query, params)
+    return sorted({batch for (batch,) in cr.fetchall()}, key=int, reverse=True)
 
-    Appelé par le post_init_hook. Sans effet sur une base déjà migrée par le
-    pre-migrate (l'ancienne colonne n'existe plus) et sur une base pas encore
-    renommée (la nouvelle n'existe pas).
+
+def _rollback_field_rename_batches(cr, only=None):
+    """Défait TOUS les lots encore appliqués, du plus récent au plus ancien.
+
+    ``_rollback_field_rename`` ne défait qu'UN lot par appel, et le renommage
+    est parti en trois lots (tender, transport, puis le reste) : un seul appel
+    laisserait la base à moitié renommée, code et base désaccordés. Retourne la
+    liste des lots défaits.
+
+    Idempotent : sans lot en attente — base jamais renommée, ou déjà défaite —
+    ne fait rien et n'échoue pas.
+    """
+    batches = _applied_batches(cr, only)
+    for batch in batches:
+        _rollback_field_rename(cr, batch)
+    if not batches:
+        _logger.info('rollback : aucun lot de renommage en attente')
+    else:
+        _logger.info('rollback : %d lot(s) défait(s) — %s',
+                     len(batches), ', '.join(batches))
+    return batches
+
+
+def _source_and_stale_columns(old, new):
+    """(colonne attendue par les sources, colonne qui n'est plus qu'un vestige).
+
+    Dérivé de SOURCE_PREFIX : depuis le rollback de la 19.0.1.0.29 les sources
+    déclarent ``x_studio_*``, donc c'est l'ancien nom qui doit porter la donnée
+    et le nouveau qui traîne dans les dumps déjà renommés.
+    """
+    return (old, new) if SOURCE_PREFIX == OLD_PREFIX else (new, old)
+
+
+def _repair_orphan_field_rename_data(cr):
+    """Rapatrie les données restées dans la colonne que les sources n'utilisent plus.
+
+    Deux situations amènent une base à porter les DEUX colonnes, la bonne vide
+    et l'autre pleine :
+
+    * un rebuild Odoo.sh par la plateforme d'upgrade — le module y est
+      INSTALLÉ neuf sur un dump de production, les scripts de migrations/ ne
+      tournent pas, et l'ORM a créé la colonne attendue par les sources, vide,
+      à côté de celle que porte le dump ;
+    * une base restaurée d'un dump pris pendant que le renommage était en
+      production, mise à jour après son rollback : le journal y est absent ou
+      déjà soldé, donc ``_rollback_field_rename_batches`` n'a rien à défaire.
+
+    Ce n'est PAS un renommage (les deux colonnes existent déjà) : on recopie la
+    donnée, colonne par colonne, uniquement là où la cible est entièrement
+    NULL — puis on laisse l'autre colonne en place, inerte, comme trace ;
+    studio_debris.py saura la recenser.
+
+    Le sens suit SOURCE_PREFIX : depuis le rollback de la 19.0.1.0.29, ce sont
+    les ``ca_diff_*`` d'un dump renommé qu'il faut rapatrier vers les
+    ``x_studio_*``. Appelée par le post_init_hook et par le post-migrate .29.
+    Sans effet quand une seule des deux colonnes existe, c'est-à-dire sur toute
+    base cohérente.
     """
     repaired = 0
     for model, old, new, _ttype in _load_field_rename_map():
+        target, stale = _source_and_stale_columns(old, new)
         table = _model_table(cr, model)
-        if not (table and _column_exists(cr, table, old)
-                and _column_exists(cr, table, new)):
+        if not (table and _column_exists(cr, table, target)
+                and _column_exists(cr, table, stale)):
             continue
-        cr.execute('SELECT count("%s"), count("%s") FROM "%s"' % (new, old, table))
-        new_count, old_count = cr.fetchone()
-        if new_count:
-            # La cible porte déjà des données : ne rien écraser. Si l'ancienne
-            # en a davantage, _assert_field_rename_integrity le signalera.
-            if new_count < old_count:
+        cr.execute('SELECT count("%s"), count("%s") FROM "%s"'
+                   % (target, stale, table))
+        target_count, stale_count = cr.fetchone()
+        if target_count:
+            # La cible porte déjà des données : ne rien écraser. Si l'autre en
+            # a davantage, _assert_field_rename_integrity le signalera.
+            if target_count < stale_count:
                 _logger.error(
                     '%s : %s porte %d valeurs et %s seulement %d — recopie '
                     'refusée pour ne rien écraser, à arbitrer à la main',
-                    table, old, old_count, new, new_count)
+                    table, stale, stale_count, target, target_count)
             continue
         cr.execute('UPDATE "%s" SET "%s" = "%s" WHERE "%s" IS NOT NULL'
-                   % (table, new, old, old))
+                   % (table, target, stale, stale))
         if cr.rowcount:
             repaired += 1
             _logger.warning(
-                "install fraîche : %s.%s recopié vers %s (%d lignes) — "
-                "l'ancienne colonne reste en place, à écarter via "
-                "studio_debris", table, old, new, cr.rowcount)
+                "%s.%s recopié vers %s (%d lignes) — la colonne d'origine "
+                "reste en place, à écarter via studio_debris",
+                table, stale, target, cr.rowcount)
     return repaired
 
 
 def _verify_field_rename(cr):
-    """Contrôle d'intégrité après renommage : aucune donnée ne doit manquer.
+    """Contrôle d'intégrité : aucune donnée ne doit rester hors d'atteinte du code.
 
     Pour chaque champ stocké de la table de correspondance, trois états sont
     sains :
 
-    * ancienne colonne seule  — pas encore renommé (état d'origine) ;
-    * nouvelle colonne seule  — renommé par ALTER TABLE (le contenu a suivi) ;
-    * les deux                — install fraîche réparée : la nouvelle doit
-      porter AU MOINS autant de valeurs non nulles que l'ancienne.
+    * colonne des sources seule — état nominal, le code lit la donnée ;
+    * colonne vestige seule     — renommage en attente ou déjà défait par
+      ALTER TABLE (le contenu a suivi la colonne) ;
+    * les deux                  — base réparée : celle qu'attendent les sources
+      doit porter AU MOINS autant de valeurs non nulles que l'autre.
 
-    Tout autre cas est une anomalie. Retourne la liste des anomalies ;
-    l'appelant décide d'en faire une erreur (les post-migrate et le
-    post_init_hook la lèvent : mieux vaut un build rouge qu'une perte muette).
+    Tout autre cas est une anomalie : de la donnée dort dans une colonne
+    qu'aucun champ ne référence. Retourne la liste des anomalies ; l'appelant
+    décide d'en faire une erreur (les post-migrate et le post_init_hook la
+    lèvent : mieux vaut un build rouge qu'une perte muette).
     """
     anomalies = []
     for model, old, new, _ttype in _load_field_rename_map():
+        target, stale = _source_and_stale_columns(old, new)
         table = _model_table(cr, model)
         if not table:
             continue
-        if not _column_exists(cr, table, old):
-            continue  # renommée (ou jamais stockée ici) : rien à perdre
-        if not _column_exists(cr, table, new):
-            continue  # pas encore renommée : état d'origine, rien à perdre
-        cr.execute('SELECT count("%s"), count("%s") FROM "%s"' % (old, new, table))
-        old_count, new_count = cr.fetchone()
-        if new_count < old_count:
+        if not _column_exists(cr, table, stale):
+            continue  # état nominal (ou champ jamais stocké ici) : rien à perdre
+        if not _column_exists(cr, table, target):
+            continue  # la donnée a suivi la colonne : rien à perdre
+        cr.execute('SELECT count("%s"), count("%s") FROM "%s"'
+                   % (stale, target, table))
+        stale_count, target_count = cr.fetchone()
+        if target_count < stale_count:
             anomalies.append(
                 '%s : %d valeurs dans %s mais %d dans %s (recopie incomplète)'
-                % (table, old_count, old, new_count, new))
+                % (table, stale_count, stale, target_count, target))
     return anomalies
 
 

@@ -4,11 +4,11 @@ from odoo import fields, models
 class ProductSupplierinfo(models.Model):
     _inherit = 'product.supplierinfo'
 
-    ca_diff_franco = fields.Integer(
+    x_studio_franco = fields.Integer(
         string='Franco',
         default=0,
     )
-    ca_diff_origine = fields.Selection(
+    x_studio_origine = fields.Selection(
         selection=[
             ('ALLEMAGNE', 'ALLEMAGNE'),
             ('BANGLADESH', 'BANGLADESH'),
@@ -25,7 +25,7 @@ class ProductSupplierinfo(models.Model):
         ],
         string='Origine',
     )
-    ca_diff_provenance = fields.Selection(
+    x_studio_provenance = fields.Selection(
         selection=[
             ('ALLEMAGNE', 'ALLEMAGNE'),
             ('BELGIQUE', 'BELGIQUE'),
@@ -41,7 +41,7 @@ class ProductSupplierinfo(models.Model):
         ],
         string='Provenance',
     )
-    ca_diff_type = fields.Selection(
+    x_studio_type = fields.Selection(
         selection=[
             ('Palette', 'Palette'),
             ('Euro', 'Euro'),

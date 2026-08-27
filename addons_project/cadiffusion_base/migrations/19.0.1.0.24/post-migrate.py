@@ -13,5 +13,5 @@ def migrate(cr, version):
     env = api.Environment(cr, SUPERUSER_ID, {})
     productions = env['mrp.production'].search([])
     env.add_to_compute(
-        productions._fields['ca_diff_conditionnement'], productions)
-    productions.flush_recordset(['ca_diff_conditionnement'])
+        productions._fields['x_studio_conditionnement'], productions)
+    productions.flush_recordset(['x_studio_conditionnement'])
