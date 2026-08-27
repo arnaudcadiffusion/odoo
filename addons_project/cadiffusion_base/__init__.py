@@ -13,6 +13,24 @@ from .reference_state import (  # noqa: F401
     _reference_diff,
     _reference_snapshot,
 )
+# Outillage de renommage des champs Studio (x_studio_* → ca_diff_*). Rien ne
+# l'appelle : il attend un pre-migrate côté aller, un odoo shell côté retour.
+from .field_rename import (  # noqa: F401
+    _apply_field_rename,
+    _assert_field_rename_integrity,
+    _field_rename_status,
+    _load_field_rename_map,
+    _repair_field_rename_after_fresh_install,
+    _rollback_field_rename,
+)
+# Séquelles Studio / v15 laissées en base par la bascule : inventaire et
+# quarantaine réversible. Dormant lui aussi, appelé à la main.
+from .studio_debris import (  # noqa: F401
+    _quarantine_studio_debris,
+    _restore_studio_debris,
+    _studio_debris,
+    _studio_debris_status,
+)
 from . import models
 
 _logger = logging.getLogger(__name__)
@@ -37,6 +55,12 @@ def post_init_hook(env):
     (WHERE active = true, NOT ILIKE, IS NULL, etc.).
     """
     cr = env.cr
+    # En tout premier : sur une install fraîche d'un dump non renommé (rebuild
+    # Odoo.sh), l'ORM vient de créer les colonnes ca_diff_* vides. On y recopie
+    # les données x_studio_* AVANT tout le reste — les réparations ci-dessous
+    # sont écrites avec les nouveaux noms et doivent trouver les données.
+    _repair_field_rename_after_fresh_install(cr)
+    _assert_field_rename_integrity(cr)
     _migrate_19_0_1_0_1(cr)
     _migrate_19_0_1_0_2(cr)
     _migrate_19_0_1_0_3(cr)
@@ -601,26 +625,26 @@ def _migrate_19_0_1_0_6(cr):
 
 
 # ---------------------------------------------------------------------------
-# 19.0.1.0.7 — Copie x_studio_article_cmd → article_cmd
+# 19.0.1.0.7 — Copie ca_diff_article_cmd → article_cmd
 # ---------------------------------------------------------------------------
 def _migrate_19_0_1_0_7(cr):
-    # Le champ x_studio_article_cmd n'existe que si Studio l'a créé en v15/v16.
+    # Le champ ca_diff_article_cmd n'existe que si Studio l'a créé en v15/v16.
     # Sur une base fresh sans Studio, la colonne n'existe pas -> NOOP.
     cr.execute("""
         SELECT 1
         FROM information_schema.columns
         WHERE table_name = 'sale_order_line'
-          AND column_name = 'x_studio_article_cmd'
+          AND column_name = 'ca_diff_article_cmd'
     """)
     if not cr.fetchone():
         return
 
     cr.execute("""
         UPDATE sale_order_line
-        SET article_cmd = x_studio_article_cmd
+        SET article_cmd = ca_diff_article_cmd
         WHERE (article_cmd IS NULL OR article_cmd = '')
-          AND x_studio_article_cmd IS NOT NULL
-          AND x_studio_article_cmd != ''
+          AND ca_diff_article_cmd IS NOT NULL
+          AND ca_diff_article_cmd != ''
     """)
 
 

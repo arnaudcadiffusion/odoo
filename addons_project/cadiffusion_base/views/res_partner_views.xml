@@ -46,18 +46,18 @@
             <xpath expr="//sheet/group/group[1]" position="inside">
                 <field name="vat" string="TVA" placeholder="e.g. BE0477472701"/>
                 <field name="company_registry" string="SIRET"/>
-                <field name="x_studio_prospect" string="A vérifier"/>
-                <field name="x_studio_assurance" string="Credit Safe"/>
-                <field name="x_studio_atradius" string="Assurance"/>
-                <field name="x_studio_secteur" string="Secteur"/>
+                <field name="ca_diff_prospect" string="A vérifier"/>
+                <field name="ca_diff_assurance" string="Credit Safe"/>
+                <field name="ca_diff_atradius" string="Assurance"/>
+                <field name="ca_diff_secteur" string="Secteur"/>
             </xpath>
             <!-- category_id placeholder + add categorie_client + Code Service after (right column) -->
             <xpath expr="//field[@name='category_id']" position="attributes">
                 <attribute name="placeholder"/>
             </xpath>
             <xpath expr="//field[@name='category_id']" position="after">
-                <field name="x_studio_categorie_client" string="Categorie Client" required="1"/>
-                <field name="x_studio_code_service_chorus" string="Code Service Chorus"/>
+                <field name="ca_diff_categorie_client" string="Categorie Client" required="1"/>
+                <field name="ca_diff_code_service_chorus" string="Code Service Chorus"/>
             </xpath>
             <!-- Adresse echantillon inside contact_addresses child form -->
             <!-- Hide the standalone <label for="comment"/> so the comment field renders with its
@@ -66,7 +66,7 @@
                 <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='child_ids']/form//field[@name='comment']" position="before">
-                <field name="x_studio_adresse_echantillon" string="Adresse Echantillon"/>
+                <field name="ca_diff_adresse_echantillon" string="Adresse Echantillon"/>
                 <field name="nic" string="NIC" readonly="1"/>
                 <field name="company_registry" string="SIRET"/>
             </xpath>
@@ -75,13 +75,13 @@
                 <attribute name="nolabel">0</attribute>
             </xpath>
             <xpath expr="//field[@name='child_ids']/form//field[@name='comment']" position="after">
-                <field name="x_studio_livraison_vl" string="Livraison VL"/>
-                <field name="x_studio_livraison_xpo" string="Livraison XPO"/>
-                <field name="x_studio_ouverture_1" string="Ouverture 1"/>
-                <field name="x_studio_char_field_zcf7n" string="Fermeture 1"/>
-                <field name="x_studio_ouverture_2" string="Ouverture 2"/>
-                <field name="x_studio_fermeture_2" string="Fermeture 2"/>
-                <field name="x_studio_notes_internes" string="Notes Internes"/>
+                <field name="ca_diff_livraison_vl" string="Livraison VL"/>
+                <field name="ca_diff_livraison_xpo" string="Livraison XPO"/>
+                <field name="ca_diff_ouverture_1" string="Ouverture 1"/>
+                <field name="ca_diff_char_field_zcf7n" string="Fermeture 1"/>
+                <field name="ca_diff_ouverture_2" string="Ouverture 2"/>
+                <field name="ca_diff_fermeture_2" string="Fermeture 2"/>
+                <field name="ca_diff_notes_internes" string="Notes Internes"/>
             </xpath>
             <!-- Contact sub-list after contact_addresses child form -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='contact_addresses']/field[@name='child_ids']/form[1]" position="after">
@@ -94,7 +94,7 @@
                     <field name="phone"/>
                     <field name="email" on_change="1"/>
                     <field name="customer_invoice_transmit_method_id" string="Facturation"/>
-                    <field name="x_studio_prospect"/>
+                    <field name="ca_diff_prospect"/>
                     <field name="user_id" column_invisible="1"/>
                     <field name="is_company" on_change="1" column_invisible="1"/>
                     <field name="country_id" on_change="1" column_invisible="1"/>
@@ -104,7 +104,7 @@
             </xpath>
             <!-- Interets moratoires after bank_ids -->
             <xpath expr="//field[@name='bank_ids']" position="after">
-                <field name="x_studio_interets_moratoires" string="Interets Moratoires"/>
+                <field name="ca_diff_interets_moratoires" string="Interets Moratoires"/>
             </xpath>
             <!-- ref string -->
             <xpath expr="//field[@name='ref']" position="attributes">
@@ -125,12 +125,12 @@
             </xpath>
             <xpath expr="//field[@name='complete_name']" position="after">
                 <field name="property_product_pricelist"/>
-                <field name="x_studio_secteur"/>
+                <field name="ca_diff_secteur"/>
                 <field name="zip"/>
                 <field name="city"/>
                 <field name="customer_invoice_transmit_method_id" string="Facturation"/>
-                <field name="x_studio_atradius" optional="show"/>
-                <field name="x_studio_prospect" readonly="1"/>
+                <field name="ca_diff_atradius" optional="show"/>
+                <field name="ca_diff_prospect" readonly="1"/>
                 <field name="credit_on_hold"/>
             </xpath>
             <xpath expr="//field[@name='phone']" position="attributes">
@@ -156,17 +156,17 @@
         <field name="arch" type="xml">
             <xpath expr="//filter[@name='group_country']" position="after">
                 <filter context="{'group_by': 'credit_on_hold'}" name="studio_group_by_hold" string="Put on Hold"/>
-                <filter context="{'group_by': 'x_studio_prospect'}" name="studio_group_by_prospect" string="Prospect"/>
+                <filter context="{'group_by': 'ca_diff_prospect'}" name="studio_group_by_prospect" string="Prospect"/>
             </xpath>
             <xpath expr="//field[@name='user_id']" position="after">
                 <field name="property_product_pricelist"/>
                 <field name="city"/>
             </xpath>
             <xpath expr="//filter[@name='studio_group_by_prospect']" position="after">
-                <filter context="{'group_by': 'x_studio_secteur'}" name="studio_group_by_secteur" string="Secteur"/>
+                <filter context="{'group_by': 'ca_diff_secteur'}" name="studio_group_by_secteur" string="Secteur"/>
             </xpath>
             <xpath expr="//filter[@name='studio_group_by_secteur']" position="after">
-                <filter context="{'group_by': 'x_studio_interets_moratoires'}" name="studio_group_by_interets" string="Interets Moratoires"/>
+                <filter context="{'group_by': 'ca_diff_interets_moratoires'}" name="studio_group_by_interets" string="Interets Moratoires"/>
             </xpath>
         </field>
     </record>
@@ -180,7 +180,7 @@
             <xpath expr="//field[@name='followup_line_id']" position="after">
                 <field name="property_payment_term_id" optional="show"/>
                 <field name="credit_limit" optional="show"/>
-                <field name="x_studio_interets_moratoires" optional="show"/>
+                <field name="ca_diff_interets_moratoires" optional="show"/>
             </xpath>
         </field>
     </record>

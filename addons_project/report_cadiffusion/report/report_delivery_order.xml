@@ -31,19 +31,19 @@
                     <!-- Statut BL : Groupé (icône, nb de BL, liste des BL groupés) / Non groupé (v15) -->
                     <div class="row small">
                         <div class="col-12">
-                            <t t-if="o.x_studio_bl_groupe">
+                            <t t-if="o.ca_diff_bl_groupe">
                                 <div style="font-size: 14px; font-weight: bold;">
                                     <span style="font-size: 18px; margin-right: 4px;">&#9888;</span>
                                     <strong>Statut BL :</strong>
                                     Groupé
-                                    <t t-if="o.x_studio_nb_bl_groupe">
-                                        – <span t-esc="o.x_studio_nb_bl_groupe"/> BL
+                                    <t t-if="o.ca_diff_nb_bl_groupe">
+                                        – <span t-esc="o.ca_diff_nb_bl_groupe"/> BL
                                     </t>
                                 </div>
-                                <t t-if="o.x_studio_id_bl_groupe">
+                                <t t-if="o.ca_diff_id_bl_groupe">
                                     <div style="margin-top: 3px; margin-left: 20px;">
                                         <strong>BL groupés :</strong><br/>
-                                        <span t-esc="o.x_studio_id_bl_groupe" style="white-space: pre-line;"/>
+                                        <span t-esc="o.ca_diff_id_bl_groupe" style="white-space: pre-line;"/>
                                     </div>
                                 </t>
                             </t>
@@ -59,7 +59,7 @@
                     <div style="margin-top:8px; margin-bottom:8px; overflow:hidden;">
                         <div style="float:left; width:20%;">
                             <strong>N# Partenaire:</strong><br/>
-                            <span t-field="o.x_studio_n_partenaire"/>
+                            <span t-field="o.ca_diff_n_partenaire"/>
                         </div>
                         <div style="float:left; width:20%;">
                             <strong>Date commande:</strong><br/>
@@ -71,7 +71,7 @@
                         </div>
                         <div style="float:left; width:20%;">
                             <strong>Votre reference:</strong><br/>
-                            <span t-field="o.x_studio_n_commande"/>
+                            <span t-field="o.ca_diff_n_commande"/>
                         </div>
                         <div style="float:left; width:20%;">
                             <strong>Bon Commande:</strong><br/>
@@ -322,13 +322,13 @@
                     <!-- Pied de page : Instruction Livraison, Notes Internes, Transport, Poids -->
                     <div class="mt-3">
                         <p style="margin-bottom:2px;"><strong>Instruction Livraison :</strong><br/>
-                            <span t-field="o.x_studio_livraison"/>
+                            <span t-field="o.ca_diff_livraison"/>
                         </p>
                         <p style="margin-bottom:2px;"><strong>Notes Internes :</strong><br/>
-                            <span t-field="o.x_studio_notes_internes"/>
+                            <span t-field="o.ca_diff_notes_internes"/>
                         </p>
                         <p style="margin-bottom:2px;"><strong>Transport :</strong><br/>
-                            <span t-field="o.x_studio_transport"/>
+                            <span t-field="o.ca_diff_transport"/>
                         </p>
                         <p style="margin-bottom:2px;"><strong>Poids :</strong><br/>
                             <span t-if="o.shipping_weight" t-field="o.shipping_weight" t-options='{"widget": "float", "digits": [6,2]}'/>

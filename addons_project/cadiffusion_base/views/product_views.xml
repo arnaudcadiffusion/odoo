@@ -22,9 +22,9 @@
             </xpath>
             <!-- Douane, taux de douane, marque after barcode -->
             <xpath expr="//form[@name='Product Template']/sheet[@name='product_form']/notebook[1]/page[@name='general_information']/group[1]/group[@name='group_standard_price']/field[@name='barcode']" position="after">
-                <field name="x_studio_douane" string="Nomenclature douanière"/>
-                <field name="x_studio_taux_de_douane_" string="Taux de douane %"/>
-                <field name="x_studio_marque" string="Marque"/>
+                <field name="ca_diff_douane" string="Nomenclature douanière"/>
+                <field name="ca_diff_taux_de_douane_" string="Taux de douane %"/>
+                <field name="ca_diff_marque" string="Marque"/>
             </xpath>
             <!-- Vendor list customization -->
             <xpath expr="//field[@name='seller_ids']" position="inside">
@@ -45,12 +45,12 @@
                     <field name="date_end" optional="hide"/>
                     <field name="company_id" readonly="0" groups="base.group_multi_company" optional="hide"/>
                     <field name="min_qty" optional="show"/>
-                    <field optional="show" name="x_studio_franco" string="Franco"/>
-                    <field optional="show" name="x_studio_type" string="Type"/>
+                    <field optional="show" name="ca_diff_franco" string="Franco"/>
+                    <field optional="show" name="ca_diff_type" string="Type"/>
                     <field name="product_uom_id" groups="uom.group_uom" column_invisible="1"/>
                     <field name="price" string="Price"/>
                     <field name="delay" optional="show"/>
-                    <field optional="show" name="x_studio_origine" string="Origine"/>
+                    <field optional="show" name="ca_diff_origine" string="Origine"/>
                 </list>
             </xpath>
             <!-- Carton dimensions + HS Code/Origin moved into Logistics group.
@@ -58,25 +58,25 @@
                  (groups="stock.group_production_lot") so hidden unless user has that group.
                  We extract them and put them with the carton info, always visible. -->
             <xpath expr="//page[@name='inventory']/group[@name='inventory']/group[@name='group_lots_and_weight']" position="inside">
-                <field name="x_studio_poids_carton" string="Poids Carton"/>
-                <field name="x_studio_longueur_carton" string="Longueur Carton"/>
-                <field name="x_studio_largeur_carton" string="Largeur Carton"/>
-                <field name="x_studio_hauteur_carton" string="Hauteur Carton"/>
-                <field name="x_studio_pieces_par_container" string="Pièces par Container"/>
-                <field name="x_studio_type_container" string="Type Container"/>
+                <field name="ca_diff_poids_carton" string="Poids Carton"/>
+                <field name="ca_diff_longueur_carton" string="Longueur Carton"/>
+                <field name="ca_diff_largeur_carton" string="Largeur Carton"/>
+                <field name="ca_diff_hauteur_carton" string="Hauteur Carton"/>
+                <field name="ca_diff_pieces_par_container" string="Pièces par Container"/>
+                <field name="ca_diff_type_container" string="Type Container"/>
             </xpath>
             <!-- Palette info after inventory group -->
             <xpath expr="//form[@name='Product Template']/sheet[@name='product_form']/notebook[1]/page[@name='inventory']/group[@name='inventory']" position="after">
                 <group name="studio_group_4kitO">
                     <group name="studio_group_4kitO_left" string="Palette 1">
-                        <field name="x_studio_hauteur_p1" string="Hauteur P1"/>
-                        <field name="x_studio_nb_carton_p1" string="Nb Carton P1"/>
-                        <field name="x_studio_nb_piece_p1" string="Nb Piece P1"/>
+                        <field name="ca_diff_hauteur_p1" string="Hauteur P1"/>
+                        <field name="ca_diff_nb_carton_p1" string="Nb Carton P1"/>
+                        <field name="ca_diff_nb_piece_p1" string="Nb Piece P1"/>
                     </group>
                     <group name="studio_group_4kitO_right" string="Palette 2">
-                        <field name="x_studio_hauteur_p2" string="Hauteur P2"/>
-                        <field name="x_studio_nb_carton_p2" string="Nb Carton P2"/>
-                        <field name="x_studio_nb_piece_p2" string="Nb Piece P2"/>
+                        <field name="ca_diff_hauteur_p2" string="Hauteur P2"/>
+                        <field name="ca_diff_nb_carton_p2" string="Nb Carton P2"/>
+                        <field name="ca_diff_nb_piece_p2" string="Nb Piece P2"/>
                     </group>
                 </group>
             </xpath>
@@ -102,7 +102,7 @@
                 <attribute name="widget"/>
             </xpath>
             <xpath expr="//field[@name='categ_id']" position="after">
-                <field name="x_studio_marque_1" string="Marque" readonly="1"/>
+                <field name="ca_diff_marque_1" string="Marque" readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='uom_id']" position="attributes">
                 <attribute name="column_invisible">1</attribute>
@@ -154,11 +154,11 @@
                 <attribute name="column_invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='min_qty']" position="after">
-                <field name="x_studio_franco" optional="show"/>
-                <field name="x_studio_type" optional="show"/>
+                <field name="ca_diff_franco" optional="show"/>
+                <field name="ca_diff_type" optional="show"/>
             </xpath>
             <xpath expr="//field[@name='price']" position="after">
-                <field name="x_studio_origine" optional="show"/>
+                <field name="ca_diff_origine" optional="show"/>
             </xpath>
         </field>
     </record>

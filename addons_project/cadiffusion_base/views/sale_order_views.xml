@@ -8,15 +8,15 @@
         <field name="inherit_id" ref="sale.view_order_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='partner_id']" position="before">
-                <field name="x_studio_n_client" string="N# Client" readonly="1"/>
+                <field name="ca_diff_n_client" string="N# Client" readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='partner_id']" position="attributes">
                 <attribute name="string">Partenaire</attribute>
                 <attribute name="domain">[('is_company', '=', True)]</attribute>
             </xpath>
             <xpath expr="//field[@name='partner_shipping_id']" position="after">
-                <field name="x_studio_siret" string="SIRET"/>
-                <field name="x_studio_etiquettes" widget="many2many_tags" string="Etiquette"/>
+                <field name="ca_diff_siret" string="SIRET"/>
+                <field name="ca_diff_etiquettes" widget="many2many_tags" string="Etiquette"/>
                 <xpath expr="//field[@name='client_order_ref']" position="move"/>
             </xpath>
             <xpath expr="//field[@name='client_order_ref']" position="attributes">
@@ -27,10 +27,10 @@
                 <xpath expr="//field[@name='commitment_date']" position="move"/>
             </xpath>
             <xpath expr="//field[@name='payment_term_id']" position="after">
-                <field name="x_studio_code_service_chorus" string="Code Service Chorus" readonly="1"/>
+                <field name="ca_diff_code_service_chorus" string="Code Service Chorus" readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='origin']" position="after">
-                <field name="x_studio_categorie_client" string="Categorie Client"/>
+                <field name="ca_diff_categorie_client" string="Categorie Client"/>
             </xpath>
             <!-- Order lines: reorder product_id after sequence -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='sequence']" position="after">
@@ -71,12 +71,12 @@
             </xpath>
             <!-- After price_subtotal: add marge and date_souhaite -->
             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='order_lines']/field[@name='order_line']/list[1]/field[@name='price_subtotal']" position="after">
-                <field name="x_studio_marge" string="Marge" widget="percentage" readonly="1"/>
-                <field name="x_studio_date_souhaite" string="Date_souhaite" column_invisible="1"/>
+                <field name="ca_diff_marge" string="Marge" widget="percentage" readonly="1"/>
+                <field name="ca_diff_date_souhaite" string="Date_souhaite" column_invisible="1"/>
             </xpath>
             <!-- Add availability in order_line list after name -->
             <xpath expr="//field[@name='order_line']/list//field[@name='name']" position="after">
-                <field optional="show" name="x_studio_availability" string="Availability"/>
+                <field optional="show" name="ca_diff_availability" string="Availability"/>
                 <!-- Colis / Nb Carton : équivalents v19 de product_packaging_id /
                      product_packaging_qty (supprimés en 19). Le colis est
                      choisi parmi les UDM du produit (pré-rempli avec le plus
@@ -93,12 +93,12 @@
             <xpath expr="//form[1]/sheet[1]/notebook[1]" position="after">
                 <group name="studio_group_ITLU3">
                     <group name="studio_group_ITLU3_left" string="Instructions Livraison">
-                        <field name="x_studio_livraison" string="Livraison"/>
+                        <field name="ca_diff_livraison" string="Livraison"/>
                     </group>
                 </group>
                 <group name="studio_group_A4nyl">
                     <group name="studio_group_A4nyl_left" string="Instructions Commande">
-                        <field name="x_studio_notes_commande" string="Notes commande"/>
+                        <field name="ca_diff_notes_commande" string="Notes commande"/>
                     </group>
                 </group>
             </xpath>
@@ -106,20 +106,20 @@
             <xpath expr="/form[1]/sheet[1]/group[1]" position="after">
                 <group name="studio_group_QcIex">
                     <group name="studio_group_QcIex_left" string="Notes Client">
-                        <field name="x_studio_notes_internes" string="Notes internes"/>
+                        <field name="ca_diff_notes_internes" string="Notes internes"/>
                     </group>
                 </group>
             </xpath>
             <!-- Assurance BC after field[8] in first left group -->
             <xpath expr="/form[1]/sheet[1]/group[1]/group[1]/field[8]" position="after">
-                <field name="x_studio_assurance_bc"/>
+                <field name="ca_diff_assurance_bc"/>
             </xpath>
             <xpath expr="/form[1]/sheet[1]/group[1]/group[1]/field[9]" position="attributes">
                 <attribute name="string">Assurance</attribute>
             </xpath>
             <!-- Prospect after client_order_ref (not ancestor of field) -->
             <xpath expr="//field[@name='client_order_ref'][not(ancestor::field)]" position="after">
-                <field name="x_studio_prospect" string="Prospect"/>
+                <field name="ca_diff_prospect" string="Prospect"/>
             </xpath>
         </field>
     </record>
@@ -131,7 +131,7 @@
         <field name="inherit_id" ref="sale.sale_order_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='expected_date']" position="replace">
-                <field name="x_studio_n_client"/>
+                <field name="ca_diff_n_client"/>
             </xpath>
             <xpath expr="//list[1]/field[@name='name']" position="after">
                 <field name="client_order_ref"/>
@@ -192,15 +192,15 @@
         <field name="inherit_id" ref="sale.view_order_line_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='order_id']" position="before">
-                <field name="x_studio_date_livraison" string="Date Livraison" widget="date"/>
+                <field name="ca_diff_date_livraison" string="Date Livraison" widget="date"/>
                 <field name="scheduled_date" optional="show"/>
             </xpath>
             <xpath expr="//field[@name='order_id']" position="after">
-                <field name="x_studio_n_commande" string="N# Commande"/>
+                <field name="ca_diff_n_commande" string="N# Commande"/>
             </xpath>
             <xpath expr="//field[@name='order_partner_id']" position="after">
-                <field name="x_studio_rfrence" string="Référence"/>
-                <field name="x_studio_article_cmd" optional="show"/>
+                <field name="ca_diff_rfrence" string="Référence"/>
+                <field name="ca_diff_article_cmd" optional="show"/>
             </xpath>
             <xpath expr="//list[1]/field[@name='name']" position="attributes">
                 <attribute name="column_invisible">1</attribute>
@@ -213,7 +213,7 @@
             </xpath>
             <xpath expr="//field[@name='qty_to_invoice']" position="after">
                 <field name="price_reduce_taxexcl" string="Prix Unit"/>
-                <field name="x_studio_marge" widget="percentage"/>
+                <field name="ca_diff_marge" widget="percentage"/>
             </xpath>
             <xpath expr="//field[@name='product_uom_id']" position="attributes">
                 <attribute name="column_invisible">1</attribute>
@@ -232,7 +232,7 @@
                 <filter domain="[['order_partner_id.tender_ids.name','ilike','RESAH NORMANDIE']]" name="studio_filter_uniha" string="UNIHA"/>
             </xpath>
             <xpath expr="//filter[@name='my_sales_order_lines']" position="after">
-                <field name="x_studio_n_commande"/>
+                <field name="ca_diff_n_commande"/>
             </xpath>
             <xpath expr="//filter[@name='salesperson']" position="after">
                 <filter context="{'group_by': 'order_partner_id'}" name="studio_group_by_customer" string="Customer"/>
