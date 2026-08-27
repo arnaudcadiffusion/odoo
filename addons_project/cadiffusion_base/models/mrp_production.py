@@ -12,32 +12,32 @@ class MrpProduction(models.Model):
     # s'appellent « SACHET DE 20 » en anglais mais « CARTON DE 20 » en
     # français — un Char figé au calcul (migration sans langue) affichait le
     # libellé anglais aux utilisateurs francophones.
-    ca_diff_conditionnement = fields.Many2one(
+    x_studio_conditionnement = fields.Many2one(
         'uom.uom',
         string='Conditionnement',
-        compute='_compute_ca_diff_conditionnement',
+        compute='_compute_x_studio_conditionnement',
         store=True,
         readonly=False,
         precompute=True,
     )
 
     @api.depends('product_id.product_tmpl_id.uom_ids')
-    def _compute_ca_diff_conditionnement(self):
+    def _compute_x_studio_conditionnement(self):
         for production in self:
             template = production.product_id.product_tmpl_id
-            production.ca_diff_conditionnement = (
+            production.x_studio_conditionnement = (
                 template._cadiffusion_carton_uom() if template else False)
 
-    ca_diff_impression_mo = fields.Boolean(
+    x_studio_impression_mo = fields.Boolean(
         string='Impression MO',
         default=False,
         copy=False,
         tracking=True,
     )
-    ca_diff_notes = fields.Text(
+    x_studio_notes = fields.Text(
         string='Notes',
     )
-    ca_diff_preparateur_kit = fields.Selection(
+    x_studio_preparateur_kit = fields.Selection(
         selection=[
             ('SABINE', 'SABINE'),
             ('ZAHIA', 'ZAHIA'),

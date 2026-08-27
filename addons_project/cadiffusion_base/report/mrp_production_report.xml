@@ -5,9 +5,9 @@
          displayed right below the product, above the components table. -->
     <template id="report_mrporder_conditionnement" inherit_id="mrp.report_mrporder">
         <xpath expr="//div[@t-if='o.move_raw_ids']" position="before">
-            <div class="row mt32 mb32" t-if="o.ca_diff_conditionnement">
+            <div class="row mt32 mb32" t-if="o.x_studio_conditionnement">
                 <div class="col-12">
-                    <span t-field="o.ca_diff_conditionnement">Carton de 12</span>
+                    <span t-field="o.x_studio_conditionnement">Carton de 12</span>
                 </div>
             </div>
         </xpath>

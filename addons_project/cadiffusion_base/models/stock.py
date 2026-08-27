@@ -4,31 +4,31 @@ from odoo import api, fields, models
 class StockMove(models.Model):
     _inherit = 'stock.move'
 
-    ca_diff_date_prvu = fields.Datetime(
+    x_studio_date_prvu = fields.Datetime(
         string='Date prévue',
         related='picking_id.scheduled_date',
         store=True,
         readonly=True,
     )
-    ca_diff_date_transfert = fields.Datetime(
+    x_studio_date_transfert = fields.Datetime(
         string='Date transfert',
         related='move_line_ids.date',
         store=True,
         readonly=True,
     )
-    ca_diff_partenaire = fields.Char(
+    x_studio_partenaire = fields.Char(
         string='Partenaire',
         related='picking_id.partner_id.commercial_partner_id.name',
         store=True,
         readonly=True,
     )
-    ca_diff_prix_remise = fields.Float(
+    x_studio_prix_remise = fields.Float(
         string='Prix Remise',
-        compute='_compute_ca_diff_prix_remise',
+        compute='_compute_x_studio_prix_remise',
         store=True,
     )
-    ca_diff_char_field_U2Qbo = fields.Char(string='New Texte')
-    ca_diff_field_x143A = fields.Date(string='New Date')
+    x_studio_char_field_U2Qbo = fields.Char(string='New Texte')
+    x_studio_field_x143A = fields.Date(string='New Date')
 
     # ------------------------------------------------------------------
     # Colonne « Conditionnement » des opérations de transfert.
@@ -57,14 +57,14 @@ class StockMove(models.Model):
                 move.packaging_uom_id = carton
 
     @api.depends('sale_line_id.price_reduce_taxexcl')
-    def _compute_ca_diff_prix_remise(self):
+    def _compute_x_studio_prix_remise(self):
         for rec in self:
-            rec.ca_diff_prix_remise = rec.sale_line_id.price_reduce_taxexcl or 0.0
+            rec.x_studio_prix_remise = rec.sale_line_id.price_reduce_taxexcl or 0.0
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    ca_diff_transport = fields.Selection(
+    x_studio_transport = fields.Selection(
         selection=[
             ('XPO', 'XPO P'),
             ('XPO KG', 'XPO KG'),
@@ -83,68 +83,68 @@ class StockPicking(models.Model):
         string='Transport',
         copy=False,
     )
-    ca_diff_nb_palette = fields.Integer(string='Nb Palette', default=0, copy=False)
-    ca_diff_nb_palette_euro = fields.Integer(string='Nb Palette EURO', default=0, copy=False)
-    ca_diff_dpd_nb_colis = fields.Integer(string='Nb Etiquette DPD', default=0, copy=False)
-    ca_diff_cout_transport = fields.Float(string='Cout Transport', copy=False)
-    ca_diff_nb_bl_groupe = fields.Integer(string='Nb BL groupe', default=0, copy=False)
-    ca_diff_bl_groupe = fields.Boolean(string='BL groupe', default=False, copy=False)
-    ca_diff_id_bl_groupe = fields.Text(string='ID BL groupe', copy=False)
-    ca_diff_impression_bl = fields.Boolean(
+    x_studio_nb_palette = fields.Integer(string='Nb Palette', default=0, copy=False)
+    x_studio_nb_palette_euro = fields.Integer(string='Nb Palette EURO', default=0, copy=False)
+    x_studio_dpd_nb_colis = fields.Integer(string='Nb Etiquette DPD', default=0, copy=False)
+    x_studio_cout_transport = fields.Float(string='Cout Transport', copy=False)
+    x_studio_nb_bl_groupe = fields.Integer(string='Nb BL groupe', default=0, copy=False)
+    x_studio_bl_groupe = fields.Boolean(string='BL groupe', default=False, copy=False)
+    x_studio_id_bl_groupe = fields.Text(string='ID BL groupe', copy=False)
+    x_studio_impression_bl = fields.Boolean(
         string='Impression BL',
         default=False,
         copy=False,
         tracking=True,
     )
-    ca_diff_erreur_client = fields.Boolean(string='Erreur Client', default=False)
-    ca_diff_erreur_preparation = fields.Boolean(string='Erreur Preparation', default=False, copy=False)
-    ca_diff_erreur_saisie = fields.Boolean(string='Erreur Saisie', default=False)
-    ca_diff_autres = fields.Boolean(string='Autres', default=False)
-    ca_diff_notes_erreur = fields.Text(string='Notes Erreur')
-    ca_diff_notes_internes = fields.Text(
+    x_studio_erreur_client = fields.Boolean(string='Erreur Client', default=False)
+    x_studio_erreur_preparation = fields.Boolean(string='Erreur Preparation', default=False, copy=False)
+    x_studio_erreur_saisie = fields.Boolean(string='Erreur Saisie', default=False)
+    x_studio_autres = fields.Boolean(string='Autres', default=False)
+    x_studio_notes_erreur = fields.Text(string='Notes Erreur')
+    x_studio_notes_internes = fields.Text(
         string='Notes Internes',
-        related='sale_id.partner_shipping_id.ca_diff_notes_internes',
+        related='sale_id.partner_shipping_id.x_studio_notes_internes',
         store=True,
         readonly=True,
     )
-    ca_diff_livraison = fields.Html(
+    x_studio_livraison = fields.Html(
         string='Instruction livraison',
         related='sale_id.partner_shipping_id.comment',
         store=True,
     )
-    ca_diff_n_commande = fields.Char(
+    x_studio_n_commande = fields.Char(
         string='N# Commande',
         related='sale_id.client_order_ref',
         store=True,
     )
-    ca_diff_n_partenaire = fields.Char(
+    x_studio_n_partenaire = fields.Char(
         string='N# Partenaire',
         related='partner_id.ref',
         store=True,
     )
-    ca_diff_cre_par = fields.Char(
+    x_studio_cre_par = fields.Char(
         string='Créé par',
         related='sale_id.create_uid.name',
         store=True,
     )
-    ca_diff_field_GzsJK = fields.Char(
+    x_studio_field_GzsJK = fields.Char(
         string='Créé par (utilisateur)',
         related='create_uid.name',
         store=True,
     )
-    ca_diff_field_p3dnG = fields.Char(
+    x_studio_field_p3dnG = fields.Char(
         string='Réf. fournisseur',
         related='purchase_id.partner_ref',
         store=True,
         readonly=True,
     )
-    ca_diff_mode_livraison_xpo = fields.Selection(
+    x_studio_mode_livraison_xpo = fields.Selection(
         string='Mode Livraison XPO',
-        related='partner_id.ca_diff_livraison_xpo',
+        related='partner_id.x_studio_livraison_xpo',
         store=True,
         readonly=True,
     )
-    ca_diff_prparateur = fields.Selection(
+    x_studio_prparateur = fields.Selection(
         selection=[
             ('CYRIL', 'CYRIL'),
             ('MANUEL', 'MANUEL'),
@@ -159,17 +159,17 @@ class StockPicking(models.Model):
         string='Préparateur',
         copy=False,
     )
-    ca_diff_premium_xpo = fields.Boolean(string='Premium XPO', default=False, copy=False)
+    x_studio_premium_xpo = fields.Boolean(string='Premium XPO', default=False, copy=False)
 
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
-    ca_diff_ref_article = fields.Char(
+    x_studio_ref_article = fields.Char(
         string='Ref Article',
         related='product_id.default_code',
         store=True,
     )
-    ca_diff_substitution = fields.Char(
+    x_studio_substitution = fields.Char(
         string='Substitution',
     )

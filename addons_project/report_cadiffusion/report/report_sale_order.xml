@@ -23,7 +23,7 @@
             <div class="row mt32 mb32" id="informations">
                 <div class="col-3 mr32">
                     <strong>N# Client:</strong><br/>
-                    <span t-field="doc.ca_diff_n_client"/>
+                    <span t-field="doc.x_studio_n_client"/>
                 </div>
                 <div class="col-3 mr32">
                     <strong>Date de commande:</strong><br/>

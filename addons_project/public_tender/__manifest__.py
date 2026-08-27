@@ -1,7 +1,7 @@
 {
     "name": "Tender Order",
     "summary": "Public Tender Management",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.0.2",
     "description": """
         Manage public tenders integrated with sales orders.
     """,
