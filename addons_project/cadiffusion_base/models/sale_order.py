@@ -223,6 +223,16 @@ class SaleOrderLine(models.Model):
                 qty = pieces
             line.product_uom_qty = qty
 
+    @api.onchange('nb_carton')
+    def _onchange_nb_carton(self):
+        """Push the carton count into the quantity while the user is still
+        editing the form. The web client's ``onchange`` never runs inverse
+        methods: on a new line the inverse only ran inside ``create()``,
+        where precomputed fields (``price_subtotal``...) are protected against
+        recomputation, so the subtotal stayed computed on the default
+        quantity of 1 (45 × CARTON DE 2000 → 0.02 € instead of 1 449 €)."""
+        self._inverse_nb_carton()
+
     def _cadiffusion_price_per_piece(self):
         """Prix unitaire par pièce, remise déduite.
 
