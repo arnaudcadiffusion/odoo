@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="ca_diffusion_preparer_view_list" model="ir.ui.view">
+        <field name="name">ca.diffusion.preparer.view.list</field>
+        <field name="model">ca.diffusion.preparer</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="list_type"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="ca_diffusion_preparer_view_search" model="ir.ui.view">
+        <field name="name">ca.diffusion.preparer.view.search</field>
+        <field name="model">ca.diffusion.preparer</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter string="Archived" name="inactive"
+                        domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="List" name="group_list_type"
+                        context="{'group_by': 'list_type'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="ca_diffusion_preparer_action" model="ir.actions.act_window">
+        <field name="name">Preparers</field>
+        <field name="res_model">ca.diffusion.preparer</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_group_list_type': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add a preparer
+            </p>
+            <p>
+                These names feed the Préparateur field of transfers
+                ("Transfers" list) and the Preparateur_Kit field of
+                manufacturing orders ("Kits" list).
+                Renaming an entry updates the records carrying it;
+                archiving an entry stops offering it without touching
+                the history.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="ca_diffusion_preparer_menu"
+              name="Preparers"
+              parent="stock.menu_stock_config_settings"
+              action="ca_diffusion_preparer_action"
+              groups="stock.group_stock_manager"
+              sequence="90"/>
+
+</odoo>

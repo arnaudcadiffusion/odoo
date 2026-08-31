@@ -1,6 +1,6 @@
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.29',
+    'version': '19.0.1.0.30',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -42,6 +42,7 @@
         'data/core_view_activation.xml',
         'views/account_move_views.xml',
         'views/mrp_production_views.xml',
+        'views/preparer_views.xml',
         'views/product_views.xml',
         'views/purchase_order_views.xml',
         'views/res_partner_views.xml',

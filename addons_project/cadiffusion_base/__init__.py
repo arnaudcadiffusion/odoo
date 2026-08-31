@@ -66,6 +66,8 @@ def post_init_hook(env):
     # ci-dessous lisent les noms des sources et doivent trouver la donnée.
     _repair_orphan_field_rename_data(cr)
     _assert_field_rename_integrity(cr)
+    # Preparateur lists: seeded before any ORM write in this hook.
+    env['ca.diffusion.preparer']._seed_lists()
     _migrate_19_0_1_0_1(cr)
     _migrate_19_0_1_0_2(cr)
     _migrate_19_0_1_0_3(cr)
