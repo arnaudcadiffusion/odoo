@@ -37,17 +37,19 @@ class MrpProduction(models.Model):
     x_studio_notes = fields.Text(
         string='Notes',
     )
+    # Choices live in ca.diffusion.preparer, list "Kits" — see
+    # x_studio_prparateur (stock.py) for the why and the guarantees.
     x_studio_preparateur_kit = fields.Selection(
-        selection=[
-            ('SABINE', 'SABINE'),
-            ('ZAHIA', 'ZAHIA'),
-            ('CYRIL', 'CYRIL'),
-            ('MANUEL', 'MANUEL'),
-            ('AUTRE', 'AUTRE'),
-        ],
+        selection=lambda self: self.env['ca.diffusion.preparer']
+            ._selection_for('kit'),
         string='Preparateur_Kit',
         copy=False,
     )
+
+    @api.constrains('x_studio_preparateur_kit')
+    def _check_x_studio_preparateur_kit(self):
+        self.env['ca.diffusion.preparer']._check_field_values(
+            self, 'x_studio_preparateur_kit', 'kit')
 
     def action_open_project(self):
         return True

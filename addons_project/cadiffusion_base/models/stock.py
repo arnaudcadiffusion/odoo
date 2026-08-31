@@ -144,22 +144,21 @@ class StockPicking(models.Model):
         store=True,
         readonly=True,
     )
+    # Choices managed by the users in ca.diffusion.preparer
+    # (Inventory → Configuration → Preparers): the hardcoded list
+    # inherited from the v15 dump drifted from production (blank tab).
     x_studio_prparateur = fields.Selection(
-        selection=[
-            ('CYRIL', 'CYRIL'),
-            ('MANUEL', 'MANUEL'),
-            ('ZAHIA', 'ZAHIA'),
-            ('SABINE', 'SABINE'),
-            ('DAVID', 'DAVID'),
-            ('FLORIAN', 'FLORIAN'),
-            ('INTERIM', 'INTERIM'),
-            ('PASCAL', 'PASCAL'),
-            ('ANCIEN SALARIE', 'ANCIEN SALARIE'),
-        ],
+        selection=lambda self: self.env['ca.diffusion.preparer']
+            ._selection_for('transfer'),
         string='Préparateur',
         copy=False,
     )
     x_studio_premium_xpo = fields.Boolean(string='Premium XPO', default=False, copy=False)
+
+    @api.constrains('x_studio_prparateur')
+    def _check_x_studio_prparateur(self):
+        self.env['ca.diffusion.preparer']._check_field_values(
+            self, 'x_studio_prparateur', 'transfer')
 
 
 class StockMoveLine(models.Model):
