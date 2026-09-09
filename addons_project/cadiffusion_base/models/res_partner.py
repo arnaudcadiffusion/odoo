@@ -91,7 +91,7 @@ class ResPartner(models.Model):
         string='Livraison XPO',
     )
     x_studio_code_service_chorus = fields.Char(string='Code Service Chorus')
-    x_studio_assurance = fields.Char(string='Credit Safe')
+    x_studio_assurance = fields.Char(string='Credit Safe', tracking=True)
     x_studio_notes_internes = fields.Text(string='Notes Internes')
     x_studio_prospect = fields.Boolean(string='Prospect', default=False)
     x_studio_adresse_echantillon = fields.Boolean(string='Adresse Echantillon', default=False)
