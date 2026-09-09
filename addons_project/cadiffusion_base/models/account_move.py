@@ -96,7 +96,9 @@ class AccountMove(models.Model):
         lines that share the same done ``stock.picking``.
 
         Called from ``sale.order._create_invoices`` so the data is materialised
-        once at invoice creation. Each section is named ``BL : <picking.name>``.
+        once at invoice creation. Each section is named ``BL : <picking.name>``,
+        suffixed with `` - <client_order_ref>`` when the picking's sale order
+        carries a customer reference.
 
         Sequence trick: existing line sequences are multiplied by 10, then each
         section is inserted at ``(first_product_of_group.sequence) - 5`` — i.e.
@@ -108,17 +110,25 @@ class AccountMove(models.Model):
         if not product_lines:
             return
 
-        # Resolve picking name per line in a single batched read.
+        # Resolve picking name and customer reference per line in a single
+        # batched read.
         product_lines.mapped('sale_line_ids.move_ids.picking_id.state')
         picking_by_line = {}
+        client_ref_by_picking = {}
         for line in product_lines:
             if not line.sale_line_ids:
                 picking_by_line[line.id] = ''
                 continue
-            done_pickings = line.sale_line_ids.move_ids.picking_id.filtered(
+            done_picking = line.sale_line_ids.move_ids.picking_id.filtered(
                 lambda p: p.state == 'done'
-            )
-            picking_by_line[line.id] = done_pickings[:1].name or ''
+            )[:1]
+            picking_by_line[line.id] = done_picking.name or ''
+            if done_picking and done_picking.name not in client_ref_by_picking:
+                client_ref_by_picking[done_picking.name] = (
+                    done_picking.sale_id.client_order_ref
+                    or line.sale_line_ids.order_id[:1].client_order_ref
+                    or ''
+                )
 
         # Detect picking changes BEFORE we touch sequences.
         sections_specs = []  # list of (anchor_line_id, picking_name)
@@ -139,8 +149,12 @@ class AccountMove(models.Model):
         sections_to_create = []
         for anchor_id, picking_name in sections_specs:
             anchor = self.invoice_line_ids.browse(anchor_id)
+            section_name = 'BL : %s' % picking_name
+            client_ref = client_ref_by_picking.get(picking_name)
+            if client_ref:
+                section_name = '%s - %s' % (section_name, client_ref)
             sections_to_create.append({
-                'name': 'BL : %s' % picking_name,
+                'name': section_name,
                 'display_type': 'line_section',
                 'move_id': self.id,
                 'sequence': max(anchor.sequence - 5, 1),
