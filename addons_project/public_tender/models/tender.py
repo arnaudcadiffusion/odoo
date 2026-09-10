@@ -2,7 +2,7 @@ from odoo import fields, models, _
 
 
 class Tender(models.Model):
-    _inherit = 'mail.thread'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _name = 'tender.order'
     _description = 'Tender Order'
 
