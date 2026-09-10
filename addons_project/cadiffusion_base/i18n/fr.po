@@ -1,0 +1,108 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* cadiffusion_base
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: cadiffusion_base
+#: code:addons/cadiffusion_base/models/ca_diffusion_preparer.py:0
+msgid ""
+"\"%(name)s\" cannot be %(action)s: still used by %(usage)s. Archive it to "
+"stop offering it, or reassign the affected records first."
+msgstr ""
+"« %(name)s » ne peut pas être %(action)s : encore utilisé par %(usage)s. "
+"Archivez-le pour ne plus le proposer, ou réaffectez d'abord les "
+"enregistrements concernés."
+
+#. module: cadiffusion_base
+#: code:addons/cadiffusion_base/models/ca_diffusion_preparer.py:0
+msgid ""
+"\"%(value)s\" is not part of the preparer list (%(field)s). Add it first in "
+"Inventory → Configuration → Preparers."
+msgstr ""
+"« %(value)s » ne fait pas partie de la liste des préparateurs (%(field)s). "
+"Ajoutez-le d'abord dans Inventaire → Configuration → Préparateurs."
+
+#. module: cadiffusion_base
+#: code:addons/cadiffusion_base/models/ca_diffusion_preparer.py:0
+msgid "%s (copy)"
+msgstr "%s (copie)"
+
+#. module: cadiffusion_base
+#: model_terms:ir.actions.act_window,help:cadiffusion_base.ca_diffusion_preparer_action
+msgid "Add a preparer"
+msgstr "Ajouter un préparateur"
+
+#. module: cadiffusion_base
+#: model_terms:ir.ui.view,arch_db:cadiffusion_base.ca_diffusion_preparer_view_search
+msgid "Archived"
+msgstr "Archivés"
+
+#. module: cadiffusion_base
+#: model:ir.model.fields.selection,name:cadiffusion_base.selection__ca_diffusion_preparer__list_type__kit
+msgid "Kits"
+msgstr "Kits"
+
+#. module: cadiffusion_base
+#: model:ir.model.fields,field_description:cadiffusion_base.field_ca_diffusion_preparer__list_type
+#: model_terms:ir.ui.view,arch_db:cadiffusion_base.ca_diffusion_preparer_view_search
+msgid "List"
+msgstr "Liste"
+
+#. module: cadiffusion_base
+#: model:ir.model.fields,field_description:cadiffusion_base.field_ca_diffusion_preparer__name
+msgid "Name"
+msgstr "Nom"
+
+#. module: cadiffusion_base
+#: model:ir.model,name:cadiffusion_base.model_ca_diffusion_preparer
+msgid "Preparer (configurable list)"
+msgstr "Préparateur (liste configurable)"
+
+#. module: cadiffusion_base
+#: model:ir.actions.act_window,name:cadiffusion_base.ca_diffusion_preparer_action
+#: model:ir.ui.menu,name:cadiffusion_base.ca_diffusion_preparer_menu
+msgid "Preparers"
+msgstr "Préparateurs"
+
+#. module: cadiffusion_base
+#: model_terms:ir.actions.act_window,help:cadiffusion_base.ca_diffusion_preparer_action
+msgid ""
+"These names feed the Préparateur field of transfers (\"Transfers\" list) and"
+" the Preparateur_Kit field of manufacturing orders (\"Kits\" list). Renaming"
+" an entry updates the records carrying it; archiving an entry stops offering"
+" it without touching the history."
+msgstr ""
+"Ces noms alimentent le champ Préparateur des transferts (liste "
+"« Transferts ») et le champ Preparateur_Kit des ordres de fabrication (liste"
+" « Kits »). Renommer une entrée met à jour les enregistrements qui la "
+"portent ; archiver une entrée cesse de la proposer sans toucher à "
+"l'historique."
+
+#. module: cadiffusion_base
+#: model:ir.model.constraint,message:cadiffusion_base.constraint_ca_diffusion_preparer_name_type_uniq
+msgid "This name is already in the list."
+msgstr "Ce nom est déjà dans la liste."
+
+#. module: cadiffusion_base
+#: model:ir.model.fields.selection,name:cadiffusion_base.selection__ca_diffusion_preparer__list_type__transfer
+msgid "Transfers"
+msgstr "Transferts"
+
+#. module: cadiffusion_base
+#: code:addons/cadiffusion_base/models/ca_diffusion_preparer.py:0
+msgid "deleted"
+msgstr "supprimé"
+
+#. module: cadiffusion_base
+#: code:addons/cadiffusion_base/models/ca_diffusion_preparer.py:0
+msgid "moved to another list"
+msgstr "déplacé vers une autre liste"
