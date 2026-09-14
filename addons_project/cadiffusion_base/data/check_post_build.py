@@ -50,6 +50,7 @@ from odoo.addons.cadiffusion_base import (
     _APPLY,
     _PICKING_TYPE_BARCODES,
     _REFERENCE_SPECS,
+    _REPORT,
     _reference_diff,
     _unece_categ_for_tax_name,
 )
