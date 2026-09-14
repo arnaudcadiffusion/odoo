@@ -2,6 +2,8 @@ import logging
 import math
 from io import BytesIO
 
+from lxml import etree
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.pdf import OdooPdfFileReader, OdooPdfFileWriter
@@ -258,6 +260,41 @@ class AccountMove(models.Model):
                 invoice=self.display_name,
                 taxes=", ".join(bad_taxes.mapped("display_name"))))
         return super().generate_facturx_xml()
+
+    def _cadiffusion_company_iban_bank(self):
+        """Default IBAN bank account of the issuing company (first one by
+        sequence on the company partner), used as a fallback when the
+        credit note carries no bank account of its own."""
+        self.ensure_one()
+        return self.company_id.partner_id.bank_ids.filtered(
+            lambda bank: bank.acc_type == "iban" and bank.sanitized_acc_number
+        )[:1]
+
+    def _cii_add_trade_settlement_payment_means_block(self, trade_settlement, ns):
+        """Credit notes: Chorus Pro expects a complete PaymentMeans block
+        (TypeCode 42 + PayeePartyCreditorFinancialAccount/IBANID). Credit
+        notes sent to Chorus have no payment method (enforced by
+        l10n_fr_chorus_account) and usually no bank account, so the OCA code
+        would drop the block entirely. Fall back to the company IBAN so the
+        block never depends on a manual entry on each credit note."""
+        if self.move_type != "out_refund" or self.partner_bank_id:
+            return super()._cii_add_trade_settlement_payment_means_block(
+                trade_settlement, ns)
+        company_bank = self._cadiffusion_company_iban_bank()
+        if not company_bank:
+            _logger.warning(
+                "Avoir %s : aucun IBAN sur la société %s, bloc PaymentMeans "
+                "Factur-X omis", self.display_name,
+                self.company_id.display_name)
+            return super()._cii_add_trade_settlement_payment_means_block(
+                trade_settlement, ns)
+        payment_means = etree.SubElement(
+            trade_settlement, ns["ram"] + "SpecifiedTradeSettlementPaymentMeans")
+        etree.SubElement(payment_means, ns["ram"] + "TypeCode").text = "42"
+        creditor_account = etree.SubElement(
+            payment_means, ns["ram"] + "PayeePartyCreditorFinancialAccount")
+        etree.SubElement(creditor_account, ns["ram"] + "IBANID").text = (
+            company_bank.sanitized_acc_number)
 
     def regular_pdf_invoice_to_facturx_invoice(self, pdf_bytesio):
         """Defensive wrapper around the OCA factur-x embed call.
