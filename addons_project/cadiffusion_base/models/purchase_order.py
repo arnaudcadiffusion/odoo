@@ -35,6 +35,7 @@ class PurchaseOrder(models.Model):
             ('JIUJIANG', 'JIUJIANG'),
             ('CHITTAGONG', 'CHITTAGONG'),
             ('KLANG', 'KLANG'),
+            ('HAI PHONG', 'HAI PHONG'),
         ],
         string='POL',
     )
