@@ -1,55 +1,69 @@
 #!/usr/bin/env python3
-"""Générateur de data/field_rename_map.csv (renommage x_studio_* → ca_diff_*).
+"""Builds the tables of the Studio field rename (``x_studio_*`` -> ``cad_*``).
 
-Outil de développement — PAS chargé par Odoo (absent du manifest et des
-imports). Il lit les modèles du module avec ``ast`` (aucun import d'Odoo, donc
-exécutable hors conteneur) et écrit la table de correspondance que
-``field_rename.py`` rejoue ensuite, dans un sens comme dans l'autre :
+Development tool - NOT loaded by Odoo (not in the manifest nor imported). It
+reads the models of ``addons_project`` with ``ast`` (no Odoo import, so it runs
+outside the container), matches every declared ``x_studio_*`` field with the
+customer's decision (``data/field_decisions.csv``) and writes:
 
-    model,old_name,new_name,ttype,source
+* ``data/field_rename_map.csv`` - kept fields, under their new name::
 
-La règle de nommage est mécanique — ``x_studio_`` devient ``ca_diff_`` et le
-reste du nom est conservé tel quel, y compris les suffixes illisibles hérités
-de Studio (``x_studio_field_GzsJK`` → ``ca_diff_field_GzsJK``). Rien ici ne
-touche à la base ni aux sources : c'est le CSV produit qui fait autorité pour
-les deux opérations réversibles.
+      model,old_name,new_name,ttype,source
 
-Les deux préfixes sont reconnus, et le CSV liste toujours la paire complète.
-C'est ce qui rend le renommage praticable par lots : une fois un champ passé en
-``ca_diff_`` dans les sources, il reste décrit ici avec son ancien nom, donc le
-retour arrière et le contrôle de dérive continuent de fonctionner sur lui.
+* ``data/field_retire_map.csv`` - deleted fields, removed from the sources and
+  quarantined in the database (``studio_debris._retire_fields``)::
 
-Usage (depuis la racine du module) :
+      model,name,ttype,source
+
+``data/field_decisions.csv`` is the "Tri champs studio v15" spreadsheet agreed
+with the customer (September 2026): one row per name, ``keep`` / ``delete``
+and the target name. Names are not mechanical: two old names may converge on
+the same target on different models (``x_studio_atradius`` on res.partner and
+``x_studio_assurance_bc`` on sale.order both become ``cad_assurance``). Only
+the (model, new name) pair has to stay unique.
+
+ONE-SHOT tool: run it on sources still declaring ``x_studio_*``, BEFORE
+``data/rename_source_fields.py``. Once the sources are rewritten it has nothing
+left to read; both CSV files are then the reference, and
+``tests/test_field_rename.py`` checks that they match the sources.
+
+Usage (from the module root)::
 
     python3 data/build_field_rename_map.py
-
-À relancer après tout ajout ou retrait d'un champ ``x_studio_*`` dans
-``models/`` — ``tests/test_field_rename.py`` échoue si le CSV a dérivé.
 """
 import ast
 import csv
 import os
 
 OLD_PREFIX = 'x_studio_'
-NEW_PREFIX = 'ca_diff_'
-PREFIXES = (OLD_PREFIX, NEW_PREFIX)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MODULE_DIR = os.path.dirname(HERE)
-# Les champs Studio ne sont pas tous dans ce module : public_tender en déclare
-# six sur tender.tender, et report_cadiffusion en référence dans ses QWeb. La
-# table de correspondance couvre donc tout addons_project — un renommage
-# partiel casserait les rapports.
+# Studio fields are not all in this module: public_tender declares six on
+# tender.order and report_cadiffusion uses some in its QWeb, so the tables
+# cover the whole addons_project.
 ADDONS_DIR = os.path.dirname(MODULE_DIR)
-OUTPUT = os.path.join(HERE, 'field_rename_map.csv')
+DECISIONS = os.path.join(HERE, 'field_decisions.csv')
+RENAME_OUTPUT = os.path.join(HERE, 'field_rename_map.csv')
+RETIRE_OUTPUT = os.path.join(HERE, 'field_retire_map.csv')
+
+# Kept fields the sources do not declare yet: created with Studio in
+# production AFTER the switch to v19, they only exist in the database (manual
+# fields). The code declares them under their new name; the rename carries
+# over their ir_model_fields row and the Studio views showing them.
+DATABASE_ONLY = (
+    # Related to partner_id.credit_on_hold (bi_customer_limit), shown on the
+    # quotation form.
+    ('sale.order', 'x_studio_related_field_3a8_1k1oqd81b', 'Boolean'),
+)
 
 
 def _model_name(node):
-    """Nom du modèle porté par une classe : ``_name`` sinon ``_inherit``.
+    """Model carried by a class: ``_name``, else ``_inherit``.
 
-    ``_inherit`` peut être une chaîne ou une liste. Quand les deux sont
-    présents c'est ``_name`` qui nomme le modèle — public_tender écrit
-    ``_inherit = 'mail.thread'`` avec ``_name = 'tender.order'``.
+    ``_inherit`` may be a string or a list. When both are set ``_name`` names
+    the model - public_tender writes ``_inherit = 'mail.thread'`` with
+    ``_name = 'tender.order'``.
     """
     name = inherit = None
     for stmt in node.body:
@@ -74,7 +88,7 @@ def _model_name(node):
 
 
 def _field_type(value):
-    """``fields.Integer(...)`` → ``Integer``, sinon None si ce n'est pas un champ."""
+    """``fields.Integer(...)`` -> ``Integer``, None when it is not a field."""
     if not isinstance(value, ast.Call):
         return None
     func = value.func
@@ -92,12 +106,18 @@ def _sources():
                 yield os.path.join(dirpath, filename)
 
 
-def collect():
-    rows = []
+def declared_fields(prefix):
+    """Fields declared in addons_project whose name starts with ``prefix``.
+
+    [{'model', 'name', 'ttype', 'source'}, ...] - one row per (model, field):
+    the six tender.order fields are declared both by public_tender and by
+    cadiffusion_base/models/tender_order.py, "source" lists every file.
+    """
+    merged = {}
     for path in sorted(_sources()):
         with open(path, encoding='utf-8') as handle:
             source = handle.read()
-        if not any(prefix in source for prefix in PREFIXES):
+        if prefix not in source:
             continue
         tree = ast.parse(source, filename=path)
         for node in ast.walk(tree):
@@ -113,56 +133,72 @@ def collect():
                 if not ttype:
                     continue
                 for target in stmt.targets:
-                    if not isinstance(target, ast.Name):
+                    if not (isinstance(target, ast.Name)
+                            and target.id.startswith(prefix)):
                         continue
-                    prefix = next(
-                        (p for p in PREFIXES if target.id.startswith(p)), None)
-                    if not prefix:
-                        continue
-                    suffix = target.id[len(prefix):]
-                    rows.append({
-                        'model': model,
-                        'old_name': OLD_PREFIX + suffix,
-                        'new_name': NEW_PREFIX + suffix,
-                        'ttype': ttype,
-                        'source': os.path.relpath(path, ADDONS_DIR),
-                    })
-    # Un même champ peut être déclaré par deux modules — les six champs de
-    # tender.order le sont à la fois par public_tender et par
-    # cadiffusion_base/models/tender_order.py. Une seule ligne par (modèle,
-    # champ), les fichiers concernés listés dans « source ».
-    merged = {}
-    for row in rows:
-        key = (row['model'], row['old_name'])
-        if key in merged:
-            merged[key]['source'] += ';' + row['source']
+                    key = (model, target.id)
+                    relpath = os.path.relpath(path, ADDONS_DIR)
+                    if key in merged:
+                        merged[key]['source'] += ';' + relpath
+                    else:
+                        merged[key] = {'model': model, 'name': target.id,
+                                       'ttype': ttype, 'source': relpath}
+    return sorted(merged.values(), key=lambda row: (row['model'], row['name']))
+
+
+def load_decisions():
+    with open(DECISIONS, encoding='utf-8') as handle:
+        return {row['old_name']: row for row in csv.DictReader(handle)}
+
+
+def collect():
+    """(rows to rename, rows to retire). Raises when a declared field has no
+    decision: it would silently be left behind."""
+    decisions = load_decisions()
+    renames, retires, undecided = [], [], []
+    for field in declared_fields(OLD_PREFIX):
+        decision = decisions.get(field['name'])
+        if decision is None:
+            undecided.append('%s.%s' % (field['model'], field['name']))
+        elif decision['decision'] == 'keep':
+            renames.append({'model': field['model'], 'old_name': field['name'],
+                            'new_name': decision['new_name'],
+                            'ttype': field['ttype'], 'source': field['source']})
         else:
-            merged[key] = row
-    return sorted(merged.values(), key=lambda row: (row['model'], row['old_name']))
+            retires.append(field)
+    if undecided:
+        raise SystemExit('fields without a decision in %s: %s'
+                         % (DECISIONS, ', '.join(undecided)))
+    for model, old, ttype in DATABASE_ONLY:
+        renames.append({'model': model, 'old_name': old,
+                        'new_name': decisions[old]['new_name'],
+                        'ttype': ttype, 'source': ''})
+    renames.sort(key=lambda row: (row['model'], row['old_name']))
+    return renames, retires
 
 
 def main():
-    rows = collect()
-    # Deux anciens noms différents ne doivent jamais tomber sur le même
-    # nouveau nom : la bijection est ce qui rend le retour arrière possible.
-    collisions = sorted({
-        (row['model'], row['new_name'])
-        for row in rows
-        if sum(1 for other in rows
-               if (other['model'], other['new_name'])
-               == (row['model'], row['new_name'])) > 1
-    })
-    if collisions:
-        raise SystemExit('collision de nouveaux noms : %s' % collisions)
-    with open(OUTPUT, 'w', newline='', encoding='utf-8') as handle:
+    renames, retires = collect()
+    # Two old names of the same model must never land on the same new name:
+    # the second one would overwrite the first.
+    targets = {}
+    for row in renames:
+        key = (row['model'], row['new_name'])
+        if key in targets:
+            raise SystemExit('collision on %s.%s: %s and %s'
+                             % (key + (targets[key], row['old_name'])))
+        targets[key] = row['old_name']
+    with open(RENAME_OUTPUT, 'w', newline='', encoding='utf-8') as handle:
         writer = csv.DictWriter(
             handle, fieldnames=('model', 'old_name', 'new_name', 'ttype', 'source'))
         writer.writeheader()
-        writer.writerows(rows)
-    models = sorted({row['model'] for row in rows})
-    print('%s : %d champs sur %d modèles' % (OUTPUT, len(rows), len(models)))
-    for model in models:
-        print('  %-24s %d' % (model, sum(1 for r in rows if r['model'] == model)))
+        writer.writerows(renames)
+    with open(RETIRE_OUTPUT, 'w', newline='', encoding='utf-8') as handle:
+        writer = csv.DictWriter(handle, fieldnames=('model', 'name', 'ttype', 'source'))
+        writer.writeheader()
+        writer.writerows(retires)
+    print('%s: %d fields renamed' % (RENAME_OUTPUT, len(renames)))
+    print('%s: %d fields retired' % (RETIRE_OUTPUT, len(retires)))
 
 
 if __name__ == '__main__':

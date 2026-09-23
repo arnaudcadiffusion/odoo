@@ -13,11 +13,9 @@ from .reference_state import (  # noqa: F401
     _reference_diff,
     _reference_snapshot,
 )
-# Outillage de renommage des champs Studio (x_studio_* → ca_diff_*). Appliqué
-# en production (.27 / .28) puis défait (.29) : les sources sont revenues aux
-# noms x_studio_*. Seules la réparation et la vérification ci-dessous sont
-# encore appelées ; le renommage lui-même attend un pre-migrate qui n'existe
-# plus. Voir l'en-tête de field_rename.py.
+# Studio field rename (x_studio_* -> cad_*), applied by the pre-migrates of
+# 19.0.1.0.32 (and public_tender 19.0.1.0.3). See the header of
+# field_rename.py.
 from .field_rename import (  # noqa: F401
     _apply_field_rename,
     _assert_field_rename_integrity,
@@ -28,10 +26,12 @@ from .field_rename import (  # noqa: F401
     _rollback_field_rename_batches,
 )
 # Séquelles Studio / v15 laissées en base par la bascule : inventaire et
-# quarantaine réversible. Dormant lui aussi, appelé à la main.
+# quarantaine réversible. Also quarantines the fields the customer deleted
+# (pre-migrate 19.0.1.0.32).
 from .studio_debris import (  # noqa: F401
     _quarantine_studio_debris,
     _restore_studio_debris,
+    _retire_fields,
     _studio_debris,
     _studio_debris_status,
 )
@@ -59,15 +59,15 @@ def post_init_hook(env):
     (WHERE active = true, NOT ILIKE, IS NULL, etc.).
     """
     cr = env.cr
-    # En tout premier : sur une install fraîche à partir d'un dump renommé
-    # (rebuild Odoo.sh pris pendant que le renommage était en production),
-    # l'ORM vient de créer les colonnes x_studio_* vides. On y rapatrie les
-    # données restées en ca_diff_* AVANT tout le reste — les réparations
-    # ci-dessous lisent les noms des sources et doivent trouver la donnée.
+    # First of all: on a fresh install from a dump that predates the rename
+    # (Odoo.sh rebuild), the ORM just created empty cad_* columns. Copy the
+    # data still in the x_studio_* columns BEFORE anything else - the repairs
+    # below read the names of the sources and must find the data.
     _repair_orphan_field_rename_data(cr)
     _assert_field_rename_integrity(cr)
     # Preparateur lists: seeded before any ORM write in this hook.
     env['ca.diffusion.preparer']._seed_lists()
+    env['ca.diffusion.customer.category']._seed_lists()
     _migrate_19_0_1_0_1(cr)
     _migrate_19_0_1_0_2(cr)
     _migrate_19_0_1_0_3(cr)

@@ -1,4 +1,5 @@
 from . import test_chorus_bis3
+from . import test_customer_categories
 from . import test_field_rename
 from . import test_post_build_conformity
 from . import test_preparer_lists

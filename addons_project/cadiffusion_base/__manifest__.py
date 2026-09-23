@@ -1,6 +1,6 @@
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.31',
+    'version': '19.0.1.0.32',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -21,6 +21,8 @@
         'public_tender',
         'account_followup',
         'margin',
+        # res.partner.credit_on_hold, related by sale.order.cad_bloquer
+        'bi_customer_limit',
         'account_payment_mode',
         'account_invoice_transmit_method',
         'account_invoice_facturx',
@@ -43,6 +45,7 @@
         'views/account_move_views.xml',
         'views/mrp_production_views.xml',
         'views/preparer_views.xml',
+        'views/customer_category_views.xml',
         'views/product_views.xml',
         'views/purchase_order_views.xml',
         'views/res_partner_views.xml',

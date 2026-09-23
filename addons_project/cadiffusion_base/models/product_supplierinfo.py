@@ -4,11 +4,11 @@ from odoo import fields, models
 class ProductSupplierinfo(models.Model):
     _inherit = 'product.supplierinfo'
 
-    x_studio_franco = fields.Integer(
+    cad_franco = fields.Integer(
         string='Franco',
         default=0,
     )
-    x_studio_origine = fields.Selection(
+    cad_origine = fields.Selection(
         selection=[
             ('ALLEMAGNE', 'ALLEMAGNE'),
             ('BANGLADESH', 'BANGLADESH'),
@@ -25,7 +25,7 @@ class ProductSupplierinfo(models.Model):
         ],
         string='Origine',
     )
-    x_studio_provenance = fields.Selection(
+    cad_provenance = fields.Selection(
         selection=[
             ('ALLEMAGNE', 'ALLEMAGNE'),
             ('BELGIQUE', 'BELGIQUE'),
@@ -41,7 +41,7 @@ class ProductSupplierinfo(models.Model):
         ],
         string='Provenance',
     )
-    x_studio_type = fields.Selection(
+    cad_type_container = fields.Selection(
         selection=[
             ('Palette', 'Palette'),
             ('Euro', 'Euro'),

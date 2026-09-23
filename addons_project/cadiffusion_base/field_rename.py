@@ -1,103 +1,92 @@
-"""Renommage réversible des champs Studio : ``x_studio_*`` → ``ca_diff_*``.
+"""Reversible rename of the Studio fields: ``x_studio_*`` -> ``cad_*``.
 
-Le préfixe ``x_studio_`` est un vestige : ces champs ne sont plus des champs
-Studio, ils sont déclarés en Python dans ``addons_project/``. Les renommer est
-purement cosmétique et touche 129 champs sur 18 modèles — donc autant de
-colonnes SQL, plus tout ce qui désigne un champ **par son nom** ailleurs qu'en
-Python : filtres favoris, exports Excel enregistrés, domaines d'actions,
-arch des vues, code des actions serveur, feuilles de calcul.
+The ``x_studio_`` prefix is a leftover: these fields are no longer Studio
+fields, they are declared in Python in ``addons_project/``. Renaming them
+touches their SQL columns plus everything that names a field **by its name**
+outside Python: favourite filters, saved exports, action domains, view archs,
+server action code, spreadsheets.
 
-D'où ce module : **une seule table de correspondance** (``data/field_rename_map.csv``,
-produite par ``data/build_field_rename_map.py``) rejouée dans les deux sens, et
-un **journal en base** (``cadiffusion_field_rename``) écrit pendant l'opération
-pour que le retour arrière inverse exactement ce qui a été fait — y compris
-après un renommage partiel ou interrompu.
-
---------------------------------------------------------------------------
-Où en est-on
---------------------------------------------------------------------------
-
-Le renommage a été appliqué en production par les pre-migrates 19.0.1.0.27
-(lot transport) et 19.0.1.0.28 (le reste), plus la 19.0.1.0.1 de
-public_tender (les six champs de ``tender.order``) — puis **défait** par la
-19.0.1.0.29, qui rejoue le journal à l'envers. Les sources sont revenues aux
-noms ``x_studio_*`` ; ``SOURCE_PREFIX`` en tient le compte et donne son sens à
-la réparation des bases restaurées d'un dump renommé.
-
-L'outillage reste en place, dans les deux sens, pour le jour où la décision
-sera reprise. Aucun renommage ne se déclenche tout seul : il faut un
-pre-migrate qui appelle ``_apply_field_rename``, et il n'en existe plus.
+Hence this module: **one mapping table** (``data/field_rename_map.csv``, built
+by ``data/build_field_rename_map.py`` from the customer's decisions in
+``data/field_decisions.csv``) and a **database journal**
+(``cadiffusion_field_rename``) written during the operation, so that the
+rollback undoes exactly what was done - including after a partial or
+interrupted rename.
 
 --------------------------------------------------------------------------
-Aller — dans cet ordre, jamais l'inverse
+History
 --------------------------------------------------------------------------
 
-1. Sources (poste de dev, sur une branche dédiée) ::
+A first, mechanical rename ``x_studio_*`` -> ``ca_diff_*`` went to production
+(19.0.1.0.27 / .28, public_tender 19.0.1.0.1) and was rolled back by
+19.0.1.0.29. Its batches stay in the journal, marked as reverted.
 
-       python3 data/rename_source_fields.py            # x_studio_ → ca_diff_
-       git diff                                        # relecture
-       git commit
+The current rename follows the "Tri champs studio v15" spreadsheet agreed with
+the customer (September 2026): kept fields get an explicit ``cad_*`` name,
+deleted fields are removed from the sources and quarantined in the database
+(``studio_debris._retire_fields``, see ``data/field_retire_map.csv``). It is
+applied by the pre-migrates of cadiffusion_base 19.0.1.0.32 and public_tender
+19.0.1.0.3.
 
-2. Base, via un script de migration ``pre-migrate.py`` de la version qui
-   embarque le commit ci-dessus ::
-
-       from odoo.addons.cadiffusion_base import _apply_field_rename
-
-       def migrate(cr, version):
-           _apply_field_rename(cr)
-
-   Le pre-migrate est obligatoire : à l'``-u``, l'ORM voit des champs
-   ``ca_diff_*`` inconnus de la base et crée des colonnes VIDES à côté des
-   ``x_studio_*``, sans jamais recopier les données. Le renommage doit être
-   fait AVANT que le registre ne se recharge.
-
-3. Retourner ``SOURCE_PREFIX`` / ``STALE_PREFIX``, sans quoi la réparation
-   d'install fraîche rapatrierait la donnée dans la colonne abandonnée.
+Names are NOT mechanical: two old names may converge on the same new name on
+different models (``x_studio_atradius`` on res.partner and
+``x_studio_assurance_bc`` on sale.order both become ``cad_assurance``). A text
+substitution cannot tell which model a domain talks about, so the reverse
+substitution is ambiguous for those names: the rollback does not rely on it,
+it restores each rewritten text row from the value saved in the journal.
 
 --------------------------------------------------------------------------
-Retour — un seul déploiement, pas deux
+Forward - in this order, never the reverse
 --------------------------------------------------------------------------
 
-Le retour a la même contrainte que l'aller, en miroir : la base doit être
-défaite AVANT que le registre ne se recharge sur les anciens noms. Défaire la
-base à la main puis pousser le revert laisserait la production tourner entre
-les deux avec un code et une base désaccordés — c'est pourquoi le rollback
-voyage DANS le commit de revert, en pre-migrate (19.0.1.0.29) ::
+1. Sources::
 
-       from odoo.addons.cadiffusion_base.field_rename import (
-           _rollback_field_rename_batches)
+       python3 data/build_field_rename_map.py   # CSV tables, from decisions
+       python3 data/rename_source_fields.py     # x_studio_ -> cad_
+       git diff
 
-       def migrate(cr, version):
-           _rollback_field_rename_batches(cr)
+2. Database, from a ``pre-migrate.py`` of the version shipping the sources
+   above (``_apply_field_rename(cr)``). The pre-migrate is mandatory: on
+   ``-u`` the ORM would otherwise create EMPTY ``cad_*`` columns next to the
+   ``x_studio_*`` ones and never copy the data. A module declaring renamed
+   fields and loaded BEFORE this one needs its own pre-migrate restricted to
+   its fields (public_tender, ``only=TENDER_BATCH``).
 
-Un module qui déclare des champs renommés et se charge AVANT celui-ci a besoin
-de son propre pre-migrate, ciblé sur ses champs : sinon son ``_auto_init``
-recrée les colonnes vides avant que le rollback ne passe. C'est le cas de
-public_tender (19.0.1.0.2, ``only=TENDER_BATCH``).
-
-Le rollback lit le journal, pas la table de correspondance : il ne défait que
-ce qui a réellement été appliqué, et il est sans effet (silencieux) si rien
-n'a été renommé. Il reste possible tant que la table de journal existe, donc
-indéfiniment — contrairement à une restauration de dump, il ne perd aucune
-donnée saisie depuis le renommage.
-
-Sur une base sans journal (rebuild Odoo.sh : le module y est installé neuf,
-les migrations ne tournent pas), il n'y a rien à défaire et c'est
-``_repair_orphan_field_rename_data`` qui rapatrie la donnée du dump renommé
-vers les colonnes que l'ORM vient de créer.
+3. ``SOURCE_PREFIX`` / ``STALE_PREFIX`` follow the sources: the fresh-install
+   repair copies the data towards the columns the sources declare.
 
 --------------------------------------------------------------------------
-Ce que le renommage NE couvre pas
+Rollback - a single deployment
 --------------------------------------------------------------------------
 
-* Les intégrations extérieures qui appellent Odoo par XML-RPC / JSON-RPC avec
-  les noms techniques, et les modèles d'import Excel dont les en-têtes portent
-  ces noms. Rien en base ne les liste : à recenser à la main avant la bascule.
-* Les valeurs de suivi déjà écrites (``mail_tracking_value``) pointent le champ
-  par sa clé étrangère : elles suivent le renommage sans intervention.
-* Un champ resté ``state = 'manual'`` en base (relique Studio non reprise par
-  le code) est signalé et renommé, mais Odoo interdit à un champ manuel de ne
-  pas commencer par ``x_`` : le journal le marque pour que ce soit visible.
+Same constraint as forward, mirrored: the database must be restored BEFORE
+the registry reloads on the old names. The rollback therefore travels INSIDE
+the revert commit, as a pre-migrate calling
+``_rollback_field_rename_batches(cr)`` (as 19.0.1.0.29 did), plus the same
+call restricted to ``TENDER_BATCH`` in public_tender. Sources come back with
+``git revert`` - ``rename_source_fields.py --rollback`` cannot revert the
+converging names.
+
+The rollback reads the journal, not the mapping table: it only undoes what
+was actually applied, and does nothing (silently) when nothing was renamed.
+
+On a database without journal (Odoo.sh rebuild by full upgrade: the module is
+installed fresh, migrations do not run), there is nothing to undo and
+``_repair_orphan_field_rename_data`` copies the data of the old columns into
+the ones the ORM just created.
+
+--------------------------------------------------------------------------
+Not covered
+--------------------------------------------------------------------------
+
+* External integrations calling Odoo over XML-RPC / JSON-RPC with technical
+  names, and Excel import templates whose headers carry those names. Nothing
+  in the database lists them: to be checked by hand before the switch.
+* Tracking values (``mail_tracking_value``) point to the field by foreign
+  key: they follow the rename without any action.
+* A field still ``state = 'manual'`` in the database (Studio field the code
+  did not declare yet, e.g. ``cad_bloquer``) is renamed and flagged in the
+  journal; the code declaring it turns it into a regular field on ``-u``.
 """
 import csv
 import json
@@ -108,52 +97,21 @@ import re
 _logger = logging.getLogger(__name__)
 
 OLD_PREFIX = 'x_studio_'
-NEW_PREFIX = 'ca_diff_'
+NEW_PREFIX = 'cad_'
 
-# Préfixe sous lequel les SOURCES déclarent aujourd'hui les champs, et celui
-# qui ne peut plus subsister qu'en base. Le renommage est parti en production
-# (19.0.1.0.27 et .28) puis a été défait (19.0.1.0.29) : les sources sont
-# revenues aux noms x_studio_*, et ce sont les colonnes ca_diff_* qui ne sont
-# plus qu'un vestige sur les bases restaurées d'un dump renommé.
-#
-# C'est le SEUL endroit à retourner si le renommage repart un jour : la
-# réparation d'install fraîche et le contrôle d'intégrité en dérivent le sens
-# de la recopie, et rapatrieraient la donnée dans la mauvaise colonne si on les
-# laissait à l'envers.
-SOURCE_PREFIX = OLD_PREFIX
-STALE_PREFIX = NEW_PREFIX
+# Prefix under which the SOURCES declare the fields, and the one that can only
+# survive in the database. The fresh-install repair and the integrity check
+# derive the copy direction from them: flip them together with the sources.
+SOURCE_PREFIX = NEW_PREFIX
+STALE_PREFIX = OLD_PREFIX
 
 JOURNAL_TABLE = 'cadiffusion_field_rename'
 
-# Le renommage se fait par lots plutôt qu'en une fois : un lot se relit, se
-# vérifie et se défait ; 129 champs d'un coup, non. Chaque fonction accepte un
-# ``only`` — un ensemble d'anciens noms — qui restreint aussi bien la réécriture
-# des sources que celle de la base. Sans ``only``, tout le CSV est traité.
-#
-# Premier lot : les champs de transport et de préparation des BL et des OF,
-# ceux qui viennent de recevoir copy=False (task#17998). Ils forment un groupe
-# fonctionnel cohérent et ne sont cités par aucun script de migrations/.
-TRANSPORT_BATCH = (
-    'x_studio_transport',
-    'x_studio_nb_palette',
-    'x_studio_nb_palette_euro',
-    'x_studio_premium_xpo',
-    'x_studio_bl_groupe',
-    'x_studio_id_bl_groupe',
-    'x_studio_nb_bl_groupe',
-    'x_studio_dpd_nb_colis',
-    'x_studio_cout_transport',
-    'x_studio_erreur_preparation',
-    'x_studio_preparateur_kit',
-    'x_studio_prparateur',
-    'x_studio_impression_bl',
-    'x_studio_impression_mo',
-)
-
-# Les six champs de tender.order déclarés par public_tender. Ce module se
-# charge AVANT cadiffusion_base (qui en dépend) : ces champs doivent être
-# renommés par un pre-migrate de public_tender, sinon son _auto_init crée des
-# colonnes ca_diff_* vides avant que le script de cadiffusion_base ne passe.
+# The six tender.order fields declared by public_tender. That module loads
+# BEFORE cadiffusion_base (which depends on it): its own pre-migrate renames
+# them, otherwise its _auto_init creates empty cad_* columns before the script
+# of cadiffusion_base runs. Every function takes an ``only`` - a set of old
+# names - restricting the rename, sources and database alike.
 TENDER_BATCH = (
     'x_studio_dbut_de_march',
     'x_studio_coordinateur',
@@ -187,7 +145,7 @@ def _open_map():
 def _load_field_rename_map(only=None):
     """[(model, old_name, new_name, ttype), ...] — l'ordre du CSV fait foi.
 
-    ``only`` restreint aux anciens noms donnés (voir TRANSPORT_BATCH). Un nom
+    ``only`` restreint aux anciens noms donnés (voir TENDER_BATCH). Un nom
     inconnu du CSV est une erreur : il ne serait silencieusement pas renommé.
     """
     with _open_map() as handle:
@@ -204,20 +162,31 @@ def _load_field_rename_map(only=None):
 
 
 def _name_pairs(reverse=False, only=None):
-    """Noms distincts à substituer dans du texte, sans le modèle.
+    """Distinct names to substitute in text, regardless of the model.
 
-    Un même nom peut vivre sur plusieurs modèles (``x_studio_etiquettes_clients``
-    est sur account.move, account.payment et account.bank.statement.line) : une
-    substitution textuelle ne sait de toute façon pas de quel modèle parle un
-    domaine, et la correspondance est la même partout.
+    The same name may live on several models (``x_studio_code_service_chorus``
+    is on five): a text substitution cannot tell which model a domain talks
+    about anyway, and forward the mapping is the same everywhere.
+
+    Backwards it is not: ``cad_assurance`` comes from ``x_studio_atradius``
+    (res.partner) AND ``x_studio_assurance_bc`` (sale.order). Such converging
+    names are left out of the reverse pairs - the rollback restores the texts
+    from the journal instead (``_restore_text_rows``).
     """
-    seen = {}
+    forward = {}
     for _model, old, new, _ttype in _load_field_rename_map(only):
-        seen[new if reverse else old] = old if reverse else new
+        forward[old] = new
+    if reverse:
+        sources = {}
+        for old, new in forward.items():
+            sources.setdefault(new, set()).add(old)
+        pairs = {new: olds.pop() for new, olds in sources.items() if len(olds) == 1}
+    else:
+        pairs = forward
     # Les plus longs d'abord : une alternation regex est « leftmost-first », et
     # sans ce tri ``x_studio_transport`` pourrait être essayé avant
     # ``x_studio_transport_po``. (\b protège déjà, la ceinture est bon marché.)
-    return sorted(seen.items(), key=lambda pair: len(pair[0]), reverse=True)
+    return sorted(pairs.items(), key=lambda pair: len(pair[0]), reverse=True)
 
 
 # Un contexte d'action ou de filtre colle le nom du champ derrière une clé :
@@ -256,36 +225,34 @@ def _rename_fields_in_text(text, reverse=False, only=None):
         lambda match: (match.group(1) or '') + mapping[match.group(2)], text)
 
 
-# Les méthodes qui portent le nom du champ : ``_compute_x_studio_marge``. La
-# frontière de mot les protège de la substitution des champs (le ``_`` qui
-# précède est un caractère de mot), et ce sont des noms Python, pas des noms de
-# champs — ils ne peuvent donc apparaître qu'en source, jamais en base. Les
-# renommer en même temps évite de laisser la moitié du préfixe derrière soi.
-_HELPER_PREFIXES = ('_compute', '_inverse', '_search', '_onchange', '_default')
+# Methods carrying the field name: ``_compute_x_studio_marge``. The word
+# boundary shields them from the field substitution (the leading ``_`` is a
+# word character), and they are Python names, not field names - they only
+# appear in sources, never in the database. Renaming them together avoids
+# leaving half of the old name behind: ``_compute_x_studio_prix_remise``
+# becomes ``_compute_cad_prix_remise``.
+_HELPER_PREFIXES = ('_compute', '_inverse', '_search', '_onchange', '_default',
+                    '_check')
 _HELPER_RE = {}
 
 
 def _helper_regex(reverse=False, only=None):
     key = _cache_key(reverse, only)
     if key not in _HELPER_RE:
-        source = NEW_PREFIX if reverse else OLD_PREFIX
-        if only is None:
-            tail = r'\w+'
-        else:
-            # Restreint aux suffixes du lot : sans ça, un lot renommerait les
-            # méthodes de champs qu'il ne touche pas.
-            tail = '|'.join(
-                re.escape(old[len(OLD_PREFIX):])
-                for _m, old, _n, _t in _load_field_rename_map(only))
-        _HELPER_RE[key] = re.compile(
-            r'\b(%s)_%s(%s)\b' % ('|'.join(_HELPER_PREFIXES), source, tail))
+        pairs = _name_pairs(reverse, only)
+        _HELPER_RE[key] = (
+            re.compile(r'\b(%s)_(%s)\b'
+                       % ('|'.join(_HELPER_PREFIXES),
+                          '|'.join(re.escape(old) for old, _new in pairs))),
+            dict(pairs),
+        )
     return _HELPER_RE[key]
 
 
 def _rename_helpers_in_text(text, reverse=False, only=None):
-    target = OLD_PREFIX if reverse else NEW_PREFIX
-    return _helper_regex(reverse, only).sub(
-        lambda match: '%s_%s%s' % (match.group(1), target, match.group(2)), text)
+    pattern, mapping = _helper_regex(reverse, only)
+    return pattern.sub(
+        lambda match: '%s_%s' % (match.group(1), mapping[match.group(2)]), text)
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +266,9 @@ _SOURCE_SKIP_DIRS = ('__pycache__', '.git', 'node_modules')
 # documenter ou tester le renommage.
 _SOURCE_SKIP_FILES = (
     'field_rename_map.csv',
+    # The customer's decisions and the retired fields: old names on purpose.
+    'field_decisions.csv',
+    'field_retire_map.csv',
     'field_rename.py',
     'build_field_rename_map.py',
     'test_field_rename.py',
@@ -335,7 +305,7 @@ def _rewrite_sources(root, reverse=False, dry_run=False, only=None):
             pattern, _mapping = _text_regex(reverse, only)
             occurrences = len(pattern.findall(before))
             if filename.endswith('.py'):
-                occurrences += len(_helper_regex(reverse, only).findall(before))
+                occurrences += len(_helper_regex(reverse, only)[0].findall(before))
             touched.append((path, occurrences))
             if not dry_run:
                 with open(path, 'w', encoding='utf-8', newline='') as handle:
@@ -391,11 +361,16 @@ def _model_table(cr, model):
     return table if _table_exists(cr, table) else None
 
 
-def _rewrite_column(cr, table, column, reverse, jsonb=False, only=None):
+def _rewrite_column(cr, table, column, reverse, jsonb=False, only=None,
+                    batch=None):
     """Réécrit une colonne ligne à ligne. Retourne le nombre de lignes modifiées.
 
-    Le filtre ``LIKE`` évite de relire des tables entières : seules les lignes
-    qui portent réellement un des deux préfixes sont chargées.
+    Le filtre ``strpos`` évite de relire des tables entières : seules les lignes
+    qui portent réellement le préfixe cherché sont chargées.
+
+    With ``batch``, every rewritten row is journaled with its value before and
+    after: the rollback puts the saved value back rather than substituting
+    backwards, which the converging names make ambiguous.
     """
     # strpos plutôt que LIKE : dans un motif LIKE, « _ » est un joker, et
     # '%x_studio_%' ramènerait bien plus de lignes que voulu.
@@ -413,11 +388,17 @@ def _rewrite_column(cr, table, column, reverse, jsonb=False, only=None):
         cast = '%s::jsonb' if jsonb else '%s'
         cr.execute('UPDATE %s SET %s = %s WHERE id = %%s'
                    % (table, column, cast), (new_value, row_id))
+        if batch:
+            _journal(cr, batch=batch, direction='forward', scope='text_row',
+                     table_name=table,
+                     details=json.dumps({'column': column, 'row_id': row_id,
+                                         'jsonb': jsonb, 'before': value,
+                                         'after': new_value}))
         changed += 1
     return changed
 
 
-def _rewrite_text_targets(cr, reverse=False, only=None):
+def _rewrite_text_targets(cr, reverse=False, only=None, batch=None):
     """Passe textuelle globale. Retourne {"table.colonne": lignes modifiées}."""
     details = {}
     for table, columns, jsonb_columns in _TEXT_TARGETS:
@@ -427,10 +408,51 @@ def _rewrite_text_targets(cr, reverse=False, only=None):
             if not _column_exists(cr, table, column):
                 continue
             changed = _rewrite_column(cr, table, column, reverse,
-                                      jsonb=column in jsonb_columns, only=only)
+                                      jsonb=column in jsonb_columns, only=only,
+                                      batch=batch)
             if changed:
                 details['%s.%s' % (table, column)] = changed
     return details
+
+
+def _restore_text_rows(cr, batch):
+    """Puts back the texts a batch rewrote, from the journal. Returns
+    {"table.column": restored rows}.
+
+    A row edited since the rename (its value no longer matches the journaled
+    one) is not overwritten: the edit would be lost. It gets the reverse
+    substitution instead, which covers every name but the converging ones,
+    and is logged so it can be checked by hand.
+    """
+    cr.execute("""SELECT table_name, details FROM %s
+                   WHERE batch = %%s AND direction = 'forward'
+                     AND scope = 'text_row' AND reverted_on IS NULL
+                   ORDER BY id DESC""" % JOURNAL_TABLE, (batch,))
+    restored = {}
+    for table, row in cr.fetchall():
+        column, row_id, jsonb = row['column'], row['row_id'], row['jsonb']
+        if not (_table_exists(cr, table) and _column_exists(cr, table, column)):
+            continue
+        expression = '%s::text' % column if jsonb else column
+        cr.execute('SELECT %s FROM %s WHERE id = %%s' % (expression, table),
+                   (row_id,))
+        current = cr.fetchone()
+        if not current:
+            continue  # row deleted since: nothing to restore
+        if current[0] == row['after']:
+            value = row['before']
+        else:
+            value = _rename_fields_in_text(current[0], reverse=True)
+            _logger.warning(
+                '%s.%s id=%s edited since the rename: reverse substitution '
+                'applied, converging names (cad_assurance, cad_type_container) '
+                'to check by hand', table, column, row_id)
+        cast = '%s::jsonb' if jsonb else '%s'
+        cr.execute('UPDATE %s SET %s = %s WHERE id = %%s'
+                   % (table, column, cast), (value, row_id))
+        key = '%s.%s' % (table, column)
+        restored[key] = restored.get(key, 0) + 1
+    return restored
 
 
 # ---------------------------------------------------------------------------
@@ -510,10 +532,28 @@ def _rename_one_field(cr, model, old, new):
     cr.execute('UPDATE ir_model_fields SET name = %s WHERE id = %s', (new, field_id))
     # xmlid du champ : field_<table>__<nom>. Sans cette mise à jour, le prochain
     # chargement du module recrée un enregistrement de champ en double.
+    # Only the xmlid the ORM derives from the field name: a Studio xmlid
+    # (studio_customization, random name) is left as is, otherwise the
+    # rollback could not give it its name back.
     if table:
         cr.execute("""UPDATE ir_model_data SET name = %s
-                       WHERE model = 'ir.model.fields' AND res_id = %s""",
-                   ('field_%s__%s' % (table, new), field_id))
+                       WHERE model = 'ir.model.fields' AND res_id = %s
+                         AND name = %s""",
+                   ('field_%s__%s' % (table, new), field_id,
+                    'field_%s__%s' % (table, old)))
+    # Same for the values of a Selection field: selection__<model>__<field>__
+    # <value>. Left under the old name, _process_end would take them for
+    # orphans and unlink the ir_model_fields_selection rows.
+    xmodel = model.replace('.', '_')
+    old_prefix = 'selection__%s__%s__' % (xmodel, old)
+    cr.execute("""UPDATE ir_model_data
+                     SET name = %s || substr(name, %s)
+                   WHERE model = 'ir.model.fields.selection'
+                     AND strpos(name, %s) = 1
+                     AND res_id IN (SELECT id FROM ir_model_fields_selection
+                                     WHERE field_id = %s)""",
+               ('selection__%s__%s__' % (xmodel, new), len(old_prefix) + 1,
+                old_prefix, field_id))
 
     if state == 'manual':
         _logger.warning(
@@ -560,18 +600,18 @@ def _delegated_targets(cr, entries):
 
 
 def _apply_field_rename(cr, only=None):
-    """Renomme x_studio_* en ca_diff_* en base et journalise le lot.
+    """Renames x_studio_* to cad_* in the database and journals the batch.
 
-    ``only`` restreint l'opération à un sous-ensemble d'anciens noms — voir
-    TRANSPORT_BATCH. Seuls les champs DÉCLARÉS dans les sources sont concernés :
-    la table de correspondance est produite à partir de ``addons_project``, rien
-    n'est renommé sur la foi de ce que porte la base.
+    ``only`` restricts the operation to a subset of old names - see
+    TENDER_BATCH. Only the fields of the mapping table are concerned: fields
+    DECLARED in the sources, plus the few Studio fields created in production
+    after the switch that the code now declares (``DATABASE_ONLY`` in
+    ``data/build_field_rename_map.py``).
 
-    Idempotent : un champ déjà renommé est absent de ``ir_model_fields`` sous
-    son ancien nom, donc ignoré, et un lot entièrement rejoué ne journalise
-    rien. Appelable depuis un ``pre-migrate.py`` (voir l'en-tête du module). Le
-    retour arrière passe par ``_rollback_field_rename`` — il n'y a
-    volontairement qu'un seul chemin.
+    Idempotent: a renamed field is no longer in ``ir_model_fields`` under its
+    old name, so it is skipped, and a fully replayed batch journals nothing.
+    Called from a ``pre-migrate.py`` (see the module header). The rollback goes
+    through ``_rollback_field_rename`` - on purpose there is only one path.
     """
     _ensure_journal(cr)
     batch = _next_batch(cr)
@@ -590,7 +630,7 @@ def _apply_field_rename(cr, only=None):
         _logger.info('renommage : aucun champ à renommer (déjà fait ?)')
         return None
 
-    details = _rewrite_text_targets(cr, reverse=False, only=only)
+    details = _rewrite_text_targets(cr, reverse=False, only=only, batch=batch)
     _journal(cr, batch=batch, direction='forward', scope='text',
              details=json.dumps(details))
     _logger.info('renommage du lot %s : %d champs, %s',
@@ -622,10 +662,18 @@ def _rollback_field_rename(cr, batch=None):
     for model, current, previous in entries:
         _rename_one_field(cr, model, current, previous)
 
-    # La passe textuelle se limite aux champs que CE lot a renommés : un autre
-    # lot déjà appliqué ne doit pas être défait au passage.
-    details = _rewrite_text_targets(
-        cr, reverse=True, only={previous for _m, _c, previous in entries} or None)
+    # Texts come back from the journal when the batch saved them (every batch
+    # since the cad_ rename). The batches of the reverted ca_diff_ rename
+    # journaled counters only: for those, reverse substitution restricted to
+    # the fields of THIS batch, so that another applied batch is not undone.
+    cr.execute("""SELECT 1 FROM %s WHERE batch = %%s AND scope = 'text_row'
+                   LIMIT 1""" % JOURNAL_TABLE, (batch,))
+    if cr.fetchone():
+        details = _restore_text_rows(cr, batch)
+    else:
+        details = _rewrite_text_targets(
+            cr, reverse=True,
+            only={previous for _m, _c, previous in entries} or None)
     cr.execute('UPDATE %s SET reverted_on = now() WHERE batch = %%s' % JOURNAL_TABLE,
                (batch,))
     _journal(cr, batch=batch, direction='backward', scope='text',
@@ -681,11 +729,11 @@ def _rollback_field_rename_batches(cr, only=None):
 
 
 def _source_and_stale_columns(old, new):
-    """(colonne attendue par les sources, colonne qui n'est plus qu'un vestige).
+    """(column the sources expect, column that is only a leftover).
 
-    Dérivé de SOURCE_PREFIX : depuis le rollback de la 19.0.1.0.29 les sources
-    déclarent ``x_studio_*``, donc c'est l'ancien nom qui doit porter la donnée
-    et le nouveau qui traîne dans les dumps déjà renommés.
+    Derived from SOURCE_PREFIX: since 19.0.1.0.32 the sources declare
+    ``cad_*``, so the new name must carry the data and the old ``x_studio_*``
+    column is what a dump that was never migrated still carries.
     """
     return (old, new) if SOURCE_PREFIX == OLD_PREFIX else (new, old)
 
@@ -700,20 +748,19 @@ def _repair_orphan_field_rename_data(cr):
       INSTALLÉ neuf sur un dump de production, les scripts de migrations/ ne
       tournent pas, et l'ORM a créé la colonne attendue par les sources, vide,
       à côté de celle que porte le dump ;
-    * une base restaurée d'un dump pris pendant que le renommage était en
-      production, mise à jour après son rollback : le journal y est absent ou
-      déjà soldé, donc ``_rollback_field_rename_batches`` n'a rien à défaire.
+    * a database restored from a dump taken on the other side of the rename,
+      then updated: the journal is missing or settled there, so neither the
+      rename nor ``_rollback_field_rename_batches`` has anything to do.
 
     Ce n'est PAS un renommage (les deux colonnes existent déjà) : on recopie la
     donnée, colonne par colonne, uniquement là où la cible est entièrement
     NULL — puis on laisse l'autre colonne en place, inerte, comme trace ;
     studio_debris.py saura la recenser.
 
-    Le sens suit SOURCE_PREFIX : depuis le rollback de la 19.0.1.0.29, ce sont
-    les ``ca_diff_*`` d'un dump renommé qu'il faut rapatrier vers les
-    ``x_studio_*``. Appelée par le post_init_hook et par le post-migrate .29.
-    Sans effet quand une seule des deux colonnes existe, c'est-à-dire sur toute
-    base cohérente.
+    The direction follows SOURCE_PREFIX: since 19.0.1.0.32 the ``x_studio_*``
+    columns of a dump are copied into the ``cad_*`` ones. Called by the
+    post_init_hook and the post-migrate of 19.0.1.0.32. No effect when only
+    one of the two columns exists, that is on any consistent database.
     """
     repaired = 0
     for model, old, new, _ttype in _load_field_rename_map():
@@ -789,7 +836,7 @@ def _assert_field_rename_integrity(cr):
     anomalies = _verify_field_rename(cr)
     if anomalies:
         raise ValueError(
-            'renommage x_studio_/ca_diff_ : donnees manquantes, upgrade '
+            'renommage x_studio_/cad_ : donnees manquantes, upgrade '
             'interrompu avant commit : ' + ' ; '.join(anomalies))
     _logger.info('renommage : integrite des donnees verifiee, aucune anomalie')
 
