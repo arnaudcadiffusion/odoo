@@ -26,7 +26,7 @@ class TestCadiffusionChorusBis3(AccountTestInvoicingCommon):
         # CA Diffusion (supplier) — SIREN 384919999
         cls.company.write({
             "vat": "FR35384919999",
-            "company_registry": "38491999900029",
+            "company_registry": "38491999900027",
         })
 
         cls.fr_chorus_method = cls.env["transmit.method"].create({
@@ -80,7 +80,7 @@ class TestCadiffusionChorusBis3(AccountTestInvoicingCommon):
         # 2) PartyIdentification/ID = company_registry (SIRET), schemeID 0009, both parties.
         supplier_id = tree.find(
             "{*}AccountingSupplierParty/{*}Party/{*}PartyIdentification/{*}ID")
-        self.assertEqual(supplier_id.text, "38491999900029")
+        self.assertEqual(supplier_id.text, "38491999900027")
         self.assertEqual(supplier_id.attrib, {"schemeID": "0009"})
         customer_id = tree.find(
             "{*}AccountingCustomerParty/{*}Party/{*}PartyIdentification/{*}ID")
@@ -90,7 +90,7 @@ class TestCadiffusionChorusBis3(AccountTestInvoicingCommon):
         # 3 + 4) PartyLegalEntity/CompanyID = company_registry (SIRET), not VAT.
         supplier_legal = tree.find(
             "{*}AccountingSupplierParty/{*}Party/{*}PartyLegalEntity/{*}CompanyID")
-        self.assertEqual(supplier_legal.text, "38491999900029")
+        self.assertEqual(supplier_legal.text, "38491999900027")
         self.assertEqual(supplier_legal.attrib, {"schemeID": "0009"})
         customer_legal = tree.find(
             "{*}AccountingCustomerParty/{*}Party/{*}PartyLegalEntity/{*}CompanyID")
@@ -104,7 +104,8 @@ class TestCadiffusionChorusBis3(AccountTestInvoicingCommon):
             "vat": "FR38263100125",
             "company_registry": "26310012500016",
             "country_id": self.env.ref("base.fr").id,
-            "invoice_sending_method": "fr_chorus",
+            # No fr_chorus sending method: fr_chorus_required must trigger the
+            # corrections on its own (and the OCA post checks stay out of the way).
             "fr_chorus_required": "service",
         })
         invoice = self._make_invoice(customer, buyer_reference="SVC42")

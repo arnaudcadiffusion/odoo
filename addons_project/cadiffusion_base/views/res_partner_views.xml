@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- Sale order lines of a customer, opened by the "Vente Article" smart button
+         (replaces the Studio action that only existed in the production database) -->
+    <record id="action_partner_sale_order_lines" model="ir.actions.act_window">
+        <field name="name">Vente Article</field>
+        <field name="res_model">sale.order.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('order_partner_id', '=', active_id)]</field>
+        <field name="context">{'search_default_order_partner_id': active_id, 'default_order_partner_id': active_id}</field>
+    </record>
+
     <!-- res.partner form view -->
     <record id="view_res_partner_form_studio" model="ir.ui.view">
         <field name="name">res.partner.form.studio</field>
@@ -18,7 +28,7 @@
             </xpath>
             <!-- Smart button: Vente Article -->
             <xpath expr="//button[@name='action_open_employees']" position="after">
-                <button class="oe_stat_button" icon="fa-inbox" type="action" name="944">
+                <button class="oe_stat_button" icon="fa-inbox" type="action" name="%(action_partner_sale_order_lines)d">
                     <field name="x_order_partner_id_sale_order_line_count" string="Vente Article" widget="statinfo"/>
                 </button>
             </xpath>

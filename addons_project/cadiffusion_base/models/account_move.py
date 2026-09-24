@@ -14,6 +14,12 @@ _logger = logging.getLogger(__name__)
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
+    # Without this flag, reading the field runs ir.attachment._search on the
+    # whole attachment table (access checked in Python on every record) before
+    # joining the relation: several seconds per invoice form for non-admin users.
+    # With it, the relation is joined first and access is checked on the result.
+    chorus_attachment_ids = fields.Many2many(bypass_search_access=True)
+
     cad_code_service_chorus = fields.Char(
         string='Code Service Chorus',
         compute='_compute_cad_code_service_chorus',
