@@ -637,13 +637,15 @@ def _migrate_19_0_1_0_6(cr):
 def _migrate_19_0_1_0_7(cr):
     # Le champ x_studio_article_cmd n'existe que si Studio l'a créé en v15/v16.
     # Sur une base fresh sans Studio, la colonne n'existe pas -> NOOP.
+    # article_cmd appartient à report_cadiffusion (non déclaré en dépendance) :
+    # sans ce module, la colonne cible n'existe pas non plus -> NOOP.
     cr.execute("""
-        SELECT 1
+        SELECT count(*)
         FROM information_schema.columns
         WHERE table_name = 'sale_order_line'
-          AND column_name = 'x_studio_article_cmd'
+          AND column_name IN ('x_studio_article_cmd', 'article_cmd')
     """)
-    if not cr.fetchone():
+    if cr.fetchone()[0] < 2:
         return
 
     cr.execute("""

@@ -1,6 +1,6 @@
 {
     'name': 'CaDiffusion Base',
-    'version': '19.0.1.0.31',
+    'version': '19.0.1.0.32',
     'summary': 'Champs et vues personnalisés Cadiffusion (migration depuis Studio)',
     'category': 'Custom',
     'author': 'Cadiffusion',
@@ -31,6 +31,13 @@
         # APRÈS l10n_fr_chorus_facturx pour l'envelopper dans le MRO
         'l10n_fr_chorus_facturx',
         'l10n_fr_facturx_chorus_pro',
+        # targeted by the partner form (res_partner_views.xml): schedule_meeting,
+        # action_open_employees, peppol_response_support, nic, credit_on_hold
+        'calendar',
+        'hr',
+        'account_peppol_response',
+        'l10n_fr_siret',
+        'bi_customer_limit',
     ],
     'data': [
         # Rejeu de l'instantané de référence AVANT tout le reste : l'état
