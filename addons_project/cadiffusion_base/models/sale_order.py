@@ -1,6 +1,5 @@
-import math
-
 from odoo import api, fields, models
+from odoo.tools import float_is_zero, float_round
 
 
 class SaleOrder(models.Model):
@@ -190,33 +189,62 @@ class SaleOrderLine(models.Model):
         for line in self:
             line.carton_uom_id = line._cadiffusion_default_carton_uom()
 
+    def _cadiffusion_pieces_per_carton(self):
+        """Nombre de pièces (UDM de base) dans un carton, 0 sans colis."""
+        self.ensure_one()
+        carton_uom = self._cadiffusion_carton_uom()
+        if not carton_uom:
+            return 0.0
+        return carton_uom._compute_quantity(
+            1.0, self.product_id.uom_id, raise_if_failure=False) or 0.0
+
     @api.depends('product_id', 'product_uom_id', 'product_uom_qty',
                  'carton_uom_id')
     def _compute_nb_carton(self):
         for line in self:
-            carton_uom = line._cadiffusion_carton_uom()
-            if not carton_uom:
+            per_carton = line._cadiffusion_pieces_per_carton()
+            if not per_carton:
                 line.nb_carton = 0
                 continue
-            per_carton = carton_uom._compute_quantity(
-                1.0, line.product_id.uom_id, raise_if_failure=False)
-            qty = line._cadiffusion_pieces() / per_carton if per_carton else 0.0
             # Un carton entamé compte pour un carton entier (même convention
             # que la colonne COLIS du BL) : le nombre affiché reste rond.
-            line.nb_carton = int(math.ceil(round(qty, 2)))
+            # float_round UP plutôt que ceil(round(x, 2)) : 1 pièce d'un
+            # CARTON DE 2000 (0,0005) donnait 0 carton.
+            line.nb_carton = int(float_round(
+                line._cadiffusion_pieces() / per_carton,
+                precision_rounding=1.0, rounding_method='UP'))
+
+    @api.onchange('product_id', 'product_uom_qty', 'product_uom_id',
+                  'carton_uom_id')
+    def _onchange_round_qty_to_carton(self):
+        """Only whole cartons are sold: while the user edits the line, round
+        the quantity up to the next full carton (CARTON DE 12, 30 → 36;
+        CARTON DE 2000, 7000 → 8000; a freshly added product starts at one
+        carton instead of 1 piece). Done in an onchange, not in a compute,
+        so that quantities written by code (imports, EDI, tests) are left
+        untouched."""
+        for line in self:
+            if line.display_type or line.is_downpayment:
+                continue
+            pieces = line._cadiffusion_pieces()
+            if pieces <= 0:
+                continue
+            nb_carton = line.nb_carton
+            per_carton = line._cadiffusion_pieces_per_carton()
+            if not per_carton or float_is_zero(
+                    nb_carton * per_carton - pieces,
+                    precision_rounding=line.product_uom_id.rounding or 0.01):
+                continue
+            line._inverse_nb_carton()
 
     def _inverse_nb_carton(self):
         """Saisir un nombre de cartons met à jour la quantité de la ligne
         (2 × CARTON DE 2000 → 4000), comme product_packaging_qty en v15."""
         for line in self:
-            carton_uom = line._cadiffusion_carton_uom()
-            if not carton_uom:
-                continue
-            base_uom = line.product_id.uom_id
-            per_carton = carton_uom._compute_quantity(
-                1.0, base_uom, raise_if_failure=False)
+            per_carton = line._cadiffusion_pieces_per_carton()
             if not per_carton:
                 continue
+            base_uom = line.product_id.uom_id
             pieces = line.nb_carton * per_carton
             line_uom = line.product_uom_id
             if line_uom and base_uom and line_uom != base_uom:
