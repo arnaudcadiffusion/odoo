@@ -39,16 +39,18 @@
                 <field name="carton_uom_id" string="Colis" optional="show"/>
                 <field name="nb_carton" string="Nb Carton" optional="show"/>
             </xpath>
-            <!-- journal_div: show conditionally -->
-            <div name="journal_div" position="replace">
-                <div name="journal_div" class="d-flex" invisible="context.get('default_journal_id') and context.get('move_type', 'entry') != 'entry'">
-                    <field name="journal_id" groups="account.group_account_readonly" options="{'no_create': True}" readonly="posted_before == True"/>
-                </div>
-            </div>
+            <!-- Journal / currency header block stays native (currency rate,
+                 refresh button, show_journal switch); the journal is only
+                 restricted to accounting users, label included -->
+            <xpath expr="//label[@for='journal_id']" position="attributes">
+                <attribute name="groups">account.group_account_readonly</attribute>
+            </xpath>
+            <xpath expr="//div[@name='journal_div']/field[@name='journal_id']" position="attributes">
+                <attribute name="groups">account.group_account_readonly</attribute>
+            </xpath>
             <!-- Move payment_reference after qr_code_method -->
             <xpath expr="//field[@name='qr_code_method']" position="after">
                 <xpath expr="//field[@name='payment_reference']" position="move"/>
-                <field name="currency_id" groups="base.group_multi_currency" readonly="state != 'draft'"/>
             </xpath>
         </field>
     </record>
