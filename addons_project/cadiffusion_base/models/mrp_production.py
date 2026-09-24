@@ -12,44 +12,44 @@ class MrpProduction(models.Model):
     # s'appellent « SACHET DE 20 » en anglais mais « CARTON DE 20 » en
     # français — un Char figé au calcul (migration sans langue) affichait le
     # libellé anglais aux utilisateurs francophones.
-    x_studio_conditionnement = fields.Many2one(
+    cad_conditionnement = fields.Many2one(
         'uom.uom',
         string='Conditionnement',
-        compute='_compute_x_studio_conditionnement',
+        compute='_compute_cad_conditionnement',
         store=True,
         readonly=False,
         precompute=True,
     )
 
     @api.depends('product_id.product_tmpl_id.uom_ids')
-    def _compute_x_studio_conditionnement(self):
+    def _compute_cad_conditionnement(self):
         for production in self:
             template = production.product_id.product_tmpl_id
-            production.x_studio_conditionnement = (
+            production.cad_conditionnement = (
                 template._cadiffusion_carton_uom() if template else False)
 
-    x_studio_impression_mo = fields.Boolean(
+    cad_impression_mo = fields.Boolean(
         string='Impression MO',
         default=False,
         copy=False,
         tracking=True,
     )
-    x_studio_notes = fields.Text(
+    cad_notes = fields.Text(
         string='Notes',
     )
     # Choices live in ca.diffusion.preparer, list "Kits" — see
-    # x_studio_prparateur (stock.py) for the why and the guarantees.
-    x_studio_preparateur_kit = fields.Selection(
+    # cad_preparateur (stock.py) for the why and the guarantees.
+    cad_preparateur_kit = fields.Selection(
         selection=lambda self: self.env['ca.diffusion.preparer']
             ._selection_for('kit'),
         string='Preparateur_Kit',
         copy=False,
     )
 
-    @api.constrains('x_studio_preparateur_kit')
-    def _check_x_studio_preparateur_kit(self):
+    @api.constrains('cad_preparateur_kit')
+    def _check_cad_preparateur_kit(self):
         self.env['ca.diffusion.preparer']._check_field_values(
-            self, 'x_studio_preparateur_kit', 'kit')
+            self, 'cad_preparateur_kit', 'kit')
 
     def action_open_project(self):
         return True

@@ -11,39 +11,28 @@ from odoo.tools.pdf import OdooPdfFileReader, OdooPdfFileWriter
 _logger = logging.getLogger(__name__)
 
 
-class AccountAccount(models.Model):
-    _inherit = 'account.account'
-
-    x_studio_code_taxe = fields.Char(
-        string='Code taxe',
-        related='tax_ids.name',
-        store=True,
-        translate=False,
-    )
-
-
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    x_studio_code_service_chorus = fields.Char(
+    cad_code_service_chorus = fields.Char(
         string='Code Service Chorus',
-        compute='_compute_x_studio_code_service_chorus',
+        compute='_compute_cad_code_service_chorus',
         store=True,
         readonly=False,
     )
 
-    @api.depends('partner_id', 'partner_id.x_studio_code_service_chorus',
-                 'partner_id.parent_id.x_studio_code_service_chorus')
-    def _compute_x_studio_code_service_chorus(self):
+    @api.depends('partner_id', 'partner_id.cad_code_service_chorus',
+                 'partner_id.parent_id.cad_code_service_chorus')
+    def _compute_cad_code_service_chorus(self):
         """Take the chorus service code from the billing address (partner_id).
         Fall back to the parent partner's code if the billing contact itself
         doesn't have one — covers the case where the code is stored on the
         commercial entity rather than on the billing contact."""
         for move in self:
             partner = move.partner_id
-            move.x_studio_code_service_chorus = (
-                partner.x_studio_code_service_chorus
-                or (partner.parent_id and partner.parent_id.x_studio_code_service_chorus)
+            move.cad_code_service_chorus = (
+                partner.cad_code_service_chorus
+                or (partner.parent_id and partner.parent_id.cad_code_service_chorus)
                 or False
             )
 
@@ -59,18 +48,6 @@ class AccountMove(models.Model):
         compute='_compute_purchase_order_reference',
         store=True,
         readonly=False,
-    )
-    x_studio_etiquettes_clients = fields.Many2many(
-        'res.partner.category',
-        string='Etiquettes clients',
-        related='partner_id.category_id',
-    )
-    x_studio_field_rHWR6 = fields.Many2many(
-        'res.partner',
-        'account_move_partner_rel',
-        'move_id',
-        'partner_id',
-        string='Contact',
     )
 
     is_draft_duplicated_ref_ids = fields.Boolean(
@@ -324,18 +301,6 @@ class AccountMove(models.Model):
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
-    x_studio_cmup = fields.Float(
-        string='CMUP',
-        related='sale_line_ids.purchase_price',
-        store=True,
-        readonly=True,
-    )
-    x_studio_date = fields.Date(
-        string='Date Facture',
-        related='move_id.date',
-        store=True,
-        readonly=True,
-    )
 
     # ------------------------------------------------------------------
     # Conditionnement : affichage v15 « Colis » / « Nb Carton » de la
@@ -440,36 +405,16 @@ class AccountMoveLine(models.Model):
 class AccountPayment(models.Model):
     _inherit = 'account.payment'
 
-    x_studio_code_service_chorus = fields.Char(
+    cad_code_service_chorus = fields.Char(
         string='Code Service Chorus',
-        related='move_id.x_studio_code_service_chorus',
-    )
-    x_studio_etiquettes_clients = fields.Many2many(
-        'res.partner.category',
-        string='Etiquettes clients',
-        related='move_id.x_studio_etiquettes_clients',
-    )
-    x_studio_field_rHWR6 = fields.Many2many(
-        'res.partner',
-        string='Contact',
-        related='move_id.x_studio_field_rHWR6',
+        related='move_id.cad_code_service_chorus',
     )
 
 
 class AccountBankStatementLine(models.Model):
     _inherit = 'account.bank.statement.line'
 
-    x_studio_code_service_chorus = fields.Char(
+    cad_code_service_chorus = fields.Char(
         string='Code Service Chorus',
-        related='move_id.x_studio_code_service_chorus',
-    )
-    x_studio_etiquettes_clients = fields.Many2many(
-        'res.partner.category',
-        string='Etiquettes clients',
-        related='move_id.x_studio_etiquettes_clients',
-    )
-    x_studio_field_rHWR6 = fields.Many2many(
-        'res.partner',
-        string='Contact',
-        related='move_id.x_studio_field_rHWR6',
+        related='move_id.cad_code_service_chorus',
     )

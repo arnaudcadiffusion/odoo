@@ -6,7 +6,11 @@ from odoo.addons.cadiffusion_base import (
     _studio_debris,
     _studio_debris_status,
 )
-from odoo.addons.cadiffusion_base.studio_debris import _quarantine_name
+from odoo.addons.cadiffusion_base.studio_debris import (
+    _column_exists,
+    _quarantine_name,
+    _retire_fields,
+)
 
 
 @tagged('post_install', '-at_install')
@@ -111,6 +115,66 @@ class TestStudioDebris(TransactionCase):
              for ghost in _studio_debris(cr)['ghost_fields']},
             {(ghost['model'], ghost['name']) for ghost in ghosts})
         self.assertEqual(_studio_debris_status(cr), status_before)
+
+    def test_retire_round_trip(self):
+        """Retiring a field sets its column aside, detaches its xmlid (so the
+        end of the upgrade does not DROP it) and archives the filters naming
+        it; restoring puts everything back, data included.
+
+        Played on a dummy column of the small ca_diffusion_preparer table.
+        """
+        cr = self.env.cr
+        name = 'x_studio_test_retire'
+        cr.execute('ALTER TABLE ca_diffusion_preparer ADD COLUMN %s varchar' % name)
+        cr.execute("UPDATE ca_diffusion_preparer SET %s = 'kept'" % name)
+        cr.execute('SELECT count(*) FROM ca_diffusion_preparer')
+        rows = cr.fetchone()[0]
+        cr.execute("""INSERT INTO ir_model_fields
+                          (model, model_id, name, field_description, ttype,
+                           state, store)
+                      SELECT 'ca.diffusion.preparer', id, %s, '{"en_US": "Test"}',
+                             'char', 'base', true
+                        FROM ir_model WHERE model = 'ca.diffusion.preparer'
+                   RETURNING id""", (name,))
+        field_id = cr.fetchone()[0]
+        cr.execute("""INSERT INTO ir_model_data (module, name, model, res_id)
+                      VALUES ('cadiffusion_base', %s, 'ir.model.fields', %s)""",
+                   ('field_ca_diffusion_preparer__' + name, field_id))
+        cr.execute("""INSERT INTO ir_filters
+                          (name, model_id, domain, context, sort, active)
+                      VALUES ('TEST RETIRE', 'ca.diffusion.preparer', %s, '{}',
+                              '[]', true) RETURNING id""",
+                   ("[('%s', '!=', False)]" % name,))
+        filter_id = cr.fetchone()[0]
+
+        def xmlids():
+            cr.execute("""SELECT count(*) FROM ir_model_data
+                           WHERE model = 'ir.model.fields' AND res_id = %s""",
+                       (field_id,))
+            return cr.fetchone()[0]
+
+        def filter_active():
+            cr.execute('SELECT active FROM ir_filters WHERE id = %s', (filter_id,))
+            return cr.fetchone()[0]
+
+        batch = _retire_fields(cr, [('ca.diffusion.preparer', name)])
+        self.assertTrue(batch)
+        self.assertFalse(_column_exists(cr, 'ca_diffusion_preparer', name))
+        self.assertTrue(_column_exists(cr, 'ca_diffusion_preparer',
+                                       _quarantine_name(name)))
+        self.assertEqual(xmlids(), 0)
+        self.assertFalse(filter_active())
+        cr.execute('SELECT 1 FROM ir_model_fields WHERE id = %s', (field_id,))
+        self.assertTrue(cr.fetchone(), 'the field row must stay')
+        self.assertIsNone(_retire_fields(cr, [('ca.diffusion.preparer', name)]),
+                          'a second pass has nothing left to do')
+
+        _restore_studio_debris(cr, batch)
+        cr.execute("SELECT count(*) FROM ca_diffusion_preparer WHERE %s = 'kept'"
+                   % name)
+        self.assertEqual(cr.fetchone()[0], rows)
+        self.assertEqual(xmlids(), 1)
+        self.assertTrue(filter_active())
 
     def test_quarantine_name_refuses_truncation(self):
         """Un identifiant que PostgreSQL tronquerait est refusé, pas tronqué —

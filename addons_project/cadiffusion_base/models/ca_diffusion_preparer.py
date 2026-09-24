@@ -21,22 +21,21 @@ class CaDiffusionPreparer(models.Model):
         "This name is already in the list.")
 
     name = fields.Char(string='Name', required=True)
+    # Method-based so that a model built on this one
+    # (ca.diffusion.customer.category) can serve its own lists.
     list_type = fields.Selection(
-        selection=[
-            ('transfer', 'Transfers'),
-            ('kit', 'Kits'),
-        ],
+        selection='_selection_list_type',
         string='List',
         required=True,
-        default='transfer',
+        default=lambda self: self._selection_list_type()[0][0],
     )
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
 
     # (model, field) served by each list.
     _LIST_FIELDS = {
-        'transfer': [('stock.picking', 'x_studio_prparateur')],
-        'kit': [('mrp.production', 'x_studio_preparateur_kit')],
+        'transfer': [('stock.picking', 'cad_preparateur')],
+        'kit': [('mrp.production', 'cad_preparateur_kit')],
     }
 
     # Former hardcoded lists, to seed a database with empty columns.
@@ -45,6 +44,19 @@ class CaDiffusionPreparer(models.Model):
                       'FLORIAN', 'INTERIM', 'PASCAL', 'ANCIEN SALARIE'],
         'kit': ['SABINE', 'ZAHIA', 'CYRIL', 'MANUEL', 'AUTRE'],
     }
+
+    @api.model
+    def _selection_list_type(self):
+        return [('transfer', 'Transfers'), ('kit', 'Kits')]
+
+    @api.constrains('list_type')
+    def _check_list_type(self):
+        # A method-based Selection is not validated on write in v19.
+        allowed = dict(self._selection_list_type())
+        for record in self:
+            if record.list_type not in allowed:
+                raise ValidationError(
+                    _("Unknown list: %s", record.list_type))
 
     @api.model
     def _selection_for(self, list_type):

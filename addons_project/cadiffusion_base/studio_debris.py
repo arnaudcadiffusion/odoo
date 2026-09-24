@@ -83,13 +83,45 @@ L'ordre vis-à-vis du renommage n'a pas d'importance : les deux outils ne se
 recouvrent pas. Le renommage ne touche que ce qui est déclaré, la quarantaine
 que ce qui ne l'est plus.
 
+--------------------------------------------------------------------------
+Retired fields (19.0.1.0.32)
+--------------------------------------------------------------------------
+
+The fields the customer chose to delete ("Tri champs studio v15",
+``data/field_retire_map.csv``) are removed from the sources. Left alone, the
+next ``-u`` would have Odoo unlink their ``ir_model_fields`` rows (orphan
+xmlids, ``ir.model.data._process_end``) and DROP their columns. The
+pre-migrate of 19.0.1.0.32 calls ``_retire_fields`` first, which:
+
+* renames each stored column to ``zz_dead_<column>`` (and the relation table
+  of a stored many2many to ``zz_dead_<table>``);
+* detaches the field from its xmlids (and those of its selection values), so
+  that ``_process_end`` no longer sees it: the ``ir_model_fields`` row stays,
+  inert, with its tracking values;
+* archives the favourite filters naming a retired field - applying one would
+  raise an error in the web client;
+* strips the ``<field>`` nodes of retired fields from the active views in
+  database. During the upgrade a view is validated together with its sibling
+  inherited views, some of them not reloaded yet (or never: Studio views,
+  views removed from the XML): one stale reference fails the whole ``-u``. A
+  view using a retired field any other way (locator, ``replace`` content,
+  expression) is archived instead.
+
+Everything is journaled (kinds ``retired_field``, ``retired_filter``,
+``retired_view``) and
+undone by ``_restore_studio_debris`` like the other kinds.
+
 Les noms cités dans ce fichier sont ceux que ces objets portent EN BASE. Ils ne
 suivent pas le renommage ``x_studio_*`` → ``ca_diff_*`` — un objet que plus
 aucun code ne déclare n'a rien qui puisse le renommer — et ``field_rename.py``
 laisse donc ce fichier de côté quand il réécrit les sources.
 """
+import csv
 import json
 import logging
+import re
+
+from lxml import etree
 
 _logger = logging.getLogger(__name__)
 
@@ -273,12 +305,16 @@ def _pending_batch(cr):
 # Quarantaine
 # ---------------------------------------------------------------------------
 def _quarantine_studio_debris(cr, ghost_fields=False, orphan_columns=False,
-                              dead_tables=False):
+                              dead_tables=False, only=None):
     """Met de côté les séquelles demandées. Sans argument : ne fait rien.
 
     Chaque catégorie est explicite parce qu'elles n'ont ni le même poids ni le
     même risque : supprimer 23 lignes de métadonnées inertes n'engage rien,
     écarter 340 000 lignes de facturation v15 se décide.
+
+    ``only`` restricts ghost fields and orphan columns to the given names, so
+    that a migration only sets aside what was decided, whatever else the
+    inventory finds on that database.
     """
     if not (ghost_fields or orphan_columns or dead_tables):
         _logger.info('aucune catégorie demandée — rien à faire')
@@ -287,6 +323,12 @@ def _quarantine_studio_debris(cr, ghost_fields=False, orphan_columns=False,
     _ensure_journal(cr)
     batch = _next_batch(cr)
     debris = _studio_debris(cr)
+    if only is not None:
+        only = set(only)
+        debris['ghost_fields'] = [ghost for ghost in debris['ghost_fields']
+                                  if ghost['name'] in only]
+        debris['orphan_columns'] = [orphan for orphan in debris['orphan_columns']
+                                    if orphan['column'] in only]
     counts = {}
 
     if ghost_fields:
@@ -359,6 +401,14 @@ def _restore_studio_debris(cr, batch=None):
                        % (table, quarantined, column))
         elif kind == 'ghost_field':
             _restore_ghost_field(cr, payload)
+        elif kind == 'retired_field':
+            _restore_retired_field(cr, payload)
+        elif kind == 'retired_filter':
+            cr.execute('UPDATE ir_filters SET active = true WHERE id = %s',
+                       (payload['id'],))
+        elif kind == 'retired_view':
+            cr.execute("""UPDATE ir_ui_view SET arch_db = %s::jsonb, active = true
+                           WHERE id = %s""", (payload['arch_db'], payload['id']))
 
     cr.execute('UPDATE %s SET restored_on = now() WHERE batch = %%s' % JOURNAL_TABLE,
                (batch,))
@@ -376,6 +426,212 @@ def _restore_ghost_field(cr, payload):
     cr.execute("""INSERT INTO ir_model_fields
                   SELECT (json_populate_record(null::ir_model_fields, %s::json)).*
                   ON CONFLICT (id) DO NOTHING""", (json.dumps(field),))
+    for xmlid in payload.get('xmlids') or []:
+        cr.execute("""INSERT INTO ir_model_data
+                      SELECT (json_populate_record(null::ir_model_data, %s::json)).*
+                      ON CONFLICT (id) DO NOTHING""", (json.dumps(xmlid),))
+
+
+# ---------------------------------------------------------------------------
+# Retired fields
+# ---------------------------------------------------------------------------
+_RETIRE_MAP_FILE = 'cadiffusion_base/data/field_retire_map.csv'
+
+
+_DECISIONS_FILE = 'cadiffusion_base/data/field_decisions.csv'
+
+
+def _load_retire_map():
+    """[(model, name), ...] of the fields removed from the sources."""
+    from odoo.tools import file_open
+    with file_open(_RETIRE_MAP_FILE, 'r') as handle:
+        return [(row['model'], row['name']) for row in csv.DictReader(handle)]
+
+
+def _decided_deletions():
+    """Every name the customer chose to delete, declared or not."""
+    from odoo.tools import file_open
+    with file_open(_DECISIONS_FILE, 'r') as handle:
+        return {row['old_name'] for row in csv.DictReader(handle)
+                if row['decision'] == 'delete'}
+
+
+def _column_exists(cr, table, column):
+    cr.execute("""SELECT 1 FROM information_schema.columns
+                   WHERE table_name = %s AND column_name = %s""", (table, column))
+    return bool(cr.fetchone())
+
+
+def _retire_targets(cr, entries):
+    """The retired fields plus their delegation mirrors.
+
+    product.product mirrors every product.template field and res.users every
+    res.partner field (``_inherits``): those rows carry the same xmlid module
+    and would be unlinked by ``_process_end`` as well. They are not stored, so
+    only their xmlids are at stake.
+    """
+    targets = list(entries)
+    known = set(entries)
+    for model, name in entries:
+        cr.execute("""SELECT model FROM ir_model_fields
+                       WHERE name = %s AND model <> %s AND store IS NOT TRUE
+                         AND related LIKE %s""", (name, model, '%.' + name))
+        for (mirror,) in cr.fetchall():
+            if (mirror, name) not in known:
+                known.add((mirror, name))
+                targets.append((mirror, name))
+    return targets
+
+
+def _retire_fields(cr, entries=None):
+    """Quarantines the fields removed from the sources. Returns the batch, or
+    None when there was nothing left to retire.
+
+    Idempotent: a field whose xmlids are already detached and whose column is
+    already set aside journals nothing.
+    """
+    entries = _load_retire_map() if entries is None else list(entries)
+    _ensure_journal(cr)
+    batch = _next_batch(cr)
+    retired = 0
+    for model, name in _retire_targets(cr, entries):
+        cr.execute("""SELECT id, store, relation_table FROM ir_model_fields
+                       WHERE model = %s AND name = %s""", (model, name))
+        row = cr.fetchone()
+        if not row:
+            continue
+        field_id, stored, relation_table = row
+        payload = {'model': model, 'name': name, 'field_id': field_id,
+                   'table': None, 'column': None, 'relation_table': None,
+                   'xmlids': []}
+        table = model.replace('.', '_')
+        if stored and _table_exists(cr, table) and _column_exists(cr, table, name):
+            quarantined = _quarantine_name(name)
+            cr.execute('ALTER TABLE "%s" RENAME COLUMN "%s" TO "%s"'
+                       % (table, name, quarantined))
+            payload.update(table=table, column=quarantined)
+        if relation_table and _table_exists(cr, relation_table):
+            # Only when no other (kept) field shares the relation table.
+            cr.execute("""SELECT 1 FROM ir_model_fields
+                           WHERE relation_table = %s AND id <> %s""",
+                       (relation_table, field_id))
+            if not cr.fetchone():
+                quarantined = _quarantine_name(relation_table)
+                cr.execute('ALTER TABLE "%s" RENAME TO "%s"'
+                           % (relation_table, quarantined))
+                payload['relation_table'] = [relation_table, quarantined]
+        # xmlids of the field and of its selection values: without them,
+        # _process_end leaves the rows alone (no unlink, no DROP COLUMN).
+        cr.execute("""SELECT coalesce(json_agg(d), '[]'::json) FROM ir_model_data d
+                       WHERE (d.model = 'ir.model.fields' AND d.res_id = %s)
+                          OR (d.model = 'ir.model.fields.selection' AND d.res_id IN (
+                                SELECT id FROM ir_model_fields_selection
+                                 WHERE field_id = %s))""", (field_id, field_id))
+        payload['xmlids'] = cr.fetchone()[0]
+        if payload['xmlids']:
+            cr.execute('DELETE FROM ir_model_data WHERE id IN %s',
+                       (tuple(xmlid['id'] for xmlid in payload['xmlids']),))
+        if not (payload['column'] or payload['relation_table'] or payload['xmlids']):
+            continue  # already retired
+        _journal(cr, batch=batch, kind='retired_field',
+                 identifier='%s.%s' % (model, name),
+                 quarantined_as=payload['column'], payload=json.dumps(payload))
+        retired += 1
+
+    names = sorted({name for _model, name in entries})
+    filters = 0
+    if names:
+        pattern = r'\m(%s)\M' % '|'.join(names)
+        cr.execute("""SELECT id, name FROM ir_filters
+                       WHERE active
+                         AND concat_ws(' ', domain, context, sort) ~ %s""",
+                   (pattern,))
+        for filter_id, filter_name in cr.fetchall():
+            cr.execute('UPDATE ir_filters SET active = false WHERE id = %s',
+                       (filter_id,))
+            _journal(cr, batch=batch, kind='retired_filter',
+                     identifier=str(filter_id),
+                     payload=json.dumps({'id': filter_id, 'name': filter_name}))
+            filters += 1
+
+    stripped, archived = _retire_fields_from_views(cr, names, batch)
+
+    if not (retired or filters or stripped or archived):
+        _logger.info('field retirement: nothing to do (already done?)')
+        return None
+    _logger.info('field retirement, batch %s: %d fields, %d filters archived, '
+                 '%d views stripped, %d views archived',
+                 batch, retired, filters, stripped, archived)
+    return batch
+
+
+def _strip_field_nodes(arch, names):
+    """Removes the plain ``<field name="...">`` nodes of ``names`` from an
+    arch. Returns the new arch, or None when a name is used any other way
+    and the view has to be archived instead."""
+    root = etree.fromstring(arch.encode())
+    for node in root.xpath('//field[@name]'):
+        if node.get('name') not in names:
+            continue
+        parent = node.getparent()
+        if (node.get('position') or parent is None
+                or parent.get('position') == 'replace'):
+            return None
+        # Keep the surrounding whitespace in place.
+        previous = node.getprevious()
+        if node.tail:
+            if previous is not None:
+                previous.tail = (previous.tail or '') + node.tail
+            else:
+                parent.text = (parent.text or '') + node.tail
+        parent.remove(node)
+    result = etree.tostring(root, encoding='unicode')
+    if re.search(r'\b(%s)\b' % '|'.join(map(re.escape, names)), result):
+        return None
+    return result
+
+
+def _retire_fields_from_views(cr, names, batch):
+    """Strips the retired fields from the active views in database, or
+    archives the views that cannot be stripped. Returns (stripped, archived)."""
+    if not names:
+        return 0, 0
+    names = set(names)
+    cr.execute("""SELECT id, arch_db::text FROM ir_ui_view
+                   WHERE active AND arch_db::text ~ %s""",
+               (r'\m(%s)\M' % '|'.join(sorted(names)),))
+    stripped = archived = 0
+    for view_id, arch_text in cr.fetchall():
+        translations = json.loads(arch_text)
+        new = {}
+        for lang, arch in translations.items():
+            new[lang] = _strip_field_nodes(arch, names) if arch else arch
+            if arch and new[lang] is None:
+                new = None
+                break
+        if new is None:
+            cr.execute('UPDATE ir_ui_view SET active = false WHERE id = %s',
+                       (view_id,))
+            archived += 1
+            _logger.warning('view %s uses a retired field beyond a plain '
+                            '<field> node: archived', view_id)
+        else:
+            cr.execute('UPDATE ir_ui_view SET arch_db = %s::jsonb WHERE id = %s',
+                       (json.dumps(new), view_id))
+            stripped += 1
+        _journal(cr, batch=batch, kind='retired_view', identifier=str(view_id),
+                 payload=json.dumps({'id': view_id, 'arch_db': arch_text,
+                                     'archived': new is None}))
+    return stripped, archived
+
+
+def _restore_retired_field(cr, payload):
+    if payload.get('column'):
+        cr.execute('ALTER TABLE "%s" RENAME COLUMN "%s" TO "%s"'
+                   % (payload['table'], payload['column'], payload['name']))
+    if payload.get('relation_table'):
+        original, quarantined = payload['relation_table']
+        cr.execute('ALTER TABLE "%s" RENAME TO "%s"' % (quarantined, original))
     for xmlid in payload.get('xmlids') or []:
         cr.execute("""INSERT INTO ir_model_data
                       SELECT (json_populate_record(null::ir_model_data, %s::json)).*
