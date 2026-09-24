@@ -85,8 +85,10 @@ Not covered
 * Tracking values (``mail_tracking_value``) point to the field by foreign
   key: they follow the rename without any action.
 * A field still ``state = 'manual'`` in the database (Studio field the code
-  did not declare yet, e.g. ``cad_bloquer``) is renamed and flagged in the
-  journal; the code declaring it turns it into a regular field on ``-u``.
+  did not declare yet, e.g. ``cad_bloquer``) is renamed, switched to
+  ``state = 'base'`` in the same statement - Odoo refuses a manual field
+  without the ``x_`` prefix - and flagged in the journal (``manual_field``),
+  so that the rollback makes it manual again.
 """
 import csv
 import json
@@ -504,8 +506,11 @@ def _pending_batch(cr):
 # ---------------------------------------------------------------------------
 # Renommage d'un champ
 # ---------------------------------------------------------------------------
-def _rename_one_field(cr, model, old, new):
+def _rename_one_field(cr, model, old, new, manual=False):
     """Renomme un champ en base : colonne, ir_model_fields, xmlid.
+
+    ``manual`` is set by the rollback for a field the journal flagged as a
+    Studio field: it gets its ``state = 'manual'`` back with its ``x_`` name.
 
     Retourne le dict à journaliser, ou None si le champ est introuvable — cas
     normal quand un module n'est pas installé sur cette base.
@@ -529,7 +534,17 @@ def _rename_one_field(cr, model, old, new):
         cr.execute('ALTER TABLE "%s" RENAME COLUMN "%s" TO "%s"' % (table, old, new))
         column_renamed = True
 
-    cr.execute('UPDATE ir_model_fields SET name = %s WHERE id = %s', (new, field_id))
+    # Odoo forbids a manual field without the x_ prefix (CHECK constraint
+    # ir_model_fields_name_manual_field): a Studio field the code now declares
+    # (cad_bloquer) becomes a regular field together with its new name, as
+    # the -u would make it anyway. The rollback turns it back into a manual one.
+    new_state = state
+    if state == 'manual' and not new.startswith('x_'):
+        new_state = 'base'
+    elif manual and new.startswith('x_'):
+        new_state = 'manual'
+    cr.execute('UPDATE ir_model_fields SET name = %s, state = %s WHERE id = %s',
+               (new, new_state, field_id))
     # xmlid du champ : field_<table>__<nom>. Sans cette mise à jour, le prochain
     # chargement du module recrée un enregistrement de champ en double.
     # Only the xmlid the ORM derives from the field name: a Studio xmlid
@@ -555,11 +570,8 @@ def _rename_one_field(cr, model, old, new):
                ('selection__%s__%s__' % (xmodel, new), len(old_prefix) + 1,
                 old_prefix, field_id))
 
-    if state == 'manual':
-        _logger.warning(
-            "%s.%s est encore un champ manuel (Studio) : Odoo impose le préfixe "
-            "x_ aux champs manuels, l'édition par l'interface le refusera.",
-            model, old)
+    if new_state != state:
+        _logger.info('%s.%s -> %s: state %s -> %s', model, old, new, state, new_state)
     return {
         'model': model,
         'old_name': old,
@@ -654,13 +666,13 @@ def _rollback_field_rename(cr, batch=None):
         _logger.info('aucun lot de renommage à défaire')
         return None
 
-    cr.execute("""SELECT model, new_name, old_name FROM %s
+    cr.execute("""SELECT model, new_name, old_name, manual_field FROM %s
                    WHERE batch = %%s AND direction = 'forward' AND scope = 'field'
                      AND reverted_on IS NULL
                    ORDER BY id DESC""" % JOURNAL_TABLE, (batch,))
     entries = cr.fetchall()
-    for model, current, previous in entries:
-        _rename_one_field(cr, model, current, previous)
+    for model, current, previous, manual in entries:
+        _rename_one_field(cr, model, current, previous, manual=manual)
 
     # Texts come back from the journal when the batch saved them (every batch
     # since the cad_ rename). The batches of the reverted ca_diff_ rename
@@ -673,7 +685,7 @@ def _rollback_field_rename(cr, batch=None):
     else:
         details = _rewrite_text_targets(
             cr, reverse=True,
-            only={previous for _m, _c, previous in entries} or None)
+            only={previous for _m, _c, previous, _manual in entries} or None)
     cr.execute('UPDATE %s SET reverted_on = now() WHERE batch = %%s' % JOURNAL_TABLE,
                (batch,))
     _journal(cr, batch=batch, direction='backward', scope='text',
