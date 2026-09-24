@@ -27,10 +27,12 @@
                 <field name="carton_uom_id" string="Colis" optional="show"/>
                 <field name="nb_carton" string="Nb Carton" optional="show"/>
             </xpath>
-            <!-- journal_div: show conditionally -->
+            <!-- journal_div: journal only, the currency is shown in "Other Info"
+                 (drop its label too, or it would caption the journal) -->
+            <xpath expr="//label[@for='currency_id']" position="replace"/>
             <div name="journal_div" position="replace">
                 <div name="journal_div" class="d-flex" invisible="context.get('default_journal_id') and context.get('move_type', 'entry') != 'entry'">
-                    <field name="journal_id" groups="account.group_account_readonly" options="{'no_create': True}" readonly="posted_before == True"/>
+                    <field name="journal_id" groups="account.group_account_readonly" options="{'no_create': True}" readonly="posted_before == True" invisible="not show_journal"/>
                 </div>
             </div>
             <!-- Move payment_reference after qr_code_method -->
