@@ -1,11 +1,11 @@
 import logging
-import math
 from io import BytesIO
 
 from lxml import etree
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools import float_round
 from odoo.tools.pdf import OdooPdfFileReader, OdooPdfFileWriter
 
 _logger = logging.getLogger(__name__)
@@ -408,7 +408,10 @@ class AccountMoveLine(models.Model):
             qty = line._cadiffusion_pieces() / per_carton if per_carton else 0.0
             # Un carton entamé compte pour un carton entier (même convention
             # que la colonne COLIS du BL) : le nombre affiché reste rond.
-            line.nb_carton = int(math.ceil(round(qty, 2)))
+            # float_round UP plutôt que ceil(round(x, 2)) : 1 pièce d'un
+            # CARTON DE 2000 (0,0005) donnait 0 carton.
+            line.nb_carton = int(float_round(
+                qty, precision_rounding=1.0, rounding_method='UP'))
 
     def _cadiffusion_price_per_piece(self):
         """Return ``price_unit_reduced`` converted to the product's base UOM
