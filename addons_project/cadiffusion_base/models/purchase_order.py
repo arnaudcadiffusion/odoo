@@ -43,6 +43,7 @@ class PurchaseOrder(models.Model):
         selection=[
             ('SCAN GLOBAL', 'SCAN GLOBAL'),
             ('EUROTERMINAL', 'EUROTERMINAL'),
+            ('LVO', 'LVO'),
         ],
         string='Transitaire',
     )
