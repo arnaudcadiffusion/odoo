@@ -13,8 +13,9 @@ class ProductValue(models.Model):
     the rounded figure and the average cost drifts.
 
     Redefining the field as a Float on the "Product Price" precision keeps the
-    correction as typed. Accounting is untouched: journal items are built from
-    ``stock.move.value``, which stays a Monetary.
+    correction as typed, with at least 4 decimals (the module's post_init_hook
+    raises that precision to 4 when it is lower). Accounting is untouched:
+    journal items are built from ``stock.move.value``, which stays a Monetary.
     """
     _inherit = 'product.value'
 

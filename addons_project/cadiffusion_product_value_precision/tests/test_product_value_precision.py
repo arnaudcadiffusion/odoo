@@ -1,5 +1,7 @@
 from odoo.tests import TransactionCase, tagged
 
+from odoo.addons.cadiffusion_product_value_precision import post_init_hook
+
 
 @tagged('post_install', '-at_install')
 class TestProductValuePrecision(TransactionCase):
@@ -62,3 +64,12 @@ class TestProductValuePrecision(TransactionCase):
         # The move values that feed accounting stay rounded to the currency.
         self.assertEqual(move_in.value, 129.0)
         self.assertEqual(move_out.value, 64.5)
+
+    def test_install_hook_guarantees_four_decimals(self):
+        precision = self.env['decimal.precision'].search([('name', '=', 'Product Price')])
+        precision.digits = 2
+        post_init_hook(self.env)
+        self.assertEqual(precision.digits, 4)
+        precision.digits = 6
+        post_init_hook(self.env)
+        self.assertEqual(precision.digits, 6, "a higher precision is left untouched")
