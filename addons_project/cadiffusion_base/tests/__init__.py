@@ -6,3 +6,4 @@ from . import test_preparer_lists
 from . import test_studio_debris
 from . import test_carton_rounding
 from . import test_chorus_attachment_access
+from . import test_invoice_picking_sections
