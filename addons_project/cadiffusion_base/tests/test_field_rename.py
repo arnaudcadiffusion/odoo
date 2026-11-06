@@ -1,5 +1,6 @@
 import csv
 import importlib.util
+import json
 import os
 import re
 
@@ -9,6 +10,7 @@ from odoo.tools import file_open
 
 from odoo.addons.cadiffusion_base import _load_field_rename_map
 from odoo.addons.cadiffusion_base.field_rename import (
+    _TEXT_TARGETS,
     NEW_PREFIX,
     OLD_PREFIX,
     _ensure_journal,
@@ -193,3 +195,44 @@ class TestFieldRename(TransactionCase):
         self.assertEqual(current(ids[0]), domain)
         # Edited since: kept as edited, the converging name is not guessed.
         self.assertEqual(current(ids[1]), "[('cad_assurance', '=', 'INTERNE')]")
+
+    def test_mail_templates_are_rewritten(self):
+        """A Studio mail template rendering a renamed field in its body
+        (translated jsonb column) and recipients follows the rename, and the
+        journal restores it."""
+        cr = self.env.cr
+        targets = {table: columns + jsonb for table, columns, jsonb in _TEXT_TARGETS}
+        self.assertIn('body_html', targets.get('mail_template', ()))
+        self.assertIn('subject', targets.get('mail_template', ()))
+        self.assertIn('email_to', targets.get('mail_template', ()))
+        self.assertIn('body', targets.get('sms_template', ()))
+
+        model_id = self.env['ir.model']._get_id('stock.picking')
+        body = '<p><span t-esc="object.x_studio_n_commande"/></p>'
+        cr.execute("""INSERT INTO mail_template (name, model_id, model, body_html, email_to)
+                      VALUES ('{"en_US": "TEST RENAME"}', %s, 'stock.picking',
+                              %s, '{{ object.x_studio_n_commande }}')
+                      RETURNING id""",
+                   (model_id, json.dumps({'en_US': body, 'fr_FR': body})))
+        template_id = cr.fetchone()[0]
+
+        def current():
+            cr.execute("""SELECT body_html::text, email_to FROM mail_template
+                           WHERE id = %s""", (template_id,))
+            return cr.fetchone()
+
+        _ensure_journal(cr)
+        batch = '999998'
+        _rewrite_column(cr, 'mail_template', 'body_html', False, jsonb=True,
+                        only={'x_studio_n_commande'}, batch=batch)
+        _rewrite_column(cr, 'mail_template', 'email_to', False,
+                        only={'x_studio_n_commande'}, batch=batch)
+        rewritten_body, rewritten_to = current()
+        self.assertNotIn('x_studio_n_commande', rewritten_body)
+        self.assertEqual(rewritten_body.count('object.cad_n_commande'), 2)
+        self.assertEqual(rewritten_to, '{{ object.cad_n_commande }}')
+
+        _restore_text_rows(cr, batch)
+        restored_body, restored_to = current()
+        self.assertEqual(restored_body.count('object.x_studio_n_commande'), 2)
+        self.assertEqual(restored_to, '{{ object.x_studio_n_commande }}')

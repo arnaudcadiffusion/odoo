@@ -334,6 +334,13 @@ _TEXT_TARGETS = (
     ('ir_model_fields', ('related', 'depends', 'compute', 'domain'), ()),
     ('base_automation', ('filter_domain', 'filter_pre_domain'), ()),
     ('mail_activity_plan_template', ('note',), ()),
+    # Templates built in Studio render ``object.x_studio_*`` in their body,
+    # subject and recipients: a stale name breaks every automation that
+    # sends them (the delivery confirmation blocked picking validation).
+    ('mail_template', ('email_from', 'email_to', 'email_cc', 'partner_to',
+                       'reply_to', 'lang', 'scheduled_date'),
+     ('subject', 'body_html')),
+    ('sms_template', ('lang',), ('body',)),
     ('documents_document', ('spreadsheet_data',), ()),
     ('spreadsheet_dashboard', ('spreadsheet_data',), ()),
 )
@@ -415,6 +422,26 @@ def _rewrite_text_targets(cr, reverse=False, only=None, batch=None):
             if changed:
                 details['%s.%s' % (table, column)] = changed
     return details
+
+
+def _catch_up_text_targets(cr):
+    """Rewrites the text targets added after a rename batch already ran
+    (mail and SMS templates). Returns the journaled batch, or None.
+
+    Nothing to do while no batch has renamed the fields: the regular
+    ``_apply_field_rename`` then covers every target in one go. Idempotent:
+    a row already rewritten no longer carries the old prefix.
+    """
+    if not _applied_batches(cr):
+        return None
+    batch = _next_batch(cr)
+    details = _rewrite_text_targets(cr, reverse=False, batch=batch)
+    if not details:
+        return None
+    _journal(cr, batch=batch, direction='forward', scope='text',
+             details=json.dumps(details))
+    _logger.info('renommage, rattrapage du lot %s : %s', batch, details)
+    return batch
 
 
 def _restore_text_rows(cr, batch):
