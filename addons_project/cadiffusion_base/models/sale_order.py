@@ -43,10 +43,12 @@ class SaleOrder(models.Model):
     )
     # Created with Studio in production after the switch to v19
     # (x_studio_related_field_3a8_1k1oqd81b), shown on the quotation form by
-    # that Studio view; declared here since 19.0.1.0.32.
+    # that Studio view; declared here since 19.0.1.0.32. The hold is only
+    # ticked on the main customer record, never on its delivery or invoice
+    # addresses: read it from the commercial partner (task#19578).
     cad_bloquer = fields.Boolean(
         string='Bloquer',
-        related='partner_id.credit_on_hold',
+        related='partner_id.commercial_partner_id.credit_on_hold',
         readonly=True,
     )
 
