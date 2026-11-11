@@ -33,20 +33,24 @@ from odoo.addons.cadiffusion_base.studio_debris import (
 _logger = logging.getLogger(__name__)
 
 BLOQUER = ('sale.order', 'x_studio_related_field_3a8_1k1oqd81b')
-BLOQUER_RELATED = 'partner_id.credit_on_hold'
+# What the Studio field is expected to read in production. cad_bloquer
+# deliberately reads the same flag on the commercial partner (task#19578).
+BLOQUER_STUDIO_RELATED = 'partner_id.credit_on_hold'
 
 
 def _check_bloquer(cr):
     # The Studio field only exists in production: the code now declares it
-    # as cad_bloquer, related to partner_id.credit_on_hold. Say so loudly if
-    # the production field turns out to point elsewhere.
+    # as cad_bloquer, reading credit_on_hold on the commercial partner. Say
+    # so loudly if the production field turns out to read something else
+    # than the partner's credit_on_hold.
     cr.execute("""SELECT related FROM ir_model_fields
                    WHERE model = %s AND name = %s""", BLOQUER)
     row = cr.fetchone()
-    if row and row[0] != BLOQUER_RELATED:
+    if row and row[0] != BLOQUER_STUDIO_RELATED:
         _logger.warning(
-            "%s.%s is related to %r, cad_bloquer is declared as %r: check the "
-            "quotation form", BLOQUER[0], BLOQUER[1], row[0], BLOQUER_RELATED)
+            "%s.%s is related to %r, expected %r before its switch to the "
+            "commercial partner as cad_bloquer: check the quotation form",
+            BLOQUER[0], BLOQUER[1], row[0], BLOQUER_STUDIO_RELATED)
 
 
 def migrate(cr, version):
