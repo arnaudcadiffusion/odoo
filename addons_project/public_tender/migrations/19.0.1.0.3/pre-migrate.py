@@ -7,7 +7,7 @@ cad_*, "Tri champs studio v15" agreed with the customer).
 It has to happen HERE and not in cadiffusion_base: public_tender loads before
 it (cadiffusion_base depends on it), and its _auto_init would create empty
 cad_* columns next to the filled x_studio_* ones before the pre-migrate
-19.0.1.0.32 of cadiffusion_base runs.
+19.0.1.0.33 of cadiffusion_base runs.
 
 The mechanics (journal, rollback) live in cadiffusion_base/field_rename.py -
 see its header. Idempotent.
