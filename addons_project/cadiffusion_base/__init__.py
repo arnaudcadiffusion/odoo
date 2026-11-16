@@ -14,7 +14,7 @@ from .reference_state import (  # noqa: F401
     _reference_snapshot,
 )
 # Studio field rename (x_studio_* -> cad_*), applied by the pre-migrates of
-# 19.0.1.0.32 (and public_tender 19.0.1.0.3). See the header of
+# 19.0.1.0.33 (and public_tender 19.0.1.0.3). See the header of
 # field_rename.py.
 from .field_rename import (  # noqa: F401
     _apply_field_rename,
@@ -27,7 +27,7 @@ from .field_rename import (  # noqa: F401
 )
 # Séquelles Studio / v15 laissées en base par la bascule : inventaire et
 # quarantaine réversible. Also quarantines the fields the customer deleted
-# (pre-migrate 19.0.1.0.32).
+# (pre-migrate 19.0.1.0.33).
 from .studio_debris import (  # noqa: F401
     _quarantine_studio_debris,
     _restore_studio_debris,

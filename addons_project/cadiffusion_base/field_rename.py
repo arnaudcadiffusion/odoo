@@ -25,7 +25,7 @@ The current rename follows the "Tri champs studio v15" spreadsheet agreed with
 the customer (September 2026): kept fields get an explicit ``cad_*`` name,
 deleted fields are removed from the sources and quarantined in the database
 (``studio_debris._retire_fields``, see ``data/field_retire_map.csv``). It is
-applied by the pre-migrates of cadiffusion_base 19.0.1.0.32 and public_tender
+applied by the pre-migrates of cadiffusion_base 19.0.1.0.33 and public_tender
 19.0.1.0.3.
 
 Names are NOT mechanical: two old names may converge on the same new name on
@@ -770,7 +770,7 @@ def _rollback_field_rename_batches(cr, only=None):
 def _source_and_stale_columns(old, new):
     """(column the sources expect, column that is only a leftover).
 
-    Derived from SOURCE_PREFIX: since 19.0.1.0.32 the sources declare
+    Derived from SOURCE_PREFIX: since 19.0.1.0.33 the sources declare
     ``cad_*``, so the new name must carry the data and the old ``x_studio_*``
     column is what a dump that was never migrated still carries.
     """
@@ -796,9 +796,9 @@ def _repair_orphan_field_rename_data(cr):
     NULL — puis on laisse l'autre colonne en place, inerte, comme trace ;
     studio_debris.py saura la recenser.
 
-    The direction follows SOURCE_PREFIX: since 19.0.1.0.32 the ``x_studio_*``
+    The direction follows SOURCE_PREFIX: since 19.0.1.0.33 the ``x_studio_*``
     columns of a dump are copied into the ``cad_*`` ones. Called by the
-    post_init_hook and the post-migrate of 19.0.1.0.32. No effect when only
+    post_init_hook and the post-migrate of 19.0.1.0.33. No effect when only
     one of the two columns exists, that is on any consistent database.
     """
     repaired = 0

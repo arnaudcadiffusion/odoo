@@ -84,14 +84,14 @@ recouvrent pas. Le renommage ne touche que ce qui est déclaré, la quarantaine
 que ce qui ne l'est plus.
 
 --------------------------------------------------------------------------
-Retired fields (19.0.1.0.32)
+Retired fields (19.0.1.0.33)
 --------------------------------------------------------------------------
 
 The fields the customer chose to delete ("Tri champs studio v15",
 ``data/field_retire_map.csv``) are removed from the sources. Left alone, the
 next ``-u`` would have Odoo unlink their ``ir_model_fields`` rows (orphan
 xmlids, ``ir.model.data._process_end``) and DROP their columns. The
-pre-migrate of 19.0.1.0.32 calls ``_retire_fields`` first, which:
+pre-migrate of 19.0.1.0.33 calls ``_retire_fields`` first, which:
 
 * renames each stored column to ``zz_dead_<column>`` (and the relation table
   of a stored many2many to ``zz_dead_<table>``);
