@@ -5,7 +5,7 @@ from lxml import etree
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
-from odoo.tools import float_round
+from odoo.tools import float_compare, float_round
 from odoo.tools.pdf import OdooPdfFileReader, OdooPdfFileWriter
 
 _logger = logging.getLogger(__name__)
@@ -95,14 +95,22 @@ class AccountMove(models.Model):
 
     def _cadiffusion_insert_picking_sections(self):
         """Insert ``line_section`` rows above each contiguous group of product
-        lines that share the same done ``stock.picking``.
+        lines that share the same done delivery orders (``stock.picking``).
 
         Called from ``sale.order._create_invoices`` so the data is materialised
-        once at invoice creation. Each section is named ``BL : <picking.name>``,
-        suffixed with `` - <client_order_ref>`` when the picking's sale order
-        carries a customer reference.
+        once at invoice creation. Each section is named ``BL : <picking.name>``
+        (several names joined with ``, `` when one invoice line spans several
+        deliveries), suffixed with `` - <client_order_ref>`` when the sale
+        order carries a customer reference.
 
-        Sequence trick: existing line sequences are multiplied by 10, then each
+        The deliveries of an invoice line are resolved by quantity, like the
+        native invoiced-lot table: the quantities already invoiced on the sale
+        line (other, non-cancelled invoices) are skipped first, then the
+        deliveries covering this line's quantity are kept. A second invoice
+        after a second delivery therefore names the second delivery slip, not
+        the first one.
+
+        Sequence trick: existing lines are resequenced by steps of 10, then each
         section is inserted at ``(first_product_of_group.sequence) - 5`` — i.e.
         just before its group, without colliding with neighbours."""
         self.ensure_one()
@@ -112,47 +120,38 @@ class AccountMove(models.Model):
         if not product_lines:
             return
 
-        # Resolve picking name and customer reference per line in a single
-        # batched read.
-        product_lines.mapped('sale_line_ids.move_ids.picking_id.state')
-        picking_by_line = {}
-        client_ref_by_picking = {}
-        for line in product_lines:
-            if not line.sale_line_ids:
-                picking_by_line[line.id] = ''
-                continue
-            done_picking = line.sale_line_ids.move_ids.picking_id.filtered(
-                lambda p: p.state == 'done'
-            )[:1]
-            picking_by_line[line.id] = done_picking.name or ''
-            if done_picking and done_picking.name not in client_ref_by_picking:
-                client_ref_by_picking[done_picking.name] = (
-                    done_picking.sale_id.client_order_ref
-                    or line.sale_line_ids.order_id[:1].client_order_ref
-                    or ''
-                )
+        pickings_by_line = self._cadiffusion_pickings_per_invoice_line(product_lines)
 
         # Detect picking changes BEFORE we touch sequences.
-        sections_specs = []  # list of (anchor_line_id, picking_name)
-        prev_name = None
+        sections_specs = []  # list of (anchor_line_id, pickings)
+        prev_key = None
         for line in product_lines:
-            current_name = picking_by_line.get(line.id, '')
-            if current_name and current_name != prev_name:
-                sections_specs.append((line.id, current_name))
-                prev_name = current_name
+            pickings = pickings_by_line.get(line.id)
+            if pickings and pickings.ids != prev_key:
+                sections_specs.append((line.id, pickings))
+                prev_key = pickings.ids
 
         if not sections_specs:
             return
 
-        # Spread existing sequences ×10 so we can drop sections in between.
-        for ln in self.invoice_line_ids:
-            ln.sequence = max((ln.sequence or 0) * 10, 10)
+        # Resequence by steps of 10 (keeping the current order, even for lines
+        # sharing a sequence) so we can drop sections in between.
+        for index, ln in enumerate(
+            self.invoice_line_ids.sorted(key=lambda l: (l.sequence, l.id))
+        ):
+            ln.sequence = (index + 1) * 10
 
         sections_to_create = []
-        for anchor_id, picking_name in sections_specs:
+        for anchor_id, pickings in sections_specs:
             anchor = self.invoice_line_ids.browse(anchor_id)
-            section_name = 'BL : %s' % picking_name
-            client_ref = client_ref_by_picking.get(picking_name)
+            section_name = 'BL : %s' % ', '.join(pickings.mapped('name'))
+            client_ref = next(
+                (ref for ref in pickings.sale_id.mapped('client_order_ref') if ref),
+                None,
+            ) or next(
+                (ref for ref in anchor.sale_line_ids.order_id.mapped('client_order_ref') if ref),
+                None,
+            )
             if client_ref:
                 section_name = '%s - %s' % (section_name, client_ref)
             sections_to_create.append({
@@ -162,6 +161,88 @@ class AccountMove(models.Model):
                 'sequence': max(anchor.sequence - 5, 1),
             })
         self.env['account.move.line'].create(sections_to_create)
+
+    def _cadiffusion_pickings_per_invoice_line(self, product_lines):
+        """Return ``{invoice_line.id: stock.picking recordset}`` with the done
+        deliveries covering each product line of this invoice, sorted by
+        validation date.
+
+        Allocation is first-in first-out on the sale line: deliveries are
+        consumed in ``date_done`` order by the quantities invoiced on other
+        invoices, then by the lines of this invoice in sequence order. A line
+        whose quantity falls beyond every delivery (invoiced on ordered
+        quantities) is attached to the latest delivery."""
+        self.ensure_one()
+        # Prefetch in batch what the loop reads per line.
+        product_lines.sale_line_ids.move_ids.picking_id.mapped('date_done')
+        product_lines.sale_line_ids.invoice_lines.move_id.mapped('state')
+
+        consumed_here = {}  # sale_line.id -> qty taken by lines of this invoice
+        result = {}
+        for line in product_lines:
+            pickings = self.env['stock.picking']
+            for sale_line in line.sale_line_ids:
+                uom = sale_line.product_uom_id
+                qty = max(
+                    line.product_uom_id._compute_quantity(line.quantity, uom, round=False),
+                    0.0,
+                )
+                cursor = (
+                    self._cadiffusion_qty_invoiced_elsewhere(sale_line)
+                    + consumed_here.get(sale_line.id, 0.0)
+                )
+                pickings |= self._cadiffusion_pickings_covering(sale_line, cursor, qty)
+                consumed_here[sale_line.id] = consumed_here.get(sale_line.id, 0.0) + qty
+            result[line.id] = pickings.sorted(
+                key=lambda p: (p.date_done or fields.Datetime.now(), p.id)
+            )
+        return result
+
+    def _cadiffusion_qty_invoiced_elsewhere(self, sale_line):
+        """Signed quantity of ``sale_line`` invoiced on non-cancelled invoices
+        other than this one, in the sale line unit of measure."""
+        qty = 0.0
+        for inv_line in sale_line.invoice_lines:
+            move = inv_line.move_id
+            if move == self or move.state == 'cancel':
+                continue
+            line_qty = inv_line.product_uom_id._compute_quantity(
+                inv_line.quantity, sale_line.product_uom_id, round=False
+            )
+            if move.move_type == 'out_invoice':
+                qty += line_qty
+            elif move.move_type == 'out_refund':
+                qty -= line_qty
+        return qty
+
+    def _cadiffusion_pickings_covering(self, sale_line, cursor, qty):
+        """Done outgoing deliveries of ``sale_line`` whose cumulated delivered
+        quantity (in ``date_done`` order) overlaps ``[cursor, cursor + qty]``.
+        Falls back to the latest delivery when nothing overlaps."""
+        outgoing_moves, _incoming_moves = sale_line._get_outgoing_incoming_moves()
+        done_moves = outgoing_moves.filtered(lambda m: m.state == 'done' and m.picking_id)
+        if not done_moves:
+            return self.env['stock.picking']
+        uom = sale_line.product_uom_id
+        pickings = done_moves.picking_id.sorted(
+            key=lambda p: (p.date_done or fields.Datetime.now(), p.id)
+        )
+        covering = self.env['stock.picking']
+        cumulated = 0.0
+        for picking in pickings:
+            start = cumulated
+            cumulated += sum(
+                move.product_uom._compute_quantity(move.quantity, uom, rounding_method='HALF-UP')
+                for move in done_moves.filtered(lambda m: m.picking_id == picking)
+            )
+            if float_compare(cumulated, cursor, precision_rounding=uom.rounding) <= 0:
+                continue  # fully invoiced before this invoice
+            if float_compare(start, cursor + qty, precision_rounding=uom.rounding) >= 0 and (
+                qty > 0 or float_compare(start, cursor, precision_rounding=uom.rounding) > 0
+            ):
+                break  # beyond this line
+            covering |= picking
+        return covering or pickings[-1:]
 
     def _chorus_get_invoice(self, chorus_invoice_format):
         """Envoi Chorus au format pdf_factur-x : le PDF DOIT contenir le XML.
