@@ -22,6 +22,7 @@ class ProductSupplierinfo(models.Model):
             ('REP TCHEQUE', 'REP TCHEQUE'),
             ('SRI LANKA', 'SRI LANKA'),
             ('UK', 'UK'),
+            ('VIETNAM', 'VIETNAM'),
         ],
         string='Origine',
     )
