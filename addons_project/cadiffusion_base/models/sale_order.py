@@ -1,5 +1,9 @@
+import logging
+
 from odoo import api, fields, models
 from odoo.tools import float_is_zero, float_round
+
+_logger = logging.getLogger(__name__)
 
 
 class SaleOrder(models.Model):
@@ -49,6 +53,33 @@ class SaleOrder(models.Model):
     )
     x_studio_notes_commande = fields.Text(string='Notes Commande')
     x_studio_siret = fields.Char(string='SIRET')
+
+    # "Bloquer" tick of the quotation form: created with Studio in production
+    # after the switch to v19, it only exists in the database.
+    _BLOQUER_STUDIO_FIELD = 'x_studio_related_field_3a8_1k1oqd81b'
+    _BLOQUER_STUDIO_RELATED = 'partner_id.credit_on_hold'
+    _BLOQUER_RELATED = 'partner_id.commercial_partner_id.credit_on_hold'
+
+    @api.model
+    def _bloquer_follow_commercial_partner(self):
+        """The hold is only ticked on the main customer record, never on its
+        delivery or invoice addresses: make the Studio field read it from the
+        commercial partner (task#19578). Idempotent."""
+        studio_field = self.env['ir.model.fields']._get(
+            self._name, self._BLOQUER_STUDIO_FIELD)
+        if not studio_field or studio_field.related == self._BLOQUER_RELATED:
+            return
+        if studio_field.related != self._BLOQUER_STUDIO_RELATED:
+            _logger.warning(
+                "%s.%s is related to %r, expected %r: left untouched, check "
+                "the quotation form", self._name, self._BLOQUER_STUDIO_FIELD,
+                studio_field.related, self._BLOQUER_STUDIO_RELATED)
+            return
+        studio_field.related = self._BLOQUER_RELATED
+        registry_field = self._fields.get(self._BLOQUER_STUDIO_FIELD)
+        if registry_field is not None and registry_field.store:
+            self.env.add_to_compute(
+                registry_field, self.with_context(active_test=False).search([]))
 
     def _create_invoices(self, grouped=False, final=False, date=None):
         """When an invoice is created from one or several sale orders, insert a
