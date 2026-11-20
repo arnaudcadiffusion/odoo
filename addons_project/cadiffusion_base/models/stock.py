@@ -4,31 +4,23 @@ from odoo import api, fields, models
 class StockMove(models.Model):
     _inherit = 'stock.move'
 
-    x_studio_date_prvu = fields.Datetime(
+    cad_date_prevue = fields.Datetime(
         string='Date prévue',
         related='picking_id.scheduled_date',
         store=True,
         readonly=True,
     )
-    x_studio_date_transfert = fields.Datetime(
-        string='Date transfert',
-        related='move_line_ids.date',
-        store=True,
-        readonly=True,
-    )
-    x_studio_partenaire = fields.Char(
+    cad_partenaire = fields.Char(
         string='Partenaire',
         related='picking_id.partner_id.commercial_partner_id.name',
         store=True,
         readonly=True,
     )
-    x_studio_prix_remise = fields.Float(
+    cad_prix_remise = fields.Float(
         string='Prix Remise',
-        compute='_compute_x_studio_prix_remise',
+        compute='_compute_cad_prix_remise',
         store=True,
     )
-    x_studio_char_field_U2Qbo = fields.Char(string='New Texte')
-    x_studio_field_x143A = fields.Date(string='New Date')
 
     # ------------------------------------------------------------------
     # Colonne « Conditionnement » des opérations de transfert.
@@ -57,14 +49,14 @@ class StockMove(models.Model):
                 move.packaging_uom_id = carton
 
     @api.depends('sale_line_id.price_reduce_taxexcl')
-    def _compute_x_studio_prix_remise(self):
+    def _compute_cad_prix_remise(self):
         for rec in self:
-            rec.x_studio_prix_remise = rec.sale_line_id.price_reduce_taxexcl or 0.0
+            rec.cad_prix_remise = rec.sale_line_id.price_reduce_taxexcl or 0.0
 
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    x_studio_transport = fields.Selection(
+    cad_transport = fields.Selection(
         selection=[
             ('XPO', 'XPO P'),
             ('XPO KG', 'XPO KG'),
@@ -83,92 +75,73 @@ class StockPicking(models.Model):
         string='Transport',
         copy=False,
     )
-    x_studio_nb_palette = fields.Integer(string='Nb Palette', default=0, copy=False)
-    x_studio_nb_palette_euro = fields.Integer(string='Nb Palette EURO', default=0, copy=False)
-    x_studio_dpd_nb_colis = fields.Integer(string='Nb Etiquette DPD', default=0, copy=False)
-    x_studio_cout_transport = fields.Float(string='Cout Transport', copy=False)
-    x_studio_nb_bl_groupe = fields.Integer(string='Nb BL groupe', default=0, copy=False)
-    x_studio_bl_groupe = fields.Boolean(string='BL groupe', default=False, copy=False)
-    x_studio_id_bl_groupe = fields.Text(string='ID BL groupe', copy=False)
-    x_studio_impression_bl = fields.Boolean(
+    cad_nb_palette = fields.Integer(string='Nb Palette', default=0, copy=False)
+    cad_nb_palette_euro = fields.Integer(string='Nb Palette EURO', default=0, copy=False)
+    cad_dpd_nb_colis = fields.Integer(string='Nb Etiquette DPD', default=0, copy=False)
+    cad_cout_transport = fields.Float(string='Cout Transport', copy=False)
+    cad_nb_bl_groupe = fields.Integer(string='Nb BL groupe', default=0, copy=False)
+    cad_bl_groupe = fields.Boolean(string='BL groupe', default=False, copy=False)
+    cad_id_bl_groupe = fields.Text(string='ID BL groupe', copy=False)
+    cad_impression_bl = fields.Boolean(
         string='Impression BL',
         default=False,
         copy=False,
         tracking=True,
     )
-    x_studio_erreur_client = fields.Boolean(string='Erreur Client', default=False)
-    x_studio_erreur_preparation = fields.Boolean(string='Erreur Preparation', default=False, copy=False)
-    x_studio_erreur_saisie = fields.Boolean(string='Erreur Saisie', default=False)
-    x_studio_autres = fields.Boolean(string='Autres', default=False)
-    x_studio_notes_erreur = fields.Text(string='Notes Erreur')
-    x_studio_notes_internes = fields.Text(
+    cad_erreur_client = fields.Boolean(string='Erreur Client', default=False)
+    cad_erreur_preparation = fields.Boolean(string='Erreur Preparation', default=False, copy=False)
+    cad_erreur_saisie = fields.Boolean(string='Erreur Saisie', default=False)
+    cad_autres = fields.Boolean(string='Autres', default=False)
+    cad_notes_erreur = fields.Text(string='Notes Erreur')
+    cad_notes_internes = fields.Text(
         string='Notes Internes',
-        related='sale_id.partner_shipping_id.x_studio_notes_internes',
+        related='sale_id.partner_shipping_id.cad_notes_internes',
         store=True,
         readonly=True,
     )
-    x_studio_livraison = fields.Html(
+    cad_livraison = fields.Html(
         string='Instruction livraison',
         related='sale_id.partner_shipping_id.comment',
         store=True,
     )
-    x_studio_n_commande = fields.Char(
+    cad_n_commande = fields.Char(
         string='N# Commande',
         related='sale_id.client_order_ref',
         store=True,
     )
-    x_studio_n_partenaire = fields.Char(
+    cad_n_partenaire = fields.Char(
         string='N# Partenaire',
         related='partner_id.ref',
         store=True,
     )
-    x_studio_cre_par = fields.Char(
-        string='Créé par',
-        related='sale_id.create_uid.name',
-        store=True,
-    )
-    x_studio_field_GzsJK = fields.Char(
-        string='Créé par (utilisateur)',
-        related='create_uid.name',
-        store=True,
-    )
-    x_studio_field_p3dnG = fields.Char(
-        string='Réf. fournisseur',
-        related='purchase_id.partner_ref',
-        store=True,
-        readonly=True,
-    )
-    x_studio_mode_livraison_xpo = fields.Selection(
+    cad_mode_livraison_xpo = fields.Selection(
         string='Mode Livraison XPO',
-        related='partner_id.x_studio_livraison_xpo',
+        related='partner_id.cad_livraison_xpo',
         store=True,
         readonly=True,
     )
     # Choices managed by the users in ca.diffusion.preparer
     # (Inventory → Configuration → Preparers): the hardcoded list
     # inherited from the v15 dump drifted from production (blank tab).
-    x_studio_prparateur = fields.Selection(
+    cad_preparateur = fields.Selection(
         selection=lambda self: self.env['ca.diffusion.preparer']
             ._selection_for('transfer'),
         string='Préparateur',
         copy=False,
     )
-    x_studio_premium_xpo = fields.Boolean(string='Premium XPO', default=False, copy=False)
+    cad_premium_xpo = fields.Boolean(string='Premium XPO', default=False, copy=False)
 
-    @api.constrains('x_studio_prparateur')
-    def _check_x_studio_prparateur(self):
+    @api.constrains('cad_preparateur')
+    def _check_cad_preparateur(self):
         self.env['ca.diffusion.preparer']._check_field_values(
-            self, 'x_studio_prparateur', 'transfer')
+            self, 'cad_preparateur', 'transfer')
 
 
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
-    x_studio_ref_article = fields.Char(
+    cad_ref_article = fields.Char(
         string='Ref Article',
         related='product_id.default_code',
         store=True,
-    )
-    x_studio_substitution = fields.Char(
-        string='Substitution',
     )

@@ -40,55 +40,55 @@ class TestPreparerLists(TransactionCase):
                     % (model_name, field_name, sorted(orphans)))
 
     def test_seed_provides_historical_values(self):
-        keys = self._selection_keys('stock.picking', 'x_studio_prparateur')
+        keys = self._selection_keys('stock.picking', 'cad_preparateur')
         for name in ('CYRIL', 'DAVID', 'ANCIEN SALARIE'):
             self.assertIn(name, keys)
         self.assertIn(
             'AUTRE',
-            self._selection_keys('mrp.production', 'x_studio_preparateur_kit'))
+            self._selection_keys('mrp.production', 'cad_preparateur_kit'))
 
     def test_new_entry_becomes_selectable(self):
         self.Preparateur.create(
             {'name': ' TEST NOUVEAU ', 'list_type': 'transfer'})
-        keys = self._selection_keys('stock.picking', 'x_studio_prparateur')
+        keys = self._selection_keys('stock.picking', 'cad_preparateur')
         self.assertIn('TEST NOUVEAU', keys)
         self.assertNotIn(' TEST NOUVEAU ', keys)
-        self.picking.x_studio_prparateur = 'TEST NOUVEAU'
-        self.assertEqual(self.picking.x_studio_prparateur, 'TEST NOUVEAU')
+        self.picking.cad_preparateur = 'TEST NOUVEAU'
+        self.assertEqual(self.picking.cad_preparateur, 'TEST NOUVEAU')
 
     def test_unknown_value_rejected(self):
         """Rejected by our constraint: the v19 ORM no longer validates
         dynamic Selections."""
         with self.assertRaises(ValidationError):
-            self.picking.x_studio_prparateur = 'HORS LISTE'
-            self.picking.flush_recordset(['x_studio_prparateur'])
+            self.picking.cad_preparateur = 'HORS LISTE'
+            self.picking.flush_recordset(['cad_preparateur'])
 
     def test_rename_propagates_to_records(self):
         entry = self.Preparateur.create(
             {'name': 'TEST RENOMMAGE', 'list_type': 'transfer'})
-        self.picking.x_studio_prparateur = 'TEST RENOMMAGE'
+        self.picking.cad_preparateur = 'TEST RENOMMAGE'
         entry.name = 'TEST RENOMME'
-        self.assertEqual(self.picking.x_studio_prparateur, 'TEST RENOMME')
-        keys = self._selection_keys('stock.picking', 'x_studio_prparateur')
+        self.assertEqual(self.picking.cad_preparateur, 'TEST RENOMME')
+        keys = self._selection_keys('stock.picking', 'cad_preparateur')
         self.assertIn('TEST RENOMME', keys)
         self.assertNotIn('TEST RENOMMAGE', keys)
 
     def test_unlink_blocked_while_used(self):
         entry = self.Preparateur.create(
             {'name': 'TEST SUPPRESSION', 'list_type': 'transfer'})
-        self.picking.x_studio_prparateur = 'TEST SUPPRESSION'
+        self.picking.cad_preparateur = 'TEST SUPPRESSION'
         with self.assertRaises(UserError):
             entry.unlink()
-        self.picking.x_studio_prparateur = False
+        self.picking.cad_preparateur = False
         entry.unlink()
         self.assertNotIn(
             'TEST SUPPRESSION',
-            self._selection_keys('stock.picking', 'x_studio_prparateur'))
+            self._selection_keys('stock.picking', 'cad_preparateur'))
 
     def test_list_type_change_blocked_while_used(self):
         entry = self.Preparateur.create(
             {'name': 'TEST DEPLACEMENT', 'list_type': 'transfer'})
-        self.picking.x_studio_prparateur = 'TEST DEPLACEMENT'
+        self.picking.cad_preparateur = 'TEST DEPLACEMENT'
         with self.assertRaises(UserError):
             entry.list_type = 'kit'
 
@@ -97,25 +97,25 @@ class TestPreparerLists(TransactionCase):
             {'name': 'TEST ARCHIVE LIBRE', 'list_type': 'transfer'})
         used = self.Preparateur.create(
             {'name': 'TEST ARCHIVE PORTE', 'list_type': 'transfer'})
-        self.picking.x_studio_prparateur = 'TEST ARCHIVE PORTE'
+        self.picking.cad_preparateur = 'TEST ARCHIVE PORTE'
         (unused + used).action_archive()
-        keys = self._selection_keys('stock.picking', 'x_studio_prparateur')
+        keys = self._selection_keys('stock.picking', 'cad_preparateur')
         self.assertNotIn('TEST ARCHIVE LIBRE', keys)
         self.assertIn('TEST ARCHIVE PORTE', keys)
 
     def test_seed_recovers_legacy_value(self):
         """Value unknown to the code sleeping in the column (v15 drift):
         picked up by the seeding without touching the data."""
-        self.picking.flush_recordset(['x_studio_prparateur'])
+        self.picking.flush_recordset(['cad_preparateur'])
         self.env.cr.execute(
-            "UPDATE stock_picking SET x_studio_prparateur = %s WHERE id = %s",
+            "UPDATE stock_picking SET cad_preparateur = %s WHERE id = %s",
             ('TEST VALEUR HERITEE', self.picking.id))
-        self.picking.invalidate_recordset(['x_studio_prparateur'])
+        self.picking.invalidate_recordset(['cad_preparateur'])
         self.Preparateur._seed_lists()
-        keys = self._selection_keys('stock.picking', 'x_studio_prparateur')
+        keys = self._selection_keys('stock.picking', 'cad_preparateur')
         self.assertIn('TEST VALEUR HERITEE', keys)
         self.assertEqual(
-            self.picking.x_studio_prparateur, 'TEST VALEUR HERITEE')
+            self.picking.cad_preparateur, 'TEST VALEUR HERITEE')
         entry = self.Preparateur.search(
             [('name', '=', 'TEST VALEUR HERITEE'),
              ('list_type', '=', 'transfer')])

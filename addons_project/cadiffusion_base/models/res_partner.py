@@ -34,7 +34,7 @@ class ResPartner(models.Model):
         for partner in self:
             partner.peppol_response_support = False
 
-    x_studio_secteur = fields.Selection(
+    cad_secteur = fields.Selection(
         selection=[
             ('100 - THOMAS', '100 - THOMAS'),
             ('210', '210 - DEVERGNIES'),
@@ -52,25 +52,14 @@ class ResPartner(models.Model):
         ],
         string='Secteur',
     )
-    x_studio_categorie_client = fields.Selection(
-        selection=[
-            ('AUTRE', 'AUTRE'),
-            ('DISTRIBUTEUR AGRO - INDUS - HYG', 'DISTRIBUTEUR AGRO - INDUS - HYG'),
-            ('DISTRIBUTEUR MEDICAL', 'DISTRIBUTEUR MEDICAL'),
-            ('DIVERS AGRO - INDUS - HYG', 'DIVERS AGRO - INDUS - HYG'),
-            ('DIVERS MEDICAL', 'DIVERS MEDICAL'),
-            ('EHPAD', 'EHPAD'),
-            ('FOURNISSEUR', 'FOURNISSEUR'),
-            ('HOPITAL PRIVE - CLINIQUE', 'HOPITAL PRIVE - CLINIQUE'),
-            ('HOPITAL PUBLIC', 'HOPITAL PUBLIC'),
-            ('INTERNE', 'INTERNE'),
-            ('MAIRIE - COLLECTIVITE - CRECHE', 'MAIRIE - COLLECTIVITE - CRECHE'),
-            ('SDIS', 'SDIS'),
-            ('VAD', 'VAD'),
-        ],
+    # Choices managed by the users in ca.diffusion.customer.category
+    # (Sales → Configuration → Customer Categories).
+    cad_categorie_client = fields.Selection(
+        selection=lambda self: self.env['ca.diffusion.customer.category']
+            ._selection_for('customer_category'),
         string='Categorie Client',
     )
-    x_studio_atradius = fields.Selection(
+    cad_assurance = fields.Selection(
         selection=[
             ('ACCEPTEE', 'ACCEPTEE'),
             ('ANNULEE/REFUSEE', 'ANNULEE/REFUSEE'),
@@ -82,7 +71,7 @@ class ResPartner(models.Model):
         ],
         string='Assurance',
     )
-    x_studio_livraison_xpo = fields.Selection(
+    cad_livraison_xpo = fields.Selection(
         selection=[
             ('STANDARD', 'STANDARD'),
             ('PRENDRE RDV', 'PRENDRE RDV'),
@@ -90,18 +79,22 @@ class ResPartner(models.Model):
         ],
         string='Livraison XPO',
     )
-    x_studio_code_service_chorus = fields.Char(string='Code Service Chorus')
-    x_studio_assurance = fields.Char(string='Credit Safe', tracking=True)
-    x_studio_notes_internes = fields.Text(string='Notes Internes')
-    x_studio_prospect = fields.Boolean(string='Prospect', default=False)
-    x_studio_adresse_echantillon = fields.Boolean(string='Adresse Echantillon', default=False)
-    x_studio_interets_moratoires = fields.Boolean(string='Interets Moratoires', default=False)
-    x_studio_livraison_vl = fields.Boolean(string='Livraison VL', default=False)
-    x_studio_char_field_zcf7n = fields.Char(string='Fermeture 1')
-    x_studio_fermeture_2 = fields.Char(string='Fermeture 2')
-    x_studio_ouverture_1 = fields.Char(string='Ouverture 1')
-    x_studio_ouverture_2 = fields.Char(string='Ouverture 2')
-    x_studio_field_SlKde = fields.Boolean(string='New Case à cocher', default=False)
+    cad_code_service_chorus = fields.Char(string='Code Service Chorus')
+    cad_credit_safe = fields.Char(string='Credit Safe', tracking=True)
+    cad_notes_internes = fields.Text(string='Notes Internes')
+    cad_prospect = fields.Boolean(string='Prospect', default=False)
+    cad_adresse_echantillon = fields.Boolean(string='Adresse Echantillon', default=False)
+    cad_interets_moratoires = fields.Boolean(string='Interets Moratoires', default=False)
+    cad_livraison_vl = fields.Boolean(string='Livraison VL', default=False)
+    cad_fermeture_1 = fields.Char(string='Fermeture 1')
+    cad_fermeture_2 = fields.Char(string='Fermeture 2')
+    cad_ouverture_1 = fields.Char(string='Ouverture 1')
+    cad_ouverture_2 = fields.Char(string='Ouverture 2')
+
+    @api.constrains('cad_categorie_client')
+    def _check_cad_categorie_client(self):
+        self.env['ca.diffusion.customer.category']._check_field_values(
+            self, 'cad_categorie_client', 'customer_category')
 
     # Synchronisation v15 : invoice_sending_method était un related de
     # customer_invoice_transmit_method_id.code. En Odoo 19 c'est un champ

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="ca_diffusion_customer_category_view_list" model="ir.ui.view">
+        <field name="name">ca.diffusion.customer.category.view.list</field>
+        <field name="model">ca.diffusion.customer.category</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="list_type" column_invisible="1"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="ca_diffusion_customer_category_view_search" model="ir.ui.view">
+        <field name="name">ca.diffusion.customer.category.view.search</field>
+        <field name="model">ca.diffusion.customer.category</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter string="Archived" name="inactive"
+                        domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="ca_diffusion_customer_category_action" model="ir.actions.act_window">
+        <field name="name">Customer Categories</field>
+        <field name="res_model">ca.diffusion.customer.category</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add a customer category
+            </p>
+            <p>
+                These names feed the Categorie Client field of contacts.
+                Renaming an entry updates the contacts carrying it;
+                archiving an entry stops offering it without touching
+                the history.
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="ca_diffusion_customer_category_menu"
+              name="Customer Categories"
+              parent="sale.menu_sale_config"
+              action="ca_diffusion_customer_category_action"
+              groups="sales_team.group_sale_manager"
+              sequence="90"/>
+
+</odoo>
